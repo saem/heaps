@@ -4,7 +4,7 @@ class PassObject {
 	@:noCompletion public var next : PassObject;
 	var nextAlloc : PassObject;
 	public var pass : h3d.mat.Pass;
-	public var obj : h3d.scene.Object;
+	public var obj : DrawObject;
 	public var index : Int;
 
 	// cache

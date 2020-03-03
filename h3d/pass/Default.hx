@@ -61,7 +61,7 @@ class Default extends Base {
 					ctx.lightSystem.initGlobals(globals);
 					lightInit = true;
 				}
-				shaders = ctx.lightSystem.computeLight(p.obj, shaders);
+				shaders = ctx.lightSystem.computeLight(h3d.scene.Object.ObjectMap.get(p.obj.id), shaders);
 			}
 			p.shader = manager.compileShaders(shaders, p.pass.batchMode);
 			p.shaders = shaders;
@@ -82,7 +82,7 @@ class Default extends Base {
 	function drawObject( p : h3d.pass.PassObject ) {
 		ctx.drawPass = p;
 		ctx.engine.selectMaterial(p.pass);
-		@:privateAccess p.obj.draw(ctx);
+		h3d.scene.Object.drawObject(p.obj, ctx);
 	}
 
 	@:access(h3d.scene)

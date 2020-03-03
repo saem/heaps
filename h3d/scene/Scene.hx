@@ -284,7 +284,7 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 		This is a very precise way of doing scene picking since it performs exactly the same transformations (skinning, custom shaders, etc.) but might be more costly than using CPU colliders.
 		Please note that when done during/after rendering, this might clear the screen on some platforms so it should always be done before rendering.
 	**/
-	public function hardwarePick( pixelX : Float, pixelY : Float) {
+	public function hardwarePick( pixelX : Float, pixelY : Float): Object {
 		var engine = h3d.Engine.getCurrent();
 		camera.screenRatio = engine.width / engine.height;
 		camera.update();
@@ -321,7 +321,7 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 			if( p.pickedIndex >= 0 )
 				for( po in passes )
 					if( p.pickedIndex-- == 0 ) {
-						found = po.obj;
+						found = Std.downcast(Object.ObjectMap.get(po.obj.id), h3d.scene.Object);
 						break;
 					}
 		}

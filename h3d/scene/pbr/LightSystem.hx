@@ -3,8 +3,8 @@ package h3d.scene.pbr;
 @:access(h3d.scene.pbr.Light)
 class LightSystem extends h3d.scene.LightSystem {
 
-	override function computeLight( obj : h3d.scene.Object, shaders : hxsl.ShaderList ) : hxsl.ShaderList {
-		var light = hxd.impl.Api.downcast(obj, h3d.scene.pbr.Light);
+	override function computeLight( obj : h3d.pass.DrawObject, shaders : hxsl.ShaderList ) : hxsl.ShaderList {
+		var light = hxd.impl.Api.downcast(h3d.scene.Object.ObjectMap.get(obj.id), h3d.scene.pbr.Light);
 		if( light != null ) {
 			shaders = ctx.allocShaderList(light.shader, shaders);
 			if( light.shadows.shader != null && light.shadows.mode != None )

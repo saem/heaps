@@ -59,7 +59,7 @@ class LightSystem {
 		}
 	}
 
-	public function computeLight( obj : h3d.scene.Object, shaders : hxsl.ShaderList ) : hxsl.ShaderList {
+	public function computeLight( obj : h3d.pass.DrawObject, shaders : hxsl.ShaderList ) : hxsl.ShaderList {
 		return shaders;
 	}
 

@@ -1,6 +1,6 @@
 package h3d.scene;
 
-@:enum abstract ObjectFlags(Int) {
+private enum abstract ObjectFlags(Int) {
 	public var FPosChanged = 0x01;
 	public var FVisible = 0x02;
 	public var FCulled = 0x04;
@@ -13,6 +13,7 @@ package h3d.scene;
 	public var FIgnoreBounds = 0x200;
 	public var FIgnoreCollide = 0x400;
 	public var FIgnoreParentTransform = 0x800;
+	// public var FFollowing = 0x1000;
 	public inline function new(value) {
 		this = value;
 	}
@@ -30,10 +31,15 @@ package h3d.scene;
 	so the various transforms are inherited to its children.
 **/
 class Object implements hxd.impl.Serializable {
+	static var ObjectId: Int = 0;
+	public static final ObjectMap: haxe.ds.Map<Int, Object> = new haxe.ds.Map();
+
+	/**
+		Numeric ID, will be used to work towards an ECS.
+	**/
+	public final id: Int = ObjectId++;
 
 	static inline var ROT2RAD = -0.017453292519943295769236907684886;
-
-	@:s var flags : ObjectFlags;
 	var children : Array<Object>;
 
 	/**
@@ -52,6 +58,11 @@ class Object implements hxd.impl.Serializable {
 	@:s public var name : Null<String>;
 
 	/**
+		Various flags, such as whether to render or not.
+	**/
+	@:s var flags : ObjectFlags;
+
+	/**
 		The x position of the object relative to its parent.
 	**/
 	@:s public var x(default,set) : Float;
@@ -65,6 +76,16 @@ class Object implements hxd.impl.Serializable {
 		The z position of the object relative to its parent.
 	**/
 	@:s public var z(default, set) : Float;
+
+	/**
+		Follow a given object or joint as if it was our parent. Ignore defaultTransform when set.
+	**/
+	@:s public var follow(default, set) : Object;
+
+	/**
+		When follow is set, only follow the position and ignore both scale and rotation.
+	**/
+	public var followPositionOnly(get, set) : Bool;
 
 	/**
 		The amount of scaling along the X axis of this object (default 1.0)
@@ -81,30 +102,17 @@ class Object implements hxd.impl.Serializable {
 	**/
 	@:s public var scaleZ(default,set) : Float;
 
-
-	/**
-		Is the object and its children are displayed on screen (default true).
-	**/
-	public var visible(get, set) : Bool;
-
-	var allocated(get,set) : Bool;
-
-	/**
-		Follow a given object or joint as if it was our parent. Ignore defaultTransform when set.
-	**/
-	@:s public var follow(default, set) : Object;
-
-	/**
-		When follow is set, only follow the position and ignore both scale and rotation.
-	**/
-	public var followPositionOnly(get, set) : Bool;
-
 	/**
 		This is an additional optional transformation that is performed before other local transformations.
 		It is used by the animation system.
 	**/
 	public var defaultTransform(default, set) : h3d.Matrix;
 	@:s public var currentAnimation(default, null) : h3d.anim.Animation;
+
+	/**
+		Is the object and its children are displayed on screen (default true).
+	**/
+	public var visible(get, set) : Bool;
 
 	/**
 		Inform that the object is not to be displayed and his animation doesn't have to be sync. Unlike visible, this doesn't apply to children unless inheritCulled is set to true.
@@ -150,11 +158,12 @@ class Object implements hxd.impl.Serializable {
 
 	public var cullingCollider : h3d.col.Collider;
 
-	var absPos : h3d.Matrix;
+	public var absPos(default, null) : h3d.Matrix;
 	var invPos : h3d.Matrix;
 	var qRot : h3d.Quat;
 	var posChanged(get,set) : Bool;
 	var lastFrame : Int;
+	var allocated(get,set) : Bool;
 
 	/**
 		Create a new empty object, and adds it to the parent object if not null.
@@ -481,6 +490,7 @@ class Object implements hxd.impl.Serializable {
 	// kept for internal init
 	function onAdd() {
 		allocated = true;
+		ObjectMap.set(this.id, this);
 		for( c in children )
 			c.onAdd();
 	}
@@ -488,6 +498,7 @@ class Object implements hxd.impl.Serializable {
 	// kept for internal cleanup
 	function onRemove() {
 		allocated = false;
+		ObjectMap.remove(this.id);
 		for( c in children )
 			c.onRemove();
 	}
@@ -604,6 +615,7 @@ class Object implements hxd.impl.Serializable {
 
 	function set_follow(v) {
 		posChanged = true;
+
 		return follow = v;
 	}
 
@@ -970,4 +982,100 @@ class Object implements hxd.impl.Serializable {
 	}
 	#end
 
+	@:allow(h3d.pass.Default) private static function drawObject(obj: h3d.pass.DrawObject, ctx: RenderContext) {
+		final o = Object.ObjectMap.get(obj.id);
+		if (o != null)
+			o.draw(ctx);
+	}
+}
+
+private class Position {
+	final id: Int;
+
+	public function new(id: Int) {
+		this.id = id;
+	}
+
+	/**
+		The x position of the object relative to its parent.
+	**/
+	public var x(default,set) : Float;
+
+	/**
+		The y position of the object relative to its parent.
+	**/
+	public var y(default, set) : Float;
+
+	/**
+		The z position of the object relative to its parent.
+	**/
+	public var z(default, set) : Float;
+
+	/**
+		Rotation/Orientation as a quarternion.
+	**/
+	public var rotationQuat(default, set) : h3d.Quat;
+	
+	/**
+		The amount of scaling along the X axis of this object (default 1.0)
+	**/
+	@:s public var scaleX(default,set) : Float;
+
+	/**
+		The amount of scaling along the Y axis of this object (default 1.0)
+	**/
+	@:s public var scaleY(default, set) : Float;
+
+	/**
+		The amount of scaling along the Z axis of this object (default 1.0)
+	**/
+	@:s public var scaleZ(default,set) : Float;
+
+	inline function set_x(x) {
+		// posChanged = true;
+		return this.x = x;
+	}
+
+	inline function set_y(y) {
+		// posChanged = true;
+		return this.y = y;
+	}
+
+	inline function set_z(z) {
+		// posChanged = true;
+		return this.z = z;
+	}
+
+	inline function set_rotationQuat(q: h3d.Quat) {
+		// posChanged = true;
+		return this.rotationQuat = q;
+	}
+
+	inline function set_scaleX(v) {
+		scaleX = v;
+		// posChanged = true;
+		return v;
+	}
+
+	inline function set_scaleY(v) {
+		scaleY = v;
+		// posChanged = true;
+		return v;
+	}
+
+	inline function set_scaleZ(v) {
+		scaleZ = v;
+		// posChanged = true;
+		return v;
+	}
+
+	/**
+		Set the uniform scale for the object.
+	**/
+	public inline function setScale( v : Float ) {
+		scaleX = v;
+		scaleY = v;
+		scaleZ = v;
+		// posChanged = true;
+	}
 }
