@@ -45,7 +45,7 @@ class LightSystem extends h3d.scene.LightSystem {
 		return @:privateAccess (l1.objectDistance < l2.objectDistance ? -1 : 1);
 	}
 
-	override function computeLight( obj : h3d.scene.Object, shaders : hxsl.ShaderList ) : hxsl.ShaderList @:privateAccess {
+	override function computeLight( obj : h3d.pass.DrawObject, shaders : hxsl.ShaderList ) : hxsl.ShaderList @:privateAccess {
 		if( lightCount > maxLightsPerObject ) {
 			var l = ctx.lights;
 			while( l != null ) {
