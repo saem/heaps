@@ -46,6 +46,11 @@ class Object implements hxd.impl.Serializable {
 	public var parent(default, null) : Object;
 
 	/**
+		Follow a given object or joint as if it was our parent. Ignore defaultTransform when set.
+	**/
+	@:s public var follow(default, set) : Object;
+
+	/**
 		How many immediate children this object has.
 	**/
 	public var numChildren(get, never) : Int;
@@ -63,37 +68,32 @@ class Object implements hxd.impl.Serializable {
 	/**
 		The x position of the object relative to its parent.
 	**/
-	@:s public var x(default,set) : Float;
+	@:s public var x(get,set) : Float;
 
 	/**
 		The y position of the object relative to its parent.
 	**/
-	@:s public var y(default, set) : Float;
+	@:s public var y(get, set) : Float;
 
 	/**
 		The z position of the object relative to its parent.
 	**/
-	@:s public var z(default, set) : Float;
-
-	/**
-		Follow a given object or joint as if it was our parent. Ignore defaultTransform when set.
-	**/
-	@:s public var follow(default, set) : Object;
+	@:s public var z(get, set) : Float;
 
 	/**
 		The amount of scaling along the X axis of this object (default 1.0)
 	**/
-	@:s public var scaleX(default,set) : Float;
+	@:s public var scaleX(get,set) : Float;
 
 	/**
 		The amount of scaling along the Y axis of this object (default 1.0)
 	**/
-	@:s public var scaleY(default, set) : Float;
+	@:s public var scaleY(get, set) : Float;
 
 	/**
 		The amount of scaling along the Z axis of this object (default 1.0)
 	**/
-	@:s public var scaleZ(default,set) : Float;
+	@:s public var scaleZ(get,set) : Float;
 
 	/**
 		This is an additional optional transformation that is performed before other local transformations.
@@ -154,8 +154,9 @@ class Object implements hxd.impl.Serializable {
 	public var cullingCollider : h3d.col.Collider;
 
 	public var absPos(default, null) : h3d.Matrix;
+	var pos: Position;
 	var invPos : h3d.Matrix;
-	var qRot : h3d.Quat;
+	var qRot(get, set) : h3d.Quat;
 	var posChanged(get,set) : Bool;
 	var lastFrame : Int;
 	var allocated(get,set) : Bool;
@@ -167,6 +168,8 @@ class Object implements hxd.impl.Serializable {
 		flags = new ObjectFlags(0);
 		absPos = new h3d.Matrix();
 		absPos.identity();
+		pos = new Position(id);
+
 		x = 0; y = 0; z = 0; scaleX = 1; scaleY = 1; scaleZ = 1;
 		qRot = new h3d.Quat();
 		posChanged = false;
@@ -176,6 +179,20 @@ class Object implements hxd.impl.Serializable {
 			parent.addChild(this);
 	}
 
+	inline function get_x() return this.pos.x;
+	inline function set_x(v) return this.pos.x = v;
+	inline function get_y() return this.pos.y;
+	inline function set_y(v) return this.pos.y = v;
+	inline function get_z() return this.pos.z;
+	inline function set_z(v) return this.pos.z = v;
+	inline function get_scaleX() return this.pos.scaleX;
+	inline function set_scaleX(v) return this.pos.scaleX = v;
+	inline function get_scaleY() return this.pos.scaleY;
+	inline function set_scaleY(v) return this.pos.scaleY = v;
+	inline function get_scaleZ() return this.pos.scaleZ;
+	inline function set_scaleZ(v) return this.pos.scaleZ = v;
+	inline function get_qRot() return this.pos.rotationQuat;
+	inline function set_qRot(q) return this.pos.rotationQuat = q;
 	inline function get_visible() return flags.has(FVisible);
 	inline function get_allocated() return flags.has(FAllocated);
 	inline function get_posChanged() return flags.has(FPosChanged);
@@ -714,42 +731,6 @@ class Object implements hxd.impl.Serializable {
 			c.emitRec(ctx);
 	}
 
-	inline function set_x(v) {
-		x = v;
-		posChanged = true;
-		return v;
-	}
-
-	inline function set_y(v) {
-		y = v;
-		posChanged = true;
-		return v;
-	}
-
-	inline function set_z(v) {
-		z = v;
-		posChanged = true;
-		return v;
-	}
-
-	inline function set_scaleX(v) {
-		scaleX = v;
-		posChanged = true;
-		return v;
-	}
-
-	inline function set_scaleY(v) {
-		scaleY = v;
-		posChanged = true;
-		return v;
-	}
-
-	inline function set_scaleZ(v) {
-		scaleZ = v;
-		posChanged = true;
-		return v;
-	}
-
 	inline function set_defaultTransform(v) {
 		defaultTransform = v;
 		posChanged = true;
@@ -847,20 +828,14 @@ class Object implements hxd.impl.Serializable {
 		Scale uniformly the object by the given factor.
 	**/
 	public inline function scale( v : Float ) {
-		scaleX *= v;
-		scaleY *= v;
-		scaleZ *= v;
-		posChanged = true;
+		this.pos.scale(v);
 	}
 
 	/**
 		Set the uniform scale for the object.
 	**/
 	public inline function setScale( v : Float ) {
-		scaleX = v;
-		scaleY = v;
-		scaleZ = v;
-		posChanged = true;
+		this.pos.setScale(v);
 	}
 
 	/**
@@ -1087,6 +1062,16 @@ private class Position {
 		scaleZ = v;
 		posChanged = true;
 		return v;
+	}
+
+	/**
+		Scale uniformly the object by the given factor.
+	**/
+	public inline function scale(v: Float) {
+		scaleX *= v;
+		scaleY *= v;
+		scaleZ *= v;
+		posChanged = true;
 	}
 
 	/**
