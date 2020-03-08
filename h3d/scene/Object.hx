@@ -68,7 +68,7 @@ class Object implements hxd.impl.Serializable {
 	/**
 		The x position of the object relative to its parent.
 	**/
-	@:s public var x(get,set) : Float;
+	@:s public var x(get, set) : Float;
 
 	/**
 		The y position of the object relative to its parent.
@@ -83,7 +83,7 @@ class Object implements hxd.impl.Serializable {
 	/**
 		The amount of scaling along the X axis of this object (default 1.0)
 	**/
-	@:s public var scaleX(get,set) : Float;
+	@:s public var scaleX(get, set) : Float;
 
 	/**
 		The amount of scaling along the Y axis of this object (default 1.0)
@@ -93,7 +93,7 @@ class Object implements hxd.impl.Serializable {
 	/**
 		The amount of scaling along the Z axis of this object (default 1.0)
 	**/
-	@:s public var scaleZ(get,set) : Float;
+	@:s public var scaleZ(get, set) : Float;
 
 	/**
 		This is an additional optional transformation that is performed before other local transformations.
@@ -195,7 +195,7 @@ class Object implements hxd.impl.Serializable {
 	inline function set_qRot(q) return this.pos.rotationQuat = q;
 	inline function get_visible() return flags.has(FVisible);
 	inline function get_allocated() return flags.has(FAllocated);
-	inline function get_posChanged() return flags.has(FPosChanged);
+	inline function get_posChanged() return this.pos.posChanged;
 	inline function get_culled() return flags.has(FCulled);
 	inline function get_lightCameraCenter() return flags.has(FLightCameraCenter);
 	inline function get_alwaysSync() return flags.has(FAlwaysSync);
@@ -204,7 +204,7 @@ class Object implements hxd.impl.Serializable {
 	inline function get_ignoreCollide() return flags.has(FIgnoreCollide);
 	inline function get_allowSerialize() return !flags.has(FNoSerialize);
 	inline function get_ignoreParentTransform() return flags.has(FIgnoreParentTransform);
-	inline function set_posChanged(b) return flags.set(FPosChanged, b || follow != null);
+	inline function set_posChanged(b) return this.pos.posChanged = (b || follow != null);
 	inline function set_culled(b) return flags.set(FCulled, b);
 	inline function set_visible(b) return flags.set(FVisible,b);
 	inline function set_allocated(b) return flags.set(FAllocated, b);
@@ -769,50 +769,44 @@ class Object implements hxd.impl.Serializable {
 	/**
 		Rotate around the current rotation axis by the specified angles (in radian).
 	**/
-	public function rotate( rx : Float, ry : Float, rz : Float ) {
-		var qTmp = new h3d.Quat();
-		qTmp.initRotation(rx, ry, rz);
-		qRot.multiply(qTmp,qRot);
-		posChanged = true;
+	public inline function rotate( rx : Float, ry : Float, rz : Float ) {
+		this.pos.rotate(rx, ry, rz);
 	}
 
 	/**
 		Set the rotation using the specified angles (in radian).
 	**/
-	public function setRotation( rx : Float, ry : Float, rz : Float ) {
-		qRot.initRotation(rx, ry, rz);
-		posChanged = true;
+	public inline function setRotation( rx : Float, ry : Float, rz : Float ) {
+		this.pos.setRotation(rx, ry, rz);
 	}
 
 	/**
 		Set the rotation using the specified axis and angle of rotation around it (in radian).
 	**/
-	public function setRotationAxis( ax : Float, ay : Float, az : Float, angle : Float ) {
-		qRot.initRotateAxis(ax, ay, az, angle);
-		posChanged = true;
+	public inline function setRotationAxis( ax : Float, ay : Float, az : Float, angle : Float ) {
+		this.pos.setRotationAxis(ax, ay, az, angle);
 	}
 
 	/**
 		Set the rotation using the specified look at direction
 	**/
-	public function setDirection( v : h3d.Vector ) {
-		qRot.initDirection(v);
-		posChanged = true;
+	public inline function setDirection( v : h3d.Vector ) {
+		this.pos.setDirection(v);
 	}
 
 	/**
 		Return the direction in which the object rotation is currently oriented to
 	**/
-	public function getDirection() {
-		return qRot.getDirection();
+	public inline function getDirection() {
+		return this.pos.rotationQuat.getDirection();
 	}
 
 	/**
 		Return the quaternion representing the current object rotation.
 		Dot not modify as it's not a copy.
 	**/
-	public function getRotationQuat() {
-		return qRot;
+	public inline function getRotationQuat() {
+		return this.pos.rotationQuat;
 	}
 
 	/**
@@ -820,8 +814,7 @@ class Object implements hxd.impl.Serializable {
 		Dot not modify the value afterwards as no copy is made.
 	**/
 	public function setRotationQuat(q) {
-		qRot = q;
-		posChanged = true;
+		this.pos.rotationQuat = q;
 	}
 
 	/**
@@ -1044,6 +1037,40 @@ private class Position {
 	inline function set_rotationQuat(q: h3d.Quat) {
 		posChanged = true;
 		return this.rotationQuat = q;
+	}
+
+	/**
+		Rotate around the current rotation axis by the specified angles (in radian).
+	**/
+	public function rotate( rx : Float, ry : Float, rz : Float ) {
+		var qTmp = new h3d.Quat();
+		qTmp.initRotation(rx, ry, rz);
+		this.rotationQuat.multiply(qTmp,this.rotationQuat);
+		posChanged = true;
+	}
+
+	/**
+		Set the rotation using the specified angles (in radian).
+	**/
+	public function setRotation( rx : Float, ry : Float, rz : Float ) {
+		this.rotationQuat.initRotation(rx, ry, rz);
+		posChanged = true;
+	}
+
+	/**
+		Set the rotation using the specified axis and angle of rotation around it (in radian).
+	**/
+	public function setRotationAxis( ax : Float, ay : Float, az : Float, angle : Float ) {
+		this.rotationQuat.initRotateAxis(ax, ay, az, angle);
+		posChanged = true;
+	}
+
+	/**
+		Set the rotation using the specified look at direction
+	**/
+	public function setDirection( v : h3d.Vector ) {
+		this.rotationQuat.initDirection(v);
+		posChanged = true;
 	}
 
 	inline function set_scaleX(v) {
