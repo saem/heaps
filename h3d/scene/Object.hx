@@ -1,17 +1,16 @@
 package h3d.scene;
 
 private enum abstract ObjectFlags(Int) {
-	public var FPosChanged = 0x01;
-	public var FVisible = 0x02;
-	public var FCulled = 0x04;
-	public var FLightCameraCenter = 0x08;
-	public var FAllocated = 0x10;
-	public var FAlwaysSync = 0x20;
-	public var FInheritCulled = 0x40;
-	public var FNoSerialize = 0x80;
-	public var FIgnoreBounds = 0x100;
-	public var FIgnoreCollide = 0x200;
-	public var FIgnoreParentTransform = 0x400;
+	public var FVisible = 0x01;
+	public var FCulled = 0x02;
+	public var FLightCameraCenter = 0x04;
+	public var FAllocated = 0x08;
+	public var FAlwaysSync = 0x10;
+	public var FInheritCulled = 0x20;
+	public var FNoSerialize = 0x40;
+	public var FIgnoreBounds = 0x80;
+	public var FIgnoreCollide = 0x100;
+	public var FIgnoreParentTransform = 0x200;
 	public inline function new(value) {
 		this = value;
 	}
