@@ -4,16 +4,14 @@ private enum abstract ObjectFlags(Int) {
 	public var FPosChanged = 0x01;
 	public var FVisible = 0x02;
 	public var FCulled = 0x04;
-	public var FFollowPositionOnly = 0x08;
-	public var FLightCameraCenter = 0x10;
-	public var FAllocated = 0x20;
-	public var FAlwaysSync = 0x40;
-	public var FInheritCulled = 0x80;
-	public var FNoSerialize = 0x100;
-	public var FIgnoreBounds = 0x200;
-	public var FIgnoreCollide = 0x400;
-	public var FIgnoreParentTransform = 0x800;
-	// public var FFollowing = 0x1000;
+	public var FLightCameraCenter = 0x08;
+	public var FAllocated = 0x10;
+	public var FAlwaysSync = 0x20;
+	public var FInheritCulled = 0x40;
+	public var FNoSerialize = 0x80;
+	public var FIgnoreBounds = 0x100;
+	public var FIgnoreCollide = 0x200;
+	public var FIgnoreParentTransform = 0x400;
 	public inline function new(value) {
 		this = value;
 	}
@@ -83,11 +81,6 @@ class Object implements hxd.impl.Serializable {
 	@:s public var follow(default, set) : Object;
 
 	/**
-		When follow is set, only follow the position and ignore both scale and rotation.
-	**/
-	public var followPositionOnly(get, set) : Bool;
-
-	/**
 		The amount of scaling along the X axis of this object (default 1.0)
 	**/
 	@:s public var scaleX(default,set) : Float;
@@ -146,6 +139,8 @@ class Object implements hxd.impl.Serializable {
 
 	/**
 		When enabled, the object will not follow its parent transform
+
+		Note: This is unused.
 	**/
 	public var ignoreParentTransform(get, set) : Bool;
 
@@ -185,7 +180,6 @@ class Object implements hxd.impl.Serializable {
 	inline function get_allocated() return flags.has(FAllocated);
 	inline function get_posChanged() return flags.has(FPosChanged);
 	inline function get_culled() return flags.has(FCulled);
-	inline function get_followPositionOnly() return flags.has(FFollowPositionOnly);
 	inline function get_lightCameraCenter() return flags.has(FLightCameraCenter);
 	inline function get_alwaysSync() return flags.has(FAlwaysSync);
 	inline function get_inheritCulled() return flags.has(FInheritCulled);
@@ -197,7 +191,6 @@ class Object implements hxd.impl.Serializable {
 	inline function set_culled(b) return flags.set(FCulled, b);
 	inline function set_visible(b) return flags.set(FVisible,b);
 	inline function set_allocated(b) return flags.set(FAllocated, b);
-	inline function set_followPositionOnly(b) return flags.set(FFollowPositionOnly, b);
 	inline function set_lightCameraCenter(b) return flags.set(FLightCameraCenter, b);
 	inline function set_alwaysSync(b) return flags.set(FAlwaysSync, b);
 	inline function set_ignoreBounds(b) return flags.set(FIgnoreBounds, b);
@@ -417,7 +410,6 @@ class Object implements hxd.impl.Serializable {
 		o.qRot.load(qRot);
 		o.name = name;
 		o.follow = follow;
-		o.followPositionOnly = followPositionOnly;
 		o.visible = visible;
 		if( defaultTransform != null )
 			o.defaultTransform = defaultTransform.clone();
@@ -636,13 +628,7 @@ class Object implements hxd.impl.Serializable {
 		absPos._43 = z;
 		if( follow != null ) {
 			follow.syncPos();
-			if( followPositionOnly ) {
-				absPos.multiply3x4inline(absPos, parent.absPos);
-				absPos.tx = x + follow.absPos.tx;
-				absPos.ty = y + follow.absPos.ty;
-				absPos.tz = z + follow.absPos.tz;
-			} else
-				absPos.multiply3x4(absPos, follow.absPos);
+			absPos.multiply3x4(absPos, follow.absPos);
 		} else if( parent != null && !ignoreParentTransform )
 			absPos.multiply3x4inline(absPos, parent.absPos);
 		// animation is applied before every other transform
@@ -989,12 +975,46 @@ class Object implements hxd.impl.Serializable {
 	}
 }
 
+private enum abstract PositionFlags(Int) {
+	public var FPosChanged = 0x01;
+	// public var FFollowCoord = 0x02;
+	// public var FFollowRotation = 0x04;
+	// public var FFollowScale = 0x08;
+	// public var FFollowTransform = 0x10;
+
+	// public var FAllocated = 0x20;
+	// public var FAlwaysSync = 0x40;
+	// public var FInheritCulled = 0x80;
+	// public var FNoSerialize = 0x100;
+	// public var FIgnoreBounds = 0x200;
+	// public var FIgnoreCollide = 0x400;
+	// public var FIgnoreParentTransform = 0x800;
+	// public var FFollowing = 0x1000;
+	public inline function new(value = 0) {
+		this = value;
+	}
+	public inline function toInt() return this;
+	public inline function has(f:PositionFlags) return this & f.toInt() != 0;
+	public inline function set(f:PositionFlags, b) {
+		if( b ) this |= f.toInt() else this &= ~f.toInt();
+		return b;
+	}
+}
+
+/**
+	Rework into just x, y, z + orientation
+**/
 private class Position {
-	final id: Int;
+	public final id: Int;
 
 	public function new(id: Int) {
 		this.id = id;
 	}
+
+	private var flags = new PositionFlags();
+	public var posChanged(get, set): Bool;
+	inline function get_posChanged() { return this.flags.has(FPosChanged); }
+	inline function set_posChanged(v: Bool) { return this.flags.set(FPosChanged, v); }
 
 	/**
 		The x position of the object relative to its parent.
@@ -1032,40 +1052,40 @@ private class Position {
 	@:s public var scaleZ(default,set) : Float;
 
 	inline function set_x(x) {
-		// posChanged = true;
+		posChanged = true;
 		return this.x = x;
 	}
 
 	inline function set_y(y) {
-		// posChanged = true;
+		posChanged = true;
 		return this.y = y;
 	}
 
 	inline function set_z(z) {
-		// posChanged = true;
+		posChanged = true;
 		return this.z = z;
 	}
 
 	inline function set_rotationQuat(q: h3d.Quat) {
-		// posChanged = true;
+		posChanged = true;
 		return this.rotationQuat = q;
 	}
 
 	inline function set_scaleX(v) {
 		scaleX = v;
-		// posChanged = true;
+		posChanged = true;
 		return v;
 	}
 
 	inline function set_scaleY(v) {
 		scaleY = v;
-		// posChanged = true;
+		posChanged = true;
 		return v;
 	}
 
 	inline function set_scaleZ(v) {
 		scaleZ = v;
-		// posChanged = true;
+		posChanged = true;
 		return v;
 	}
 
@@ -1076,6 +1096,48 @@ private class Position {
 		scaleX = v;
 		scaleY = v;
 		scaleZ = v;
-		// posChanged = true;
+		posChanged = true;
+	}
+}
+
+private enum abstract RenderFlags(Int) {
+	public var FCulled = 0x01;
+	public var FAllocated = 0x02;
+	public var FInheritCulled = 0x04;
+	public var FVisible = 0x08;
+
+	// public var FFollowTransform = 0x10;
+	// public var FAllocated = 0x20;
+	// public var FAlwaysSync = 0x40;
+	// public var FInheritCulled = 0x80;
+	// public var FNoSerialize = 0x100;
+	// public var FIgnoreBounds = 0x200;
+	// public var FIgnoreCollide = 0x400;
+	// public var FIgnoreParentTransform = 0x800;
+	// public var FFollowing = 0x1000;
+	public inline function new(value = 0) {
+		this = value;
+	}
+	public inline function toInt() return this;
+	public inline function has(f:RenderFlags) return this & f.toInt() != 0;
+	public inline function set(f:RenderFlags, b) {
+		if( b ) this |= f.toInt() else this &= ~f.toInt();
+		return b;
+	}
+}
+
+private class Render {
+	public final id: Int;
+
+	public function new(id: Int) {
+		this.id = id;
+	}
+}
+
+private class Animation {
+	public final id: Int;
+
+	public function new(id: Int) {
+		this.id = id;
 	}
 }
