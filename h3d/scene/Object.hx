@@ -11,6 +11,7 @@ private enum abstract ObjectFlags(Int) {
 	public var FIgnoreBounds = 0x80;
 	public var FIgnoreCollide = 0x100;
 	public var FIgnoreParentTransform = 0x200;
+	public var FInitialTransformDone = 0x400;
 	public inline function new(value) {
 		this = value;
 	}
@@ -98,6 +99,8 @@ class Object implements hxd.impl.Serializable {
 		This is an additional optional transformation that is performed before other local transformations.
 		It is used by the animation system.
 	**/
+	public var initialTransformDone(get, set): Bool;
+	public var initialTransform: h3d.Matrix;
 	public var defaultTransform(default, set) : h3d.Matrix;
 	@:s public var currentAnimation(default, null) : h3d.anim.Animation;
 
@@ -203,6 +206,7 @@ class Object implements hxd.impl.Serializable {
 	inline function get_ignoreCollide() return flags.has(FIgnoreCollide);
 	inline function get_allowSerialize() return !flags.has(FNoSerialize);
 	inline function get_ignoreParentTransform() return flags.has(FIgnoreParentTransform);
+	inline function get_initialTransformDone() return flags.has(FInitialTransformDone);
 	inline function set_posChanged(b) return this.pos.posChanged = (b || follow != null);
 	inline function set_culled(b) return flags.set(FCulled, b);
 	inline function set_visible(b) return flags.set(FVisible,b);
@@ -214,6 +218,7 @@ class Object implements hxd.impl.Serializable {
 	inline function set_ignoreCollide(b) return flags.set(FIgnoreCollide, b);
 	inline function set_allowSerialize(b) return !flags.set(FNoSerialize, !b);
 	inline function set_ignoreParentTransform(b) return flags.set(FIgnoreParentTransform, b);
+	inline function set_initialTransformDone(b) return flags.set(FInitialTransformDone, b);
 
 	/**
 		Create an animation instance bound to the object, set it as currentAnimation and play it.
@@ -238,30 +243,6 @@ class Object implements hxd.impl.Serializable {
 			for(c in children)
 				c.stopAnimation(true);
 		}
-	}
-
-	/**
-		When an object is loaded, its position scale and rotation will always be set to the default values (0 for position/rotation and 1 for scale).
-		If it's part of a group/scene or if it's animated, then its position/rotation/scale will be stored into the defaultTransform matrix.
-		Calling this function will reset the defaultTransform to null and instead initialize x/y/z/rotation/scale properties.
-		This will not change the actual position of the object but allows you to move the object more freely on your own.
-		Do not use on an object that is currently being animated, since it will set again defaultTransform and apply twice the transformation.
-	**/
-	public function applyAnimationTransform( recursive = true ) {
-		if( defaultTransform != null ) {
-			var s = defaultTransform.getScale();
-			scaleX = s.x;
-			scaleY = s.y;
-			scaleZ = s.z;
-			qRot.initRotateMatrix(defaultTransform);
-			x = defaultTransform.tx;
-			y = defaultTransform.ty;
-			z = defaultTransform.tz;
-			defaultTransform = null;
-		}
-		if( recursive )
-			for( c in children )
-				c.applyAnimationTransform();
 	}
 
 	/**
@@ -647,6 +628,10 @@ class Object implements hxd.impl.Serializable {
 			absPos.multiply3x4(absPos, follow.absPos);
 		} else if( parent != null && !ignoreParentTransform )
 			absPos.multiply3x4inline(absPos, parent.absPos);
+		if( !initialTransformDone && initialTransform != null ) {
+			absPos.multiply3x4inline(absPos, initialTransform);
+			initialTransformDone = true;
+		}
 		// animation is applied before every other transform
 		if( defaultTransform != null )
 			absPos.multiply3x4inline(defaultTransform, absPos);

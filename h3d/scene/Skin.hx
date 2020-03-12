@@ -77,7 +77,7 @@ class Skin extends MultiMaterial {
 	var skinShader : h3d.shader.SkinBase;
 	var jointsGraphics : Graphics;
 
-	public var showJoints : Bool;
+	public var showJoints : Bool = false;
 
 	public function new(s, ?mat, ?parent) {
 		super(null, mat, parent);
@@ -237,7 +237,7 @@ class Skin extends MultiMaterial {
 			if( jointsGraphics == null ) {
 				jointsGraphics = new Graphics(this);
 				jointsGraphics.material.mainPass.depth(false, Always);
-				jointsGraphics.material.mainPass.setPassName("add");
+				jointsGraphics.material.mainPass.setPassName("additive");
 			}
 			var topParent : Object = this;
 			while( topParent.parent != null )
