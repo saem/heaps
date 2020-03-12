@@ -4,11 +4,14 @@ import h3d.scene.fwd.*;
 class Skin extends SampleApp {
 
 	var cache : h3d.prim.ModelCache;
+	var obj: h3d.scene.Object;
 
 	override function init() {
+		super.init();
+
 		cache = new h3d.prim.ModelCache();
 
-		var obj = cache.loadModel(hxd.Res.Model);
+		obj = cache.loadModel(hxd.Res.Model);
 		obj.scale(0.1);
 		s3d.addChild(obj);
 		s3d.camera.pos.set( -3, -5, 3);
@@ -32,11 +35,19 @@ class Skin extends SampleApp {
 		dir.enableSpecular = true;
 
 		new h3d.scene.CameraController(s3d).loadFromCamera();
+
+		var showJoints = false;
+		final skins = s3d.findAll((o) -> Std.downcast(o, h3d.scene.Skin));
+		final meshes = s3d.findAll(o -> Std.downcast(o, h3d.scene.Mesh));
+		addCheck("Show Joints", () -> showJoints, (b) -> {
+			showJoints = b;
+			skins.map(s -> s.showJoints = showJoints);
+			meshes.map(m -> m.material.mainPass.wireframe = b);
+		});
 	}
 
 	static function main() {
 		hxd.Res.initEmbed();
 		new Skin();
 	}
-
 }
