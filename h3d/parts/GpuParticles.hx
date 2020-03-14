@@ -487,6 +487,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 		bounds = new h3d.col.Bounds();
 		bounds.addPos(0, 0, 0);
 		groups = [];
+		materials = [];
 		primitiveBuffers = [];
 		primitives = [];
 	}
