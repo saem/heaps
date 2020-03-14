@@ -6,12 +6,11 @@ private enum abstract ObjectFlags(Int) {
 	public var FLightCameraCenter = 0x04;
 	public var FAllocated = 0x08;
 	public var FAlwaysSync = 0x10;
-	public var FInheritCulled = 0x20;
-	public var FNoSerialize = 0x40;
-	public var FIgnoreBounds = 0x80;
-	public var FIgnoreCollide = 0x100;
-	public var FIgnoreParentTransform = 0x200;
-	public var FInitialTransformDone = 0x400;
+	public var FNoSerialize = 0x20;
+	public var FIgnoreBounds = 0x40;
+	public var FIgnoreCollide = 0x80;
+	public var FIgnoreParentTransform = 0x100;
+	public var FInitialTransformDone = 0x200;
 	public inline function new(value) {
 		this = value;
 	}
@@ -110,7 +109,7 @@ class Object implements hxd.impl.Serializable {
 	public var visible(get, set) : Bool;
 
 	/**
-		Inform that the object is not to be displayed and his animation doesn't have to be sync. Unlike visible, this doesn't apply to children unless inheritCulled is set to true.
+		Inform that the object is not to be displayed and his animation doesn't have to be sync.
 	**/
 	public var culled(get, set) : Bool;
 
@@ -118,11 +117,6 @@ class Object implements hxd.impl.Serializable {
 		When an object is not visible or culled, its animation does not get synchronized unless you set alwaysSync=true
 	**/
 	public var alwaysSync(get, set) : Bool;
-
-	/**
-		When enabled, the culled flag is inherited by children objects.
-	**/
-	public var inheritCulled(get, set) : Bool;
 
 	/**
 		When enabled, the object bounds are ignored when using getBounds()
@@ -201,7 +195,6 @@ class Object implements hxd.impl.Serializable {
 	inline function get_culled() return flags.has(FCulled);
 	inline function get_lightCameraCenter() return flags.has(FLightCameraCenter);
 	inline function get_alwaysSync() return flags.has(FAlwaysSync);
-	inline function get_inheritCulled() return flags.has(FInheritCulled);
 	inline function get_ignoreBounds() return flags.has(FIgnoreBounds);
 	inline function get_ignoreCollide() return flags.has(FIgnoreCollide);
 	inline function get_allowSerialize() return !flags.has(FNoSerialize);
@@ -214,7 +207,6 @@ class Object implements hxd.impl.Serializable {
 	inline function set_lightCameraCenter(b) return flags.set(FLightCameraCenter, b);
 	inline function set_alwaysSync(b) return flags.set(FAlwaysSync, b);
 	inline function set_ignoreBounds(b) return flags.set(FIgnoreBounds, b);
-	inline function set_inheritCulled(b) return flags.set(FInheritCulled, b);
 	inline function set_ignoreCollide(b) return flags.set(FIgnoreCollide, b);
 	inline function set_allowSerialize(b) return !flags.set(FNoSerialize, !b);
 	inline function set_ignoreParentTransform(b) return flags.set(FIgnoreParentTransform, b);
@@ -461,7 +453,7 @@ class Object implements hxd.impl.Serializable {
 		Iterate on all mesh that are currently visible and not culled in the tree. Call `callb` for each mesh found.
 	**/
 	public function iterVisibleMeshes( callb : Mesh -> Void ) {
-		if( !visible || (culled && inheritCulled) )
+		if( !visible || culled )
 			return;
 		if( !culled ) {
 			var m = hxd.impl.Api.downcast(this, Mesh);
@@ -654,7 +646,7 @@ class Object implements hxd.impl.Serializable {
 				return; // if we were removed by an animation event
 		}
 		var old = ctx.visibleFlag;
-		if( !visible || (culled && inheritCulled) )
+		if( !visible || culled )
 			ctx.visibleFlag = false;
 		var changed = posChanged;
 		if( changed ) calcAbsPos();
@@ -696,7 +688,7 @@ class Object implements hxd.impl.Serializable {
 
 	function emitRec( ctx : RenderContext ) {
 
-		if( !visible || (culled && inheritCulled && !ctx.computingStatic) )
+		if( !visible || (culled && !ctx.computingStatic) )
 			return;
 
 		// fallback in case the object was added during a sync() event and we somehow didn't update it
@@ -936,7 +928,6 @@ private enum abstract PositionFlags(Int) {
 
 	// public var FAllocated = 0x20;
 	// public var FAlwaysSync = 0x40;
-	// public var FInheritCulled = 0x80;
 	// public var FNoSerialize = 0x100;
 	// public var FIgnoreBounds = 0x200;
 	// public var FIgnoreCollide = 0x400;
@@ -1099,13 +1090,13 @@ private class Position {
 private enum abstract RenderFlags(Int) {
 	public var FCulled = 0x01;
 	public var FAllocated = 0x02;
-	public var FInheritCulled = 0x04;
-	public var FVisible = 0x08;
+	public var FVisible = 0x04;
 
+	// public var FVisible = 0x08;
 	// public var FFollowTransform = 0x10;
 	// public var FAllocated = 0x20;
 	// public var FAlwaysSync = 0x40;
-	// public var FInheritCulled = 0x80;
+	// public var FSomeFlag = 0x80;
 	// public var FNoSerialize = 0x100;
 	// public var FIgnoreBounds = 0x200;
 	// public var FIgnoreCollide = 0x400;
