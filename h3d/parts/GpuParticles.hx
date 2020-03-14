@@ -498,7 +498,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 	}
 
 	override function getBoundsRec(b:h3d.col.Bounds) {
-		if( flags.has(FIgnoreBounds) )
+		if( ignoreBounds )
 			return super.getBoundsRec(b);
 		for( g in groups )
 			if( g.needRebuild ) {
@@ -645,10 +645,10 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 				calcEmit = g.emitMode;
 				switch( g.emitMode ) {
 				case ParentBounds:
-					var ignore = flags.has(FIgnoreBounds);
-					flags.set(FIgnoreBounds, true);
+					var ignore = ignoreBounds;
+					ignoreBounds = true;
 					ebounds = parent.getBounds();
-					flags.set(FIgnoreBounds, ignore);
+					ignoreBounds = ignore;
 					ebounds.transform(getInvPos());
 				case VolumeBounds, CameraBounds:
 					ebounds = volumeBounds;
