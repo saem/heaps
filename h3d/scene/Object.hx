@@ -9,8 +9,7 @@ private enum abstract ObjectFlags(Int) {
 	public var FNoSerialize = 0x20;
 	public var FIgnoreBounds = 0x40;
 	public var FIgnoreCollide = 0x80;
-	public var FIgnoreParentTransform = 0x100;
-	public var FInitialTransformDone = 0x200;
+	public var FInitialTransformDone = 0x100;
 	public inline function new(value) {
 		this = value;
 	}
@@ -134,13 +133,6 @@ class Object implements hxd.impl.Serializable {
 	public var allowSerialize(get, set) : Bool;
 
 	/**
-		When enabled, the object will not follow its parent transform
-
-		Note: This is unused.
-	**/
-	public var ignoreParentTransform(get, set) : Bool;
-
-	/**
 		When selecting the lights to apply to this object, we will use the camera target as reference
 		instead of the object absolute position. This is useful for very large objects so they can get good lighting.
 	**/
@@ -198,7 +190,6 @@ class Object implements hxd.impl.Serializable {
 	inline function get_ignoreBounds() return flags.has(FIgnoreBounds);
 	inline function get_ignoreCollide() return flags.has(FIgnoreCollide);
 	inline function get_allowSerialize() return !flags.has(FNoSerialize);
-	inline function get_ignoreParentTransform() return flags.has(FIgnoreParentTransform);
 	inline function get_initialTransformDone() return flags.has(FInitialTransformDone);
 	inline function set_posChanged(b) return this.pos.posChanged = (b || follow != null);
 	inline function set_culled(b) return flags.set(FCulled, b);
@@ -209,7 +200,6 @@ class Object implements hxd.impl.Serializable {
 	inline function set_ignoreBounds(b) return flags.set(FIgnoreBounds, b);
 	inline function set_ignoreCollide(b) return flags.set(FIgnoreCollide, b);
 	inline function set_allowSerialize(b) return !flags.set(FNoSerialize, !b);
-	inline function set_ignoreParentTransform(b) return flags.set(FIgnoreParentTransform, b);
 	inline function set_initialTransformDone(b) return flags.set(FInitialTransformDone, b);
 
 	/**
@@ -618,7 +608,7 @@ class Object implements hxd.impl.Serializable {
 		if( follow != null ) {
 			follow.syncPos();
 			absPos.multiply3x4(absPos, follow.absPos);
-		} else if( parent != null && !ignoreParentTransform )
+		} else if( parent != null )
 			absPos.multiply3x4inline(absPos, parent.absPos);
 		if( !initialTransformDone && initialTransform != null ) {
 			absPos.multiply3x4inline(absPos, initialTransform);
@@ -931,7 +921,7 @@ private enum abstract PositionFlags(Int) {
 	// public var FNoSerialize = 0x100;
 	// public var FIgnoreBounds = 0x200;
 	// public var FIgnoreCollide = 0x400;
-	// public var FIgnoreParentTransform = 0x800;
+	// public var FFollowing = 0x800;
 	// public var FFollowing = 0x1000;
 	public inline function new(value = 0) {
 		this = value;
@@ -1100,7 +1090,7 @@ private enum abstract RenderFlags(Int) {
 	// public var FNoSerialize = 0x100;
 	// public var FIgnoreBounds = 0x200;
 	// public var FIgnoreCollide = 0x400;
-	// public var FIgnoreParentTransform = 0x800;
+	// public var FFollowing = 0x800;
 	// public var FFollowing = 0x1000;
 	public inline function new(value = 0) {
 		this = value;
