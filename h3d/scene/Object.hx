@@ -8,8 +8,7 @@ private enum abstract ObjectFlags(Int) {
 	public var FAlwaysSync = 0x10;
 	public var FNoSerialize = 0x20;
 	public var FIgnoreBounds = 0x40;
-	public var FIgnoreCollide = 0x80;
-	public var FInitialTransformDone = 0x100;
+	public var FInitialTransformDone = 0x80;
 	public inline function new(value) {
 		this = value;
 	}
@@ -123,11 +122,6 @@ class Object implements hxd.impl.Serializable {
 	public var ignoreBounds(get, set) : Bool;
 
 	/**
-		When enabled, the object is ignored when using getCollider()
-	**/
-	public var ignoreCollide(get, set) : Bool;
-
-	/**
 		When enabled, the object can be serialized (default : true)
 	**/
 	public var allowSerialize(get, set) : Bool;
@@ -188,7 +182,6 @@ class Object implements hxd.impl.Serializable {
 	inline function get_lightCameraCenter() return flags.has(FLightCameraCenter);
 	inline function get_alwaysSync() return flags.has(FAlwaysSync);
 	inline function get_ignoreBounds() return flags.has(FIgnoreBounds);
-	inline function get_ignoreCollide() return flags.has(FIgnoreCollide);
 	inline function get_allowSerialize() return !flags.has(FNoSerialize);
 	inline function get_initialTransformDone() return flags.has(FInitialTransformDone);
 	inline function set_posChanged(b) return this.pos.posChanged = (b || follow != null);
@@ -198,7 +191,6 @@ class Object implements hxd.impl.Serializable {
 	inline function set_lightCameraCenter(b) return flags.set(FLightCameraCenter, b);
 	inline function set_alwaysSync(b) return flags.set(FAlwaysSync, b);
 	inline function set_ignoreBounds(b) return flags.set(FIgnoreBounds, b);
-	inline function set_ignoreCollide(b) return flags.set(FIgnoreCollide, b);
 	inline function set_allowSerialize(b) return !flags.set(FNoSerialize, !b);
 	inline function set_initialTransformDone(b) return flags.set(FInitialTransformDone, b);
 
@@ -537,11 +529,9 @@ class Object implements hxd.impl.Serializable {
 
 	/**
 		Build and return the global absolute recursive collider for the object.
-		Returns null if no collider was found or if ignoreCollide was set to true.
+		Returns null if no collider was found.
 	**/
 	@:final public function getCollider() : h3d.col.Collider {
-		if( ignoreCollide )
-			return null;
 		var colliders = [];
 		var col = getGlobalCollider();
 		if( col != null )
@@ -567,15 +557,12 @@ class Object implements hxd.impl.Serializable {
 		Same as getLocalCollider, but returns an absolute collider instead of a local one.
 	**/
 	public function getGlobalCollider() : h3d.col.Collider {
-		if(ignoreCollide)
-			return null;
 		var col = getLocalCollider();
 		return col == null ? null : new h3d.col.ObjectCollider(this, col);
 	}
 
 	/**
 		Build and returns the local relative not-recursive collider for the object, or null if this object does not have a collider.
-		Does not check for ignoreCollide.
 	**/
 	public function getLocalCollider() : h3d.col.Collider {
 		return null;
@@ -920,7 +907,7 @@ private enum abstract PositionFlags(Int) {
 	// public var FAlwaysSync = 0x40;
 	// public var FNoSerialize = 0x100;
 	// public var FIgnoreBounds = 0x200;
-	// public var FIgnoreCollide = 0x400;
+	// public var FFollowing = 0x400;
 	// public var FFollowing = 0x800;
 	// public var FFollowing = 0x1000;
 	public inline function new(value = 0) {
@@ -1089,7 +1076,7 @@ private enum abstract RenderFlags(Int) {
 	// public var FSomeFlag = 0x80;
 	// public var FNoSerialize = 0x100;
 	// public var FIgnoreBounds = 0x200;
-	// public var FIgnoreCollide = 0x400;
+	// public var FFollowing = 0x400;
 	// public var FFollowing = 0x800;
 	// public var FFollowing = 0x1000;
 	public inline function new(value = 0) {
