@@ -402,7 +402,7 @@ class Object implements hxd.impl.Serializable {
 	/**
 		Insert a child object at the specified position of the children list.
 	**/
-	public function addChildAt( o : Object, pos : Int ) {
+	function addChildAt( o : Object, pos : Int ) {
 		if( pos < 0 ) pos = 0;
 		if( pos > children.length ) pos = children.length;
 		var p = this;
@@ -630,8 +630,8 @@ class Object implements hxd.impl.Serializable {
 		sync(ctx);
 		posChanged = false;
 		lastFrame = ctx.frame;
-		var p = 0, len = children.length;
-		while( p < len ) {
+		var p = 0;
+		while( p < children.length ) {
 			var c = children[p];
 			if( c == null )
 				break;
@@ -643,7 +643,6 @@ class Object implements hxd.impl.Serializable {
 			// our lastFrame ensure that no object will get synched twice
 			if( children[p] != c ) {
 				p = 0;
-				len = children.length;
 			} else
 				p++;
 		}

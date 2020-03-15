@@ -200,6 +200,32 @@ class Skin extends MultiMaterial {
 		if( !ctx.visibleFlag && !alwaysSync )
 			return;
 		syncJoints();
+
+		if( showJoints ) {
+			if( jointsGraphics == null ) {
+				jointsGraphics = new Graphics(null);
+				jointsGraphics.material.mainPass.depth(false, Always);
+				jointsGraphics.material.mainPass.setPassName("additive");
+			}
+
+			var topParent : Object = this;
+			while( topParent.parent != null )
+				topParent = topParent.parent;
+			topParent.addChild(jointsGraphics);
+
+			var g = jointsGraphics;
+			g.clear();
+			for( j in skinData.allJoints ) {
+				var m = currentAbsPose[j.index];
+				var mp = j.parent == null ? absPos : currentAbsPose[j.parent.index];
+				g.lineStyle(1, j.parent == null ? 0xFF0000FF : 0xFFFFFF00);
+				g.moveTo(mp._41, mp._42, mp._43);
+				g.lineTo(m._41, m._42, m._43);
+			}
+		} else if( jointsGraphics != null ) {
+			jointsGraphics.remove();
+			jointsGraphics = null;
+		}
 	}
 
 	@:noDebug
@@ -232,30 +258,6 @@ class Skin extends MultiMaterial {
 				if( m != null )
 					ctx.emit(m, this, i);
 			}
-		}
-		if( showJoints ) {
-			if( jointsGraphics == null ) {
-				jointsGraphics = new Graphics(this);
-				jointsGraphics.material.mainPass.depth(false, Always);
-				jointsGraphics.material.mainPass.setPassName("additive");
-			}
-			var topParent : Object = this;
-			while( topParent.parent != null )
-				topParent = topParent.parent;
-			jointsGraphics.follow = topParent;
-
-			var g = jointsGraphics;
-			g.clear();
-			for( j in skinData.allJoints ) {
-				var m = currentAbsPose[j.index];
-				var mp = j.parent == null ? absPos : currentAbsPose[j.parent.index];
-				g.lineStyle(1, j.parent == null ? 0xFF0000FF : 0xFFFFFF00);
-				g.moveTo(mp._41, mp._42, mp._43);
-				g.lineTo(m._41, m._42, m._43);
-			}
-		} else if( jointsGraphics != null ) {
-			jointsGraphics.remove();
-			jointsGraphics = null;
 		}
 	}
 
