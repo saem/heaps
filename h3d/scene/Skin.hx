@@ -12,56 +12,6 @@ class Joint extends Object {
 		this.parent = skin;
 		this.index = j.index;
 	}
-
-	override function getObjectByName(name:String) {
-		var sk = skin.getSkinData();
-		var j = sk.namedJoints.get(name);
-		if( j == null )
-			return null;
-		var cur = sk.allJoints[index];
-		if( cur.index != index ) throw "assert";
-		var jp = j.parent;
-		while( jp != null ) {
-			if( jp == cur ) {
-				var jo = new Joint(skin, j);
-				jo.parent = this;
-				return jo;
-			}
-			jp = jp.parent;
-		}
-		return null;
-	}
-
-	@:access(h3d.scene.Skin)
-	override function syncPos() {
-		// check if one of our parents has changed
-		// we don't have a posChanged flag since the Joint
-		// is not actualy part of the hierarchy
-		var p = parent;
-		while( p != null ) {
-			if( p.posChanged ) {
-				// save the inverse absPos that was used to build the joints absPos
-				if( skin.jointsAbsPosInv == null ) {
-					skin.jointsAbsPosInv = new h3d.Matrix();
-					skin.jointsAbsPosInv.zero();
-				}
-				if( skin.jointsAbsPosInv._44 == 0 )
-					skin.jointsAbsPosInv.inverse3x4(parent.absPos);
-				parent.syncPos();
-				lastFrame = -1;
-				break;
-			}
-			p = p.parent;
-		}
-		if( lastFrame != skin.lastFrame ) {
-			lastFrame = skin.lastFrame;
-			absPos.load(skin.currentAbsPose[index]);
-			if( skin.jointsAbsPosInv != null && skin.jointsAbsPosInv._44 != 0 ) {
-				absPos.multiply3x4(absPos, skin.jointsAbsPosInv);
-				absPos.multiply3x4(absPos, parent.absPos);
-			}
-		}
-	}
 }
 
 class Skin extends MultiMaterial {
@@ -226,6 +176,13 @@ class Skin extends MultiMaterial {
 			jointsGraphics.remove();
 			jointsGraphics = null;
 		}
+	}
+
+	override function onRemove() {
+		if ( jointsGraphics != null ) {
+			jointsGraphics.remove();
+		}
+		super.onRemove();
 	}
 
 	@:noDebug

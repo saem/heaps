@@ -43,11 +43,6 @@ class Object implements hxd.impl.Serializable {
 	public var parent(default, null) : Object;
 
 	/**
-		Follow a given object or joint as if it was our parent. Ignore defaultTransform when set.
-	**/
-	@:s public var follow(default, set) : Object;
-
-	/**
 		How many immediate children this object has.
 	**/
 	public var numChildren(get, never) : Int;
@@ -184,7 +179,7 @@ class Object implements hxd.impl.Serializable {
 	inline function get_ignoreBounds() return flags.has(FIgnoreBounds);
 	inline function get_allowSerialize() return !flags.has(FNoSerialize);
 	inline function get_initialTransformDone() return flags.has(FInitialTransformDone);
-	inline function set_posChanged(b) return this.pos.posChanged = (b || follow != null);
+	inline function set_posChanged(b) return this.pos.posChanged = (b);
 	inline function set_culled(b) return flags.set(FCulled, b);
 	inline function set_visible(b) return flags.set(FVisible,b);
 	inline function set_allocated(b) return flags.set(FAllocated, b);
@@ -380,7 +375,6 @@ class Object implements hxd.impl.Serializable {
 		o.scaleZ = scaleZ;
 		o.qRot.load(qRot);
 		o.name = name;
-		o.follow = follow;
 		o.visible = visible;
 		if( defaultTransform != null )
 			o.defaultTransform = defaultTransform.clone();
@@ -571,12 +565,6 @@ class Object implements hxd.impl.Serializable {
 	function draw( ctx : RenderContext ) {
 	}
 
-	function set_follow(v) {
-		posChanged = true;
-
-		return follow = v;
-	}
-
 	function calcAbsPos() {
 		qRot.toMatrix(absPos);
 		// prepend scale
@@ -592,10 +580,7 @@ class Object implements hxd.impl.Serializable {
 		absPos._41 = x;
 		absPos._42 = y;
 		absPos._43 = z;
-		if( follow != null ) {
-			follow.syncPos();
-			absPos.multiply3x4(absPos, follow.absPos);
-		} else if( parent != null )
+		if( parent != null )
 			absPos.multiply3x4inline(absPos, parent.absPos);
 		if( !initialTransformDone && initialTransform != null ) {
 			absPos.multiply3x4inline(absPos, initialTransform);
@@ -897,18 +882,18 @@ class Object implements hxd.impl.Serializable {
 
 private enum abstract PositionFlags(Int) {
 	public var FPosChanged = 0x01;
-	// public var FFollowCoord = 0x02;
-	// public var FFollowRotation = 0x04;
-	// public var FFollowScale = 0x08;
-	// public var FFollowTransform = 0x10;
+	// public var FFlag = 0x02;
+	// public var FFlag = 0x04;
+	// public var FFlag = 0x08;
+	// public var FFlag = 0x10;
 
 	// public var FAllocated = 0x20;
 	// public var FAlwaysSync = 0x40;
 	// public var FNoSerialize = 0x100;
 	// public var FIgnoreBounds = 0x200;
-	// public var FFollowing = 0x400;
-	// public var FFollowing = 0x800;
-	// public var FFollowing = 0x1000;
+	// public var FFlag = 0x400;
+	// public var FFlag = 0x800;
+	// public var FFlag = 0x1000;
 	public inline function new(value = 0) {
 		this = value;
 	}
@@ -1069,15 +1054,15 @@ private enum abstract RenderFlags(Int) {
 	public var FVisible = 0x04;
 
 	// public var FVisible = 0x08;
-	// public var FFollowTransform = 0x10;
+	// public var FFlag = 0x10;
 	// public var FAllocated = 0x20;
 	// public var FAlwaysSync = 0x40;
 	// public var FSomeFlag = 0x80;
 	// public var FNoSerialize = 0x100;
 	// public var FIgnoreBounds = 0x200;
-	// public var FFollowing = 0x400;
-	// public var FFollowing = 0x800;
-	// public var FFollowing = 0x1000;
+	// public var FFlag = 0x400;
+	// public var FFlag = 0x800;
+	// public var FFlag = 0x1000;
 	public inline function new(value = 0) {
 		this = value;
 	}
@@ -1091,6 +1076,18 @@ private enum abstract RenderFlags(Int) {
 
 private class Render {
 	public final id: Int;
+	public var culled(get, set): Bool;
+	public var allocated(get, set): Bool;
+	public var visible(get, set): Bool;
+
+	var flags = new RenderFlags(0);
+
+	inline function get_culled() return flags.has(FCulled);
+	inline function set_culled(v) return flags.set(FCulled, v);
+	inline function get_allocated() return flags.has(FAllocated);
+	inline function set_allocated(v) return flags.set(FAllocated, v);
+	inline function get_visible() return flags.has(FVisible);
+	inline function set_visible(v) return flags.set(FVisible, v);
 
 	public function new(id: Int) {
 		this.id = id;
