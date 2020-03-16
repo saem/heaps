@@ -109,11 +109,6 @@ class Library extends BaseLibrary {
 		for( o in objects ) {
 			if( o.isJoint ) continue;
 
-
-			// /!\ currently, childs of joints will work but will not cloned
-			if( o.parent.isJoint )
-				o.obj.follow = scene.getObjectByName(o.parent.joint.name);
-
 			var skin = hxd.impl.Api.downcast(o.obj, h3d.scene.Skin);
 			if( skin == null ) continue;
 			var rootJoints = [];
