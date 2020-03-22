@@ -6,7 +6,7 @@ class Decal extends Mesh {
 		super(primitive, material, parent);
 	}
 
-	override function sync( ctx : RenderContext ) {
+	override function sync( ctx : RenderContext.SyncContext ) {
 		super.sync(ctx);
 
 		var shader = material.mainPass.getShader(h3d.shader.pbr.VolumeDecal.DecalPBR);

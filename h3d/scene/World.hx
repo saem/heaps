@@ -663,7 +663,7 @@ class World extends Object {
 		updateChunkBounds(c, model, mat);
 	}
 
-	override function syncRec(ctx:RenderContext) {
+	override function syncRec(ctx:RenderContext.SyncContext) {
 		super.syncRec(ctx);
 		// don't do in sync() since animations in our world might affect our chunks
 		for( c in allChunks ) {

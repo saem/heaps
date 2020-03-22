@@ -26,15 +26,19 @@ private enum abstract ObjectFlags(Int) {
 	so the various transforms are inherited to its children.
 **/
 class Object implements hxd.impl.Serializable {
+
+	// TODO: No deallocation/reuse, so we leaking memory everywhere
 	static var ObjectId: Int = 0;
-	public static final ObjectMap: haxe.ds.Map<Int, Object> = new haxe.ds.Map();
+	public static final ObjectMap: haxe.ds.Map<Int, Object> = new haxe.ds.IntMap();
+	public static final RelativePositionComp: ComponentStorage<RelativePosition> = ComponentStorage.newStorage();
+	public static final AbsolutePositionView: ComponentStorage<AbsolutePositionCache> = ComponentStorage.newStorage();
+	public static final AnimationComp: ComponentStorage<Animation> = ComponentStorage.newStorage();
 
 	/**
 		Numeric ID, will be used to work towards an ECS.
 	**/
 	public final id: Int = ObjectId++;
 
-	static inline var ROT2RAD = -0.017453292519943295769236907684886;
 	var children : Array<Object>;
 
 	/**
@@ -94,7 +98,8 @@ class Object implements hxd.impl.Serializable {
 	public var initialTransformDone(get, set): Bool;
 	public var initialTransform: h3d.Matrix;
 	public var defaultTransform(default, set) : h3d.Matrix;
-	@:s public var currentAnimation(default, null) : h3d.anim.Animation;
+	@:s public var currentAnimation(get, never) : h3d.anim.Animation;
+	inline function get_currentAnimation() return anim.currentAnimation;
 
 	/**
 		Is the object and its children are displayed on screen (default true).
@@ -131,12 +136,17 @@ class Object implements hxd.impl.Serializable {
 	public var cullingCollider : h3d.col.Collider;
 
 	public var absPos(default, null) : h3d.Matrix;
-	var pos: Position;
 	var invPos : h3d.Matrix;
 	var qRot(get, set) : h3d.Quat;
 	var posChanged(get,set) : Bool;
-	var lastFrame : Int;
 	var allocated(get,set) : Bool;
+	var lastFrame : Int;
+
+	// Start of transformation to arrays of components
+	var relPos(get, null): RelativePosition;
+	inline function get_relPos() return Object.RelativePositionComp[this.id];
+	var anim(get, null): Animation;
+	inline function get_anim() return Object.AnimationComp[this.id];
 
 	/**
 		Create a new empty object, and adds it to the parent object if not null.
@@ -145,10 +155,13 @@ class Object implements hxd.impl.Serializable {
 		flags = new ObjectFlags(0);
 		absPos = new h3d.Matrix();
 		absPos.identity();
-		pos = new Position(id);
+		allowSerialize = true;
+		ObjectMap.set(this.id, this);
+		// Assuming we allocate position every time, so id and index line up
+		Object.RelativePositionComp.add(new RelativePosition(id));
+		Object.AnimationComp.add(new Animation(id));
+		Object.AbsolutePositionView.add(new AbsolutePositionCache(id));
 
-		x = 0; y = 0; z = 0; scaleX = 1; scaleY = 1; scaleZ = 1;
-		qRot = new h3d.Quat();
 		posChanged = false;
 		visible = true;
 		children = [];
@@ -156,30 +169,30 @@ class Object implements hxd.impl.Serializable {
 			parent.addChild(this);
 	}
 
-	inline function get_x() return this.pos.x;
-	inline function set_x(v) return this.pos.x = v;
-	inline function get_y() return this.pos.y;
-	inline function set_y(v) return this.pos.y = v;
-	inline function get_z() return this.pos.z;
-	inline function set_z(v) return this.pos.z = v;
-	inline function get_scaleX() return this.pos.scaleX;
-	inline function set_scaleX(v) return this.pos.scaleX = v;
-	inline function get_scaleY() return this.pos.scaleY;
-	inline function set_scaleY(v) return this.pos.scaleY = v;
-	inline function get_scaleZ() return this.pos.scaleZ;
-	inline function set_scaleZ(v) return this.pos.scaleZ = v;
-	inline function get_qRot() return this.pos.rotationQuat;
-	inline function set_qRot(q) return this.pos.rotationQuat = q;
+	inline function get_x() return this.relPos.x;
+	inline function set_x(v) return this.relPos.x = v;
+	inline function get_y() return this.relPos.y;
+	inline function set_y(v) return this.relPos.y = v;
+	inline function get_z() return this.relPos.z;
+	inline function set_z(v) return this.relPos.z = v;
+	inline function get_scaleX() return this.relPos.scaleX;
+	inline function set_scaleX(v) return this.relPos.scaleX = v;
+	inline function get_scaleY() return this.relPos.scaleY;
+	inline function set_scaleY(v) return this.relPos.scaleY = v;
+	inline function get_scaleZ() return this.relPos.scaleZ;
+	inline function set_scaleZ(v) return this.relPos.scaleZ = v;
+	inline function get_qRot() return this.relPos.rotationQuat;
+	inline function set_qRot(q) return this.relPos.rotationQuat = q;
 	inline function get_visible() return flags.has(FVisible);
 	inline function get_allocated() return flags.has(FAllocated);
-	inline function get_posChanged() return this.pos.posChanged;
+	inline function get_posChanged() return this.relPos.posChanged;
 	inline function get_culled() return flags.has(FCulled);
 	inline function get_lightCameraCenter() return flags.has(FLightCameraCenter);
 	inline function get_alwaysSync() return flags.has(FAlwaysSync);
 	inline function get_ignoreBounds() return flags.has(FIgnoreBounds);
 	inline function get_allowSerialize() return !flags.has(FNoSerialize);
 	inline function get_initialTransformDone() return flags.has(FInitialTransformDone);
-	inline function set_posChanged(b) return this.pos.posChanged = (b);
+	inline function set_posChanged(b) return this.relPos.posChanged = (b);
 	inline function set_culled(b) return flags.set(FCulled, b);
 	inline function set_visible(b) return flags.set(FVisible,b);
 	inline function set_allocated(b) return flags.set(FAllocated, b);
@@ -193,21 +206,23 @@ class Object implements hxd.impl.Serializable {
 		Create an animation instance bound to the object, set it as currentAnimation and play it.
 	**/
 	public function playAnimation( a : h3d.anim.Animation ) {
-		return currentAnimation = a.createInstance(this);
+		return anim.playAnimation(a);
 	}
 
 	/**
 		Change the current animation. This animation should be an instance that was previously created by playAnimation.
 	**/
 	public function switchToAnimation( a : h3d.anim.Animation ) {
-		return currentAnimation = a;
+		return anim.switchToAnimation(a);
 	}
 
 	/**
 		Stop the current animation. If recursive is set to true, all children will also stop their animation
 	**/
 	public function stopAnimation( ?recursive = false ) {
-		currentAnimation = null;
+		anim.stopAnimation();
+		
+		// TODO can't do this with the component, should be in a system.
 		if(recursive) {
 			for(c in children)
 				c.stopAnimation(true);
@@ -447,7 +462,6 @@ class Object implements hxd.impl.Serializable {
 	// kept for internal init
 	function onAdd() {
 		allocated = true;
-		ObjectMap.set(this.id, this);
 		for( c in children )
 			c.onAdd();
 	}
@@ -522,6 +536,23 @@ class Object implements hxd.impl.Serializable {
 	}
 
 	/**
+		Tell if the object is a Skin.
+	**/
+	public inline function isSkin() {
+		return hxd.impl.Api.downcast(this, Skin) != null;
+	}
+
+	/**
+		If the object is a Skin, return the corresponding Skin. If not, throw an exception.
+	**/
+	public function toSkin() : Skin {
+		var m = hxd.impl.Api.downcast(this, Skin);
+		if( m != null )
+			return m;
+		throw this + " is not a Skin";
+	}
+
+	/**
 		Build and return the global absolute recursive collider for the object.
 		Returns null if no collider was found.
 	**/
@@ -562,7 +593,7 @@ class Object implements hxd.impl.Serializable {
 		return null;
 	}
 
-	function draw( ctx : RenderContext ) {
+	function draw( ctx : RenderContext.DrawContext ) {
 	}
 
 	function calcAbsPos() {
@@ -593,10 +624,10 @@ class Object implements hxd.impl.Serializable {
 			invPos._44 = 0; // mark as invalid
 	}
 
-	function sync( ctx : RenderContext ) {
+	function sync( ctx : RenderContext.SyncContext ) {
 	}
 
-	function syncRec( ctx : RenderContext ) {
+	function syncRec( ctx : RenderContext.SyncContext ) {
 		if( currentAnimation != null ) {
 			var old = parent;
 			var dt = ctx.elapsedTime;
@@ -644,23 +675,24 @@ class Object implements hxd.impl.Serializable {
 		}
 	}
 
-	function emit( ctx : RenderContext ) {
+	function emit( ctx : RenderContext.EmitContext ) {
 	}
 
-	function emitRec( ctx : RenderContext ) {
+	function emitRec( ctx : RenderContext.EmitContext ) {
 
 		if( !visible || (culled && !ctx.computingStatic) )
 			return;
 
+		// TODO - Can likely be removed, bring back if some syncing bugs appear
 		// fallback in case the object was added during a sync() event and we somehow didn't update it
-		if( posChanged ) {
-			// only sync anim, don't update() (prevent any event from occuring during draw())
-			if( currentAnimation != null ) currentAnimation.sync();
-			posChanged = false;
-			calcAbsPos();
-			for( c in children )
-				c.posChanged = true;
-		}
+		// if( posChanged ) {
+		// 	// only sync anim, don't update() (prevent any event from occuring during draw())
+		// 	if( currentAnimation != null ) currentAnimation.sync();
+		// 	posChanged = false;
+		// 	calcAbsPos();
+		// 	for( c in children )
+		// 		c.posChanged = true;
+		// }
 		if( !culled || ctx.computingStatic )
 			emit(ctx);
 
@@ -707,35 +739,35 @@ class Object implements hxd.impl.Serializable {
 		Rotate around the current rotation axis by the specified angles (in radian).
 	**/
 	public inline function rotate( rx : Float, ry : Float, rz : Float ) {
-		this.pos.rotate(rx, ry, rz);
+		this.relPos.rotate(rx, ry, rz);
 	}
 
 	/**
 		Set the rotation using the specified angles (in radian).
 	**/
 	public inline function setRotation( rx : Float, ry : Float, rz : Float ) {
-		this.pos.setRotation(rx, ry, rz);
+		this.relPos.setRotation(rx, ry, rz);
 	}
 
 	/**
 		Set the rotation using the specified axis and angle of rotation around it (in radian).
 	**/
 	public inline function setRotationAxis( ax : Float, ay : Float, az : Float, angle : Float ) {
-		this.pos.setRotationAxis(ax, ay, az, angle);
+		this.relPos.setRotationAxis(ax, ay, az, angle);
 	}
 
 	/**
 		Set the rotation using the specified look at direction
 	**/
 	public inline function setDirection( v : h3d.Vector ) {
-		this.pos.setDirection(v);
+		this.relPos.setDirection(v);
 	}
 
 	/**
 		Return the direction in which the object rotation is currently oriented to
 	**/
 	public inline function getDirection() {
-		return this.pos.rotationQuat.getDirection();
+		return this.relPos.rotationQuat.getDirection();
 	}
 
 	/**
@@ -743,7 +775,7 @@ class Object implements hxd.impl.Serializable {
 		Dot not modify as it's not a copy.
 	**/
 	public inline function getRotationQuat() {
-		return this.pos.rotationQuat;
+		return this.relPos.rotationQuat;
 	}
 
 	/**
@@ -751,21 +783,21 @@ class Object implements hxd.impl.Serializable {
 		Dot not modify the value afterwards as no copy is made.
 	**/
 	public function setRotationQuat(q) {
-		this.pos.rotationQuat = q;
+		this.relPos.rotationQuat = q;
 	}
 
 	/**
 		Scale uniformly the object by the given factor.
 	**/
 	public inline function scale( v : Float ) {
-		this.pos.scale(v);
+		this.relPos.scale(v);
 	}
 
 	/**
 		Set the uniform scale for the object.
 	**/
 	public inline function setScale( v : Float ) {
-		this.pos.setScale(v);
+		this.relPos.setScale(v);
 	}
 
 	/**
@@ -873,14 +905,14 @@ class Object implements hxd.impl.Serializable {
 	}
 	#end
 
-	@:allow(h3d.pass.Default) private static function drawObject(obj: h3d.pass.DrawObject, ctx: RenderContext) {
+	@:allow(h3d.pass.Default) private static function drawObject(obj: h3d.pass.DrawObject, ctx: RenderContext.DrawContext) {
 		final o = Object.ObjectMap.get(obj.id);
 		if (o != null)
 			o.draw(ctx);
 	}
 }
 
-private enum abstract PositionFlags(Int) {
+private enum abstract RelativePositionFlags(Int) {
 	public var FPosChanged = 0x01;
 	// public var FFlag = 0x02;
 	// public var FFlag = 0x04;
@@ -898,8 +930,8 @@ private enum abstract PositionFlags(Int) {
 		this = value;
 	}
 	public inline function toInt() return this;
-	public inline function has(f:PositionFlags) return this & f.toInt() != 0;
-	public inline function set(f:PositionFlags, b) {
+	public inline function has(f:RelativePositionFlags) return this & f.toInt() != 0;
+	public inline function set(f:RelativePositionFlags, b) {
 		if( b ) this |= f.toInt() else this &= ~f.toInt();
 		return b;
 	}
@@ -908,14 +940,10 @@ private enum abstract PositionFlags(Int) {
 /**
 	Rework into just x, y, z + orientation
 **/
-private class Position {
+private class RelativePosition {
 	public final id: Int;
 
-	public function new(id: Int) {
-		this.id = id;
-	}
-
-	private var flags = new PositionFlags();
+	private var flags = new RelativePositionFlags();
 	public var posChanged(get, set): Bool;
 	inline function get_posChanged() { return this.flags.has(FPosChanged); }
 	inline function set_posChanged(v: Bool) { return this.flags.set(FPosChanged, v); }
@@ -923,37 +951,41 @@ private class Position {
 	/**
 		The x position of the object relative to its parent.
 	**/
-	public var x(default,set) : Float;
+	public var x(default,set) : Float = .0;
 
 	/**
 		The y position of the object relative to its parent.
 	**/
-	public var y(default, set) : Float;
+	public var y(default, set) : Float = .0;
 
 	/**
 		The z position of the object relative to its parent.
 	**/
-	public var z(default, set) : Float;
+	public var z(default, set) : Float = .0;
 
 	/**
 		Rotation/Orientation as a quarternion.
 	**/
-	public var rotationQuat(default, set) : h3d.Quat;
+	public var rotationQuat(default, set) : h3d.Quat = new h3d.Quat();
 	
 	/**
 		The amount of scaling along the X axis of this object (default 1.0)
 	**/
-	@:s public var scaleX(default,set) : Float;
+	@:s public var scaleX(default,set) : Float = 1.;
 
 	/**
 		The amount of scaling along the Y axis of this object (default 1.0)
 	**/
-	@:s public var scaleY(default, set) : Float;
+	@:s public var scaleY(default, set) : Float = 1.;
 
 	/**
 		The amount of scaling along the Z axis of this object (default 1.0)
 	**/
-	@:s public var scaleZ(default,set) : Float;
+	@:s public var scaleZ(default,set) : Float = 1.;
+
+	public function new(id: Int) {
+		this.id = id;
+	}
 
 	inline function set_x(x) {
 		posChanged = true;
@@ -1040,7 +1072,7 @@ private class Position {
 	/**
 		Set the uniform scale for the object.
 	**/
-	public inline function setScale( v : Float ) {
+	public inline function setScale(v : Float) {
 		scaleX = v;
 		scaleY = v;
 		scaleZ = v;
@@ -1048,30 +1080,73 @@ private class Position {
 	}
 }
 
-private enum abstract RenderFlags(Int) {
-	public var FCulled = 0x01;
-	public var FAllocated = 0x02;
-	public var FVisible = 0x04;
+private class AbsolutePositionCache {
+	public final id: Int;
 
-	// public var FVisible = 0x08;
-	// public var FFlag = 0x10;
-	// public var FAllocated = 0x20;
-	// public var FAlwaysSync = 0x40;
-	// public var FSomeFlag = 0x80;
-	// public var FNoSerialize = 0x100;
-	// public var FIgnoreBounds = 0x200;
-	// public var FFlag = 0x400;
-	// public var FFlag = 0x800;
-	// public var FFlag = 0x1000;
-	public inline function new(value = 0) {
-		this = value;
+	public final absPos: h3d.Matrix = Matrix.I();
+	public final invPos: h3d.Matrix = Matrix.I();
+
+	// TODO Cruft that needs to go with FBX silliness
+	public var initialTransformRequired(default, null): Bool = false;
+	public var initialTransform(default, set): h3d.Matrix;
+	inline function set_initialTransform(t) {
+		changed = true;
+		initialTransformRequired = true;
+		return initialTransform = t;
 	}
-	public inline function toInt() return this;
-	public inline function has(f:RenderFlags) return this & f.toInt() != 0;
-	public inline function set(f:RenderFlags, b) {
-		if( b ) this |= f.toInt() else this &= ~f.toInt();
-		return b;
+
+	public var animationTransform(default, set): h3d.Matrix = null;
+	inline function set_animationTransform(m) {
+		changed = true;
+		return animationTransform = m;
 	}
+
+	public var changed(default, null): Bool = true;
+
+	public function new(id) {
+		this.id = id;
+	}
+
+	public static function update(abs: AbsolutePositionCache, rel: RelativePosition, ?parent: AbsolutePositionCache) {
+		if (rel.posChanged || abs.changed) {
+			rel.rotationQuat.toMatrix(abs.absPos);
+			// prepend scale
+			abs.absPos._11 *= rel.scaleX;
+			abs.absPos._12 *= rel.scaleX;
+			abs.absPos._13 *= rel.scaleX;
+			abs.absPos._21 *= rel.scaleY;
+			abs.absPos._22 *= rel.scaleY;
+			abs.absPos._23 *= rel.scaleY;
+			abs.absPos._31 *= rel.scaleZ;
+			abs.absPos._32 *= rel.scaleZ;
+			abs.absPos._33 *= rel.scaleZ;
+			abs.absPos._41 = rel.x;
+			abs.absPos._42 = rel.y;
+			abs.absPos._43 = rel.z;
+			if( parent != null )
+				abs.absPos.multiply3x4inline(abs.absPos, parent.absPos);
+			if( abs.initialTransformRequired ) {
+				if ( abs.initialTransform != null ) {
+					abs.absPos.multiply3x4inline(abs.absPos, abs.initialTransform);
+				}
+				abs.initialTransformRequired = false;
+			}
+			// animation is applied before every other transform
+			if( abs.animationTransform != null )
+				abs.absPos.multiply3x4inline(abs.animationTransform, abs.absPos);
+			if( abs.invPos != null )
+				abs.invPos._44 = 0; // mark as invalid
+
+			abs.changed = false;
+			// NB: not managing the posChanged lifetime here yet.
+		}
+	}
+}
+
+private enum RenderFlags {
+	FCulled;
+	FAllocated;
+	FVisible;
 }
 
 private class Render {
@@ -1079,15 +1154,16 @@ private class Render {
 	public var culled(get, set): Bool;
 	public var allocated(get, set): Bool;
 	public var visible(get, set): Bool;
+	public var cullingCollider : h3d.col.Collider;
 
-	var flags = new RenderFlags(0);
+	var flags = new haxe.EnumFlags<RenderFlags>();
 
 	inline function get_culled() return flags.has(FCulled);
-	inline function set_culled(v) return flags.set(FCulled, v);
+	inline function set_culled(v) { v ? flags.set(FCulled) : flags.unset(FCulled); return v; }
 	inline function get_allocated() return flags.has(FAllocated);
-	inline function set_allocated(v) return flags.set(FAllocated, v);
+	inline function set_allocated(v) { v ? flags.set(FAllocated) : flags.unset(FAllocated); return v; }
 	inline function get_visible() return flags.has(FVisible);
-	inline function set_visible(v) return flags.set(FVisible, v);
+	inline function set_visible(v) { v ? flags.set(FVisible) : flags.unset(FVisible); return v; }
 
 	public function new(id: Int) {
 		this.id = id;
@@ -1097,7 +1173,48 @@ private class Render {
 private class Animation {
 	public final id: Int;
 
+	@:s public var currentAnimation(default, null) : h3d.anim.Animation;
+
 	public function new(id: Int) {
 		this.id = id;
 	}
+	
+	/**
+		Create an animation instance bound to the object, set it as currentAnimation and play it.
+	**/
+	public function playAnimation( a : h3d.anim.Animation ) {
+		return currentAnimation = a.createInstance(Object.ObjectMap.get(this.id));
+	}
+
+	/**
+		Change the current animation. This animation should be an instance that was previously created by playAnimation.
+	**/
+	public function switchToAnimation( a : h3d.anim.Animation ) {
+		return currentAnimation = a;
+	}
+
+	/**
+		Stop the current animation.
+	**/
+	public function stopAnimation() {
+		currentAnimation = null;
+	}
+}
+
+/**
+	Creating a layer of indirection for when refactoring will be required,
+	this way the type contract can be easily broken and usages easily found. 
+**/
+abstract ComponentStorage<T>(Array<T>) {
+	public function new(arr) { this = arr; }
+
+	@:arrayAccess public inline function get(i: Int) return this[i];
+	@:arrayAccess public inline function set(i: Int, t: T) {
+		this[i] = t;
+		return t;
+	}
+
+	public inline function add(t: T) this.push(t);
+
+	public inline static function newStorage<T>() return new ComponentStorage(new Array<T>());
 }

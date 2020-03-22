@@ -23,7 +23,7 @@ class MultiMaterial extends Mesh {
 		return m;
 	}
 
-	override function emit( ctx : RenderContext ) {
+	override function emit( ctx : RenderContext.EmitContext ) {
 		for( i in 0...materials.length ) {
 			var m = materials[i];
 			if( m != null )
@@ -48,7 +48,7 @@ class MultiMaterial extends Mesh {
 		return a;
 	}
 
-	override function draw( ctx : RenderContext ) {
+	override function draw( ctx : RenderContext.DrawContext ) {
 		if( materials.length > 1 )
 			primitive.selectMaterial(ctx.drawPass.index);
 		super.draw(ctx);

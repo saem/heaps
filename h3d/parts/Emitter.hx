@@ -261,7 +261,7 @@ class Emitter extends Particles implements Randomized {
 			state.update(p);
 	}
 
-	override function sync( ctx : h3d.scene.RenderContext ) {
+	override function sync( ctx : h3d.scene.RenderContext.SyncContext ) {
 		update(ctx.elapsedTime * speed);
 	}
 
@@ -269,7 +269,7 @@ class Emitter extends Particles implements Randomized {
 		return count != 0 || time < 1 || state.loop;
 	}
 
-	override function draw( ctx : h3d.scene.RenderContext ) {
+	override function draw( ctx : h3d.scene.RenderContext.DrawContext ) {
 		globalSize = eval(state.globalSize) * 0.1;
 		super.draw(ctx);
 	}

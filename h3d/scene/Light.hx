@@ -34,7 +34,7 @@ class Light extends Object {
 		return false;
 	}
 
-	override function emit(ctx:RenderContext) {
+	override function emit(ctx:RenderContext.EmitContext) {
 		ctx.emitLight(this);
 	}
 

@@ -35,7 +35,7 @@ class PointLight extends Light {
 		return cullingDistance = v;
 	}
 
-	override function draw(ctx:RenderContext) {
+	override function draw(ctx:RenderContext.DrawContext) {
 		primitive.render(ctx.engine);
 	}
 
@@ -54,7 +54,7 @@ class PointLight extends Light {
 	}
 
 	var s = new h3d.col.Sphere();
-	override function emit(ctx:RenderContext) {
+	override function emit(ctx:RenderContext.EmitContext) {
 		if( ctx.computingStatic ) {
 			super.emit(ctx);
 			return;

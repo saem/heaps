@@ -59,11 +59,11 @@ class Mesh extends Object {
 		return primitive.getCollider();
 	}
 
-	override function draw( ctx : RenderContext ) {
+	override function draw( ctx : RenderContext.DrawContext ) {
 		primitive.render(ctx.engine);
 	}
 
-	override function emit( ctx : RenderContext ) {
+	override function emit( ctx : RenderContext.EmitContext ) {
 		ctx.emit(material, this);
 	}
 

@@ -256,7 +256,7 @@ class MeshBatch extends Mesh {
 		curInstances++;
 	}
 
-	override function sync(ctx:RenderContext) {
+	override function sync(ctx:RenderContext.SyncContext) {
 		super.sync(ctx);
 		if( curInstances == 0 ) return;
 		var p = dataPasses;
@@ -272,7 +272,7 @@ class MeshBatch extends Mesh {
 		if( colorMult != null ) colorMult.color.load(material.color);
 	}
 
-	override function emit(ctx:RenderContext) {
+	override function emit(ctx:RenderContext.EmitContext) {
 		if( curInstances == 0 ) return;
 		super.emit(ctx);
 	}

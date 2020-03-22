@@ -21,7 +21,7 @@ class DirLight extends Light {
 		return absPos.front();
 	}
 
-	override function emit(ctx:RenderContext) {
+	override function emit(ctx:RenderContext.EmitContext) {
 		pbr.lightColor.load(_color);
 		pbr.lightColor.scale3(power * power);
 		pbr.lightDir.load(absPos.front());

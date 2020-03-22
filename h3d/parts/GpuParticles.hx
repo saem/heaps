@@ -509,7 +509,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 						calcAbsPos();
 						posChanged = false;
 					}
-					sync(@:privateAccess s.renderer.ctx);
+					sync(new h3d.scene.RenderContext.SyncContext(@:privateAccess s.renderer.ctx));
 				}
 				break;
 			}
@@ -582,10 +582,6 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 	function set_volumeBounds(v) {
 		for( g in groups ) g.needRebuild = true;
 		return volumeBounds = v;
-	}
-
-	public function rebuild() {
-		for( g in groups ) g.needRebuild = true;
 	}
 
 	public function removeGroup( g : GpuPartGroup ) {
@@ -878,7 +874,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 		}
 	}
 
-	override function emit( ctx : h3d.scene.RenderContext ) {
+	override function emit( ctx : h3d.scene.RenderContext.EmitContext ) {
 		for( i in 0...materials.length ) {
 			var m = materials[i];
 			var g = groups[i];
@@ -979,7 +975,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 		return n;
 	}
 
-	override function draw( ctx : h3d.scene.RenderContext ) {
+	override function draw( ctx : h3d.scene.RenderContext.DrawContext ) {
 		var primitive = primitives[ctx.drawPass.index];
 		if( primitive == null || primitive.buffer.isDisposed() )
 			return; // wait next sync()

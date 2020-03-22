@@ -82,7 +82,7 @@ class Default extends Base {
 	function drawObject( p : h3d.pass.PassObject ) {
 		ctx.drawPass = p;
 		ctx.engine.selectMaterial(p.pass);
-		h3d.scene.Object.drawObject(p.obj, ctx);
+		h3d.scene.Object.drawObject(p.obj, new h3d.scene.RenderContext.DrawContext(ctx));
 	}
 
 	@:access(h3d.scene)

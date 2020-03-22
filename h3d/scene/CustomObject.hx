@@ -28,11 +28,11 @@ class CustomObject extends Object {
 		return m;
 	}
 
-	override function draw( ctx : RenderContext ) {
+	override function draw( ctx : RenderContext.DrawContext ) {
 		primitive.render(ctx.engine);
 	}
 
-	override function emit( ctx : RenderContext ) {
+	override function emit( ctx : RenderContext.EmitContext ) {
 		ctx.emit(material, this);
 	}
 
