@@ -9,7 +9,7 @@ class Pass implements hxd.impl.Serializable {
 
 	@:s public var name(default, null) : String;
 	var flags : Int;
-	var passId : Int;
+	public var passId(default, null) : Int;
 	@:s var bits : Int = 0;
 	@:s var parentPass : Pass;
 	var parentShaders : hxsl.ShaderList;

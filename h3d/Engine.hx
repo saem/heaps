@@ -311,6 +311,11 @@ class Engine {
 		return targetStack == null ? null : targetStack.t;
 	}
 
+	public function getTargetScreenRation() {
+		final t = getCurrentTarget();
+		return t == null ? this.width / this.height : t.width / t.height;
+	}
+
 	public function pushTarget( tex : h3d.mat.Texture, layer = 0, mipLevel = 0 ) {
 		var c = targetTmp;
 		if( c == null )

@@ -1,5 +1,8 @@
 package h3d.scene;
 
+import h3d.scene.RenderContext.EmitContext;
+import h3d.scene.RenderContext.SyncContext;
+
 /**
 	h3d.scene.Scene is the root class for a 3D scene. All root objects are added to it before being drawn on screen.
 **/
@@ -50,6 +53,12 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 		if( createLightSystem ) lightSystem = h3d.mat.MaterialSetup.current.createLightSystem();
 	}
 
+	function set_renderer(r) {
+		renderer = r;
+		if( r != null ) @:privateAccess r.ctx = ctx;
+		return r;
+	}
+
 	@:noCompletion @:dox(hide) public function setEvents(events) {
 		this.events = events;
 	}
@@ -79,12 +88,6 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 			l(event);
 			if( !event.propagate ) break;
 		}
-	}
-
-	function set_renderer(r) {
-		renderer = r;
-		if( r != null ) @:privateAccess r.ctx = ctx;
-		return r;
 	}
 
 	function sortHitPointByCameraDistance( i1 : Interactive, i2 : Interactive ) {
@@ -229,6 +232,20 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 		return null;
 	}
 
+	@:allow(h3d)
+	function addEventTarget(i:Interactive) {
+		if( interactives.indexOf(i) >= 0 ) throw "assert";
+		interactives.push(i);
+	}
+
+	@:allow(h3d)
+	function removeEventTarget(i:Interactive) {
+		if( interactives.remove(i) ) {
+			if( events != null ) @:privateAccess events.onRemove(i);
+			hitInteractives.remove(i);
+		}
+	}
+
 	override function clone( ?o : Object ) {
 		var s = o == null ? new Scene() : cast o;
 		s.camera = camera.clone();
@@ -253,20 +270,6 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 		}
 	}
 
-	@:allow(h3d)
-	function addEventTarget(i:Interactive) {
-		if( interactives.indexOf(i) >= 0 ) throw "assert";
-		interactives.push(i);
-	}
-
-	@:allow(h3d)
-	function removeEventTarget(i:Interactive) {
-		if( interactives.remove(i) ) {
-			if( events != null ) @:privateAccess events.onRemove(i);
-			hitInteractives.remove(i);
-		}
-	}
-
 	/**
 		Before render() or sync() are called, allow to set how much time has elapsed (in seconds) since the last frame in order to update scene animations.
 		This is managed automatically by hxd.App
@@ -288,10 +291,7 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 		var engine = h3d.Engine.getCurrent();
 		camera.screenRatio = engine.width / engine.height;
 		camera.update();
-		ctx.camera = camera;
-		ctx.engine = engine;
-		ctx.scene = this;
-		ctx.start();
+		ctx.start(camera, engine, this);
 
 		var ray = camera.rayFromScreen(pixelX, pixelY);
 		var savedRay = ray.clone();
@@ -327,9 +327,6 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 		}
 
 		ctx.done();
-		ctx.camera = null;
-		ctx.engine = null;
-		ctx.scene = null;
 		return found;
 	}
 
@@ -339,20 +336,10 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 	public function syncOnly( et : Float ) {
 		var engine = h3d.Engine.getCurrent();
 		setElapsedTime(et);
-		var t = engine.getCurrentTarget();
-		if( t == null )
-			camera.screenRatio = engine.width / engine.height;
-		else
-			camera.screenRatio = t.width / t.height;
-		camera.update();
-		ctx.camera = camera;
-		ctx.engine = engine;
-		ctx.scene = this;
-		ctx.start();
-		syncRec(ctx);
-		ctx.camera = null;
-		ctx.engine = null;
-		ctx.scene = null;
+		updateCamera(engine, camera);
+		ctx.start(camera, engine, this);
+		syncRec(new RenderContext.SyncContext(ctx));
+		ctx.done();
 	}
 
 	/**
@@ -370,35 +357,35 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 	/**
 		Render the scene on screen. Internal usage only.
 	**/
+	public function render( engine : h3d.Engine ) {
+		allocateScene(this);
+		updateCamera(engine, camera);
+		realRender(engine, this, this.ctx, this.camera, this.renderer, this.lightSystem);
+	}
+
+	private static inline function allocateScene(scene: Scene) {
+		if( !scene.allocated )
+			scene.onAdd();
+	}
+
+	private static inline function updateCamera(engine: h3d.Engine, camera: h3d.Camera) {
+		camera.screenRatio = engine.getTargetScreenRation();
+		camera.update();
+	}
+
 	@:access(h3d.mat.Pass)
 	@:access(h3d.scene.RenderContext)
-	public function render( engine : h3d.Engine ) {
-
-		if( !allocated )
-			onAdd();
-
-		var t = engine.getCurrentTarget();
-		if( t == null )
-			camera.screenRatio = engine.width / engine.height;
-		else
-			camera.screenRatio = t.width / t.height;
-		camera.update();
-
+	private static function realRender(engine: h3d.Engine, scene: Scene, ctx: RenderContext, camera: h3d.Camera, renderer: h3d.scene.Renderer, lightSystem: h3d.scene.LightSystem) {
 		if( camera.rightHanded )
 			engine.driver.setRenderFlag(CameraHandness,1);
 
-		ctx.camera = camera;
-		ctx.engine = engine;
-		ctx.scene = this;
-		ctx.start();
+		ctx.start(camera, engine, scene);
 		renderer.start();
 
-		syncRec(ctx);
-		emitRec(ctx);
-		// sort by pass id
-		ctx.passes = haxe.ds.ListSort.sortSingleLinked(ctx.passes, function(p1, p2) {
-			return p1.pass.passId - p2.pass.passId;
-		});
+		scene.syncRec(new SyncContext(ctx));
+		scene.emitRec(new EmitContext(ctx));
+
+		ctx.sortPasses();
 
 		// group by pass implementation
 		var curPass = ctx.passes;
@@ -432,7 +419,7 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 
 		// check that passes have been rendered
 		#if debug
-		if( !ctx.computingStatic && checkPasses)
+		if( !ctx.computingStatic && scene.checkPasses)
 			for( p in passes )
 				if( !p.rendered )
 					trace("Pass " + p.name+" has not been rendered : don't know how to handle.");
@@ -442,9 +429,6 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 			engine.driver.setRenderFlag(CameraHandness,0);
 
 		ctx.done();
-		ctx.scene = null;
-		ctx.camera = null;
-		ctx.engine = null;
 		for( i in 0...passIndex ) {
 			var p = ctx.cachedPassObjects[i];
 			p.name = null;

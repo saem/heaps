@@ -215,7 +215,7 @@ class CameraController extends h3d.scene.Object {
 		cam.fovY = curOffset.w;
 	}
 
-	override function sync(ctx:RenderContext) {
+	override function sync(ctx:RenderContext.SyncContext) {
 
 		if( !ctx.visibleFlag && !alwaysSync ) {
 			super.sync(ctx);

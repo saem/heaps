@@ -146,7 +146,7 @@ class Skin extends MultiMaterial {
 			splitPalette = null;
 	}
 
-	override function sync( ctx : RenderContext ) {
+	override function sync( ctx : RenderContext.SyncContext ) {
 		if( !ctx.visibleFlag && !alwaysSync )
 			return;
 		syncJoints();
@@ -206,7 +206,7 @@ class Skin extends MultiMaterial {
 		jointsUpdated = false;
 	}
 
-	override function emit( ctx : RenderContext ) {
+	override function emit( ctx : RenderContext.EmitContext ) {
 		if( splitPalette == null )
 			super.emit(ctx);
 		else {
@@ -218,7 +218,7 @@ class Skin extends MultiMaterial {
 		}
 	}
 
-	override function draw( ctx : RenderContext ) {
+	override function draw( ctx : RenderContext.DrawContext ) {
 		if( splitPalette == null ) {
 			super.draw(ctx);
 		} else {

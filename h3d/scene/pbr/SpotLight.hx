@@ -100,7 +100,7 @@ class SpotLight extends Light {
 		return absPos.front();
 	}
 
-	override function draw(ctx:RenderContext) {
+	override function draw(ctx:RenderContext.DrawContext) {
 		primitive.render(ctx.engine);
 	}
 
@@ -130,7 +130,7 @@ class SpotLight extends Light {
 
 	var s = new h3d.col.Sphere();
 	var d = new h3d.Vector();
-	override function emit(ctx:RenderContext) {
+	override function emit(ctx:RenderContext.EmitContext) {
 		if( ctx.computingStatic ) {
 			super.emit(ctx);
 			return;

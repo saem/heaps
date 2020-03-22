@@ -5,6 +5,8 @@ class Skin extends SampleApp {
 
 	var cache : h3d.prim.ModelCache;
 	var obj: h3d.scene.Object;
+	var sword: h3d.scene.Object;
+	var skeleton: h3d.scene.Object;
 
 	override function init() {
 		super.init();
@@ -13,11 +15,14 @@ class Skin extends SampleApp {
 
 		obj = cache.loadModel(hxd.Res.Model);
 		obj.scale(0.1);
+		this.sword = obj.getObjectByName("Sword01");
+		this.skeleton = obj.getObjectByName("Skeleton01");
 		s3d.addChild(obj);
 		s3d.camera.pos.set( -3, -5, 3);
 		s3d.camera.target.z += 1;
 
-		obj.playAnimation(cache.loadAnimation(hxd.Res.Model));
+		final animation = cache.loadAnimation(hxd.Res.Model);
+		obj.playAnimation(animation);
 
 		// add lights and setup materials
 		var dir = new DirLight(new h3d.Vector( -1, 3, -10), s3d);
@@ -43,6 +48,12 @@ class Skin extends SampleApp {
 			showJoints = b;
 			skins.map(s -> s.showJoints = showJoints);
 			meshes.map(m -> m.material.mainPass.wireframe = b);
+		});
+
+		var pauseAnimation = false;
+		addCheck("Pause Animation", () -> pauseAnimation, b -> {
+			pauseAnimation = b;
+			if (pauseAnimation) obj.stopAnimation(); else obj.playAnimation(animation);
 		});
 	}
 

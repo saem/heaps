@@ -259,7 +259,7 @@ class Trail extends Mesh {
 		dprim.flush();
 	}
 
-	override function draw(ctx:RenderContext) {
+	override function draw(ctx:RenderContext.DrawContext) {
 		if( points.length >= 2 ) {
 			absPos.identity();
 			posChanged = true;

@@ -151,7 +151,7 @@ class Particles extends h3d.scene.Mesh {
 
 	@:access(h2d.Tile)
 	@:noDebug
-	override function draw( ctx : h3d.scene.RenderContext ) {
+	override function draw( ctx : h3d.scene.RenderContext.DrawContext ) {
 		if( head == null )
 			return;
 		switch( sortMode ) {
