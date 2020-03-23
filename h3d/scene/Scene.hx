@@ -390,7 +390,6 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 		// group by pass implementation
 		var curPass = ctx.passes;
 		var passes = [];
-		var passIndex = -1;
 		while( curPass != null ) {
 			var passId = curPass.pass.passId;
 			var p = curPass, prev = null;
@@ -399,10 +398,10 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 				p = p.next;
 			}
 			prev.next = null;
-			var pobjs = ctx.cachedPassObjects[++passIndex];
+			var pobjs = ctx.cachedPassObjects[++ctx.passIndex];
 			if( pobjs == null ) {
 				pobjs = new Renderer.PassObjects();
-				ctx.cachedPassObjects[passIndex] = pobjs;
+				ctx.cachedPassObjects[ctx.passIndex] = pobjs;
 			}
 			pobjs.name = curPass.pass.name;
 			pobjs.passes.init(curPass);
@@ -429,11 +428,6 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 			engine.driver.setRenderFlag(CameraHandness,0);
 
 		ctx.done();
-		for( i in 0...passIndex ) {
-			var p = ctx.cachedPassObjects[i];
-			p.name = null;
-			p.passes.init(null);
-		}
 	}
 
 	/**

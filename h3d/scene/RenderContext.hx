@@ -43,6 +43,8 @@ class RenderContext extends h3d.impl.RenderContext {
 	var cachedShaderList : Array<hxsl.ShaderList>;
 	var cachedPassObjects : Array<Renderer.PassObjects>;
 	var cachedPos : Int;
+	// Scene::realRender
+	var passIndex: Int;
 	var passes : h3d.pass.PassObject;
 	var lights : Light;
 	var currentManager : h3d.pass.ShaderManager;
@@ -74,6 +76,7 @@ class RenderContext extends h3d.impl.RenderContext {
 		cachedPos = 0;
 		visibleFlag = true;
 		time += elapsedTime;
+		passIndex = -1;
 		frame++;
 	}
 
@@ -101,6 +104,13 @@ class RenderContext extends h3d.impl.RenderContext {
 		}
 		passes = null;
 		lights = null;
+
+		for( i in 0...passIndex ) {
+			var p = cachedPassObjects[i];
+			p.name = null;
+			p.passes.init(null);
+		}
+		passIndex = -1; // reset for next time Scene::realRender uses it
 
 		this.camera = null;
 		this.engine = null;
