@@ -276,6 +276,7 @@ class FileConverter {
 
 		conv.srcPath = fullPath;
 		conv.dstPath = fullOutPath;
+		conv.baseDir = baseDir;
 		conv.srcBytes = content;
 		conv.originalFilename = e.name;
 		conv.params = params;
