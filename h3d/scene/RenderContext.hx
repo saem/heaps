@@ -48,6 +48,8 @@ class RenderContext extends h3d.impl.RenderContext {
 	var passes : h3d.pass.PassObject;
 	var lights : Light;
 	var currentManager : h3d.pass.ShaderManager;
+	@:allow(h3d.scene.pbr.LightSystem.computeLight)
+	var pbrLightIndex: Map<Int, h3d.pass.LightObject> = new Map();
 
 	public function new() {
 		super();
@@ -112,6 +114,8 @@ class RenderContext extends h3d.impl.RenderContext {
 		}
 		passIndex = -1; // reset for next time Scene::realRender uses it
 
+		pbrLightIndex.clear();
+
 		this.camera = null;
 		this.engine = null;
 		this.scene = null;
@@ -172,6 +176,11 @@ class RenderContext extends h3d.impl.RenderContext {
 	public function emitLight( l : Light ) {
 		l.next = lights;
 		lights = l;
+
+		final light = hxd.impl.Api.downcast(l, h3d.scene.pbr.Light);
+		if (light != null) {
+			this.pbrLightIndex.set(light.id, light);
+		}
 	}
 
 	public function uploadParams() {
@@ -190,21 +199,21 @@ class RenderContext extends h3d.impl.RenderContext {
 	}
 }
 
-@:forward(frame, elapsedTime, visibleFlag, camera, computingStatic, setGlobal, time)
+@:forward(camera, computingStatic, elapsedTime, frame, setGlobal, time, visibleFlag)
 abstract SyncContext(RenderContext) {
 	public function new(ctx: RenderContext) {
 		this = ctx;
 	}
 }
 
-@:forward(pbrLightPass, computingStatic, camera, emitLight, emitPass, emit)
+@:forward(camera, computingStatic, emit, emitLight, emitPass, pbrLightPass)
 abstract EmitContext(RenderContext) {
 	public function new(ctx: RenderContext) {
 		this = ctx;
 	}
 }
 
-@:forward(drawPass, computingStatic, sharedGlobals, lightSystem, extraShaders, shaderBuffers, uploadParams, engine, camera)
+@:forward(camera, computingStatic, drawPass, engine, extraShaders, lightSystem, shaderBuffers, sharedGlobals, uploadParams)
 abstract DrawContext(RenderContext) {
 	public function new(ctx: RenderContext) {
 		this = ctx;

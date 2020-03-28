@@ -2,7 +2,7 @@ package h3d.scene;
 
 class Light extends Object {
 
-	var shader : hxsl.Shader;
+	public var shader(default, null) : hxsl.Shader;
 	var objectDistance : Float; // used internaly
 	@:noCompletion public var next : Light; // used internaly (public to allow sorting)
 
