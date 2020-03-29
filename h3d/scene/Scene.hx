@@ -1,7 +1,5 @@
 package h3d.scene;
 
-import h3d.scene.RenderContext.EmitContext;
-import h3d.scene.RenderContext.SyncContext;
 
 /**
 	h3d.scene.Scene is the root class for a 3D scene. All root objects are added to it before being drawn on screen.
@@ -330,6 +328,13 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 		return found;
 	}
 
+	function syncScene( ctx : RenderContext.SyncContext ) {
+		this.syncContinueFlag = true;
+		this.syncVisibleFlag = true;
+
+		syncChildren(ctx);
+	}
+
 	/**
 		Synchronize the scene without rendering, updating all objects and animations by the given amount of time, in seconds.
 	**/
@@ -338,7 +343,7 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 		setElapsedTime(et);
 		updateCamera(engine, camera);
 		ctx.start(camera, engine, this);
-		syncRec(new RenderContext.SyncContext(ctx));
+		syncScene(new RenderContext.SyncContext(ctx));
 		ctx.done();
 	}
 
@@ -382,8 +387,8 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 		ctx.start(camera, engine, scene);
 		renderer.start();
 
-		scene.syncRec(new SyncContext(ctx));
-		scene.emitRec(new EmitContext(ctx));
+		scene.syncScene(new RenderContext.SyncContext(ctx));
+		scene.emitRec(new RenderContext.EmitContext(ctx));
 
 		ctx.sortPasses();
 

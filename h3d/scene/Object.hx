@@ -136,7 +136,7 @@ class Object implements hxd.impl.Serializable {
 	
 		To replace RenderContext.SyncContext::visibileFlag
 
-		- Current object during a syncRec updates it so children can query it
+		- Current object during a syncChildren updates it so children can query it
 		- If an object is visible and it hasn't been culled then it's considered visible
 		- Children query the parent, which breaks the SyncContext dependency
 
@@ -148,7 +148,7 @@ class Object implements hxd.impl.Serializable {
 	var syncVisibleFlag(get, set) : Bool;
 
 	/**
-		Whether the syncRec process should continue or stop, this is mostly if
+		Whether the syncChildren process should continue or stop, this is mostly if
 		the animation removes this object and we need to stop.
 
 		This is required for breadth first traversal when doing recursive sync.
@@ -668,36 +668,12 @@ class Object implements hxd.impl.Serializable {
 			invPos._44 = 0; // mark as invalid
 	}
 
-	function sync( ctx : RenderContext.SyncContext ) {
-	}
-
-	final inline function animateSelf( ctx : RenderContext.AnimationContext ) : AnimationResult {
-		if( currentAnimation != null ) {
-			var old = parent;
-			var dt = ctx.elapsedTime;
-			while( dt > 0 && currentAnimation != null )
-				dt = currentAnimation.update(dt);
-
-			if( currentAnimation != null && ((syncVisibleFlag && visible && !culled) || alwaysSync)  )
-				currentAnimation.sync();
-			if( parent == null && old != null )
-				return AnimationResult.Removed; // if we were removed by an animation event
-
-			// Handle animations making a visible object invisible or culled(?)
-			this.syncVisibleFlag = this.syncVisibleFlag && visible && !culled;
-
-			return AnimationResult.Animated;
-		}
-
-		return AnimationResult.NoAnimation;
-	}
-
 	final function syncSelf( ctx : RenderContext.SyncContext ) : Void {
 		updateSyncStateSelf();
 
 		this.syncChangedFlag = (switch(animateSelf(new RenderContext.AnimationContext(ctx))) {
 			case Removed: this.syncContinueFlag = false; return;
-			default: posChanged;
+			default: posChanged || this.syncChangedFlag;
 		});
 
 		if( this.syncChangedFlag ) calcAbsPos();
@@ -721,15 +697,31 @@ class Object implements hxd.impl.Serializable {
 		}
 	}
 
-	final function syncRec( ctx : RenderContext.SyncContext ) : Void {
-		syncSelf(ctx);
+	final inline function animateSelf( ctx : RenderContext.AnimationContext ) : AnimationResult {
+		if( currentAnimation != null ) {
+			var old = parent;
+			var dt = ctx.elapsedTime;
+			while( dt > 0 && currentAnimation != null )
+				dt = currentAnimation.update(dt);
 
-		if(!syncContinueFlag) { return; }
+			if( currentAnimation != null && ((syncVisibleFlag && visible && !culled) || alwaysSync)  )
+				currentAnimation.sync();
+			if( parent == null && old != null )
+				return AnimationResult.Removed; // if we were removed by an animation event
 
-		syncRecRecPart(ctx);
+			// Handle animations making a visible object invisible or culled(?)
+			this.syncVisibleFlag = this.syncVisibleFlag && visible && !culled;
+
+			return AnimationResult.Animated;
 	}
 
-	final inline function syncRecRecPart( ctx : RenderContext.SyncContext ) {
+		return AnimationResult.NoAnimation;
+	}
+
+	function sync( ctx : RenderContext.SyncContext ) {
+	}
+
+	final function syncChildren( ctx : RenderContext.SyncContext ) : Void {
 		// First sync only the immediate children.
 		var p = 0;
 		while( p < children.length ) {
@@ -753,15 +745,15 @@ class Object implements hxd.impl.Serializable {
 		while( p < children.length ) {
 			final c = children[p];
 			if( c.syncContinueFlag ) {
-				c.syncRecRecPart(ctx);
+				c.syncChildren(ctx);
 			}
 			p++;
 		}
 
-		postSyncRec(ctx);
+		postSyncChildren(ctx);
 	}
 	
-	function postSyncRec( ctx : RenderContext.SyncContext ) : Void {
+	function postSyncChildren( ctx : RenderContext.SyncContext ) : Void {
 		// this is mostly a hack for h3d.scene.World's need to override syncRec
 	}
 
@@ -786,7 +778,6 @@ class Object implements hxd.impl.Serializable {
 	}
 
 	function emitRec( ctx : RenderContext.EmitContext ) {
-
 		if( !visible || (culled && !ctx.computingStatic) )
 			return;
 
