@@ -663,8 +663,9 @@ class World extends Object {
 		updateChunkBounds(c, model, mat);
 	}
 
-	override function syncRec(ctx:RenderContext.SyncContext) {
-		super.syncRec(ctx);
+	override function postSyncRec(ctx:RenderContext.SyncContext) {
+		super.postSyncRec(ctx);
+
 		// don't do in sync() since animations in our world might affect our chunks
 		for( c in allChunks ) {
 			c.root.visible = ctx.computingStatic || c.bounds.inFrustum(ctx.camera.frustum);

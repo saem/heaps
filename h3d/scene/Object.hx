@@ -10,6 +10,8 @@ private enum abstract ObjectFlags(Int) {
 	public var FIgnoreBounds = 0x40;
 	public var FInitialTransformDone = 0x80;
 	public var FSyncVisibility = 0x100;
+	public var FSyncContinue = 0x200;
+	public var FSyncChanged = 0x400;
 	public inline function new(value) {
 		this = value;
 	}
@@ -25,6 +27,12 @@ enum abstract AnimationResult(Int) {
 	var Removed;
 	var Animated;
 	var NoAnimation;
+}
+
+enum abstract SyncSelfResult(Int) {
+	var AbortSync;
+	var Unchanged;
+	var Changed;
 }
 
 /**
@@ -140,6 +148,19 @@ class Object implements hxd.impl.Serializable {
 	var syncVisibleFlag(get, set) : Bool;
 
 	/**
+		Whether the syncRec process should continue or stop, this is mostly if
+		the animation removes this object and we need to stop.
+
+		This is required for breadth first traversal when doing recursive sync.
+	**/
+	var syncContinueFlag(get, set) : Bool;
+
+	/**
+		Whether the sync resulted in any sort of position change.
+	**/
+	var syncChangedFlag(get, set) : Bool;
+
+	/**
 		When enabled, the object bounds are ignored when using getBounds()
 	**/
 	public var ignoreBounds(get, set) : Bool;
@@ -188,6 +209,8 @@ class Object implements hxd.impl.Serializable {
 		posChanged = false;
 		visible = true;
 		syncVisibleFlag = true;
+		syncContinueFlag = true;
+		syncChangedFlag = posChanged;
 		children = [];
 		if( parent != null )
 			parent.addChild(this);
@@ -209,6 +232,8 @@ class Object implements hxd.impl.Serializable {
 	inline function set_qRot(q) return this.relPos.rotationQuat = q;
 	inline function get_visible() return flags.has(FVisible);
 	inline function get_syncVisibleFlag() return flags.has(FSyncVisibility);
+	inline function get_syncContinueFlag() return flags.has(FSyncContinue);
+	inline function get_syncChangedFlag() return flags.has(FSyncChanged);
 	inline function get_allocated() return flags.has(FAllocated);
 	inline function get_posChanged() return this.relPos.posChanged;
 	inline function get_culled() return flags.has(FCulled);
@@ -221,6 +246,8 @@ class Object implements hxd.impl.Serializable {
 	inline function set_culled(b) return flags.set(FCulled, b);
 	inline function set_visible(b) return flags.set(FVisible,b);
 	inline function set_syncVisibleFlag(b) return flags.set(FSyncVisibility,b);
+	inline function set_syncContinueFlag(b) return flags.set(FSyncContinue,b);
+	inline function set_syncChangedFlag(b) return flags.set(FSyncChanged,b);
 	inline function set_allocated(b) return flags.set(FAllocated, b);
 	inline function set_lightCameraCenter(b) return flags.set(FLightCameraCenter, b);
 	inline function set_alwaysSync(b) return flags.set(FAlwaysSync, b);
@@ -665,48 +692,83 @@ class Object implements hxd.impl.Serializable {
 		return AnimationResult.NoAnimation;
 	}
 
-	final inline function objectSyncSelf( ctx : RenderContext.SyncContext ) {
+	final function syncSelf( ctx : RenderContext.SyncContext ) : Void {
+		updateSyncStateSelf();
+
+		this.syncChangedFlag = (switch(animateSelf(new RenderContext.AnimationContext(ctx))) {
+			case Removed: this.syncContinueFlag = false; return;
+			default: posChanged;
+		});
+
+		if( this.syncChangedFlag ) calcAbsPos();
+
 		sync(ctx);
 		this.posChanged = false;
 		this.lastFrame = ctx.frame;
 	}
 
-	final inline function updateSyncVisibilitySelf() {
-		this.syncVisibleFlag = this.parent != null ? parent.syncVisibleFlag : visible && !culled;
+	/**
+		Used to keep various flags for sync/syncRec up to date.
+	**/
+	final inline function updateSyncStateSelf() {
+		this.syncContinueFlag = true;
+		if( this.parent != null ) {
+			this.syncChangedFlag = parent.syncChangedFlag;
+			this.syncVisibleFlag = parent.syncVisibleFlag;
+		} else {
+			this.syncChangedFlag = posChanged;
+			this.syncVisibleFlag = visible && !culled;
+		}
 	}
 
-	function syncRec( ctx : RenderContext.SyncContext ) : Void {
-		updateSyncVisibilitySelf();
+	final function syncRec( ctx : RenderContext.SyncContext ) : Void {
+		syncSelf(ctx);
 
-		final changed: Bool = (switch(animateSelf(new RenderContext.AnimationContext(ctx))) {
-			case Animated: true;
-			case NoAnimation: false;
-			case Removed: return;
-		}) || posChanged;
+		if(!syncContinueFlag) { return; }
 
-		if( changed ) calcAbsPos();
-
-		objectSyncSelf(ctx);
-
-		syncRecRecPart(changed, ctx);
+		syncRecRecPart(ctx);
 	}
 
-	final inline function syncRecRecPart( changed: Bool, ctx : RenderContext.SyncContext ) {
+	final inline function syncRecRecPart( ctx : RenderContext.SyncContext ) {
+		// First sync only the immediate children.
 		var p = 0;
 		while( p < children.length ) {
-			var c = children[p];
-			if( c == null )
-				break;
+			final c = children[p];
+			if( c == null ) {
+				continue;
+			}
 			if( c.lastFrame != ctx.frame ) {
-				if( changed ) c.posChanged = true;
-				c.syncRec(ctx);
+				c.syncSelf(ctx);
 			}
 			// if the object was removed, let's restart again.
-			// our lastFrame ensure that no object will get synched twice
+			// our lastFrame ensures that no object will get synched twice
 			if( children[p] != c ) {
 				p = 0;
 			} else
 				p++;
+		}
+
+		// Now recurse per child
+		p = 0;
+		while( p < children.length ) {
+			final c = children[p];
+			if( c.syncContinueFlag ) {
+				c.syncRecRecPart(ctx);
+			}
+			p++;
+		}
+
+		postSyncRec(ctx);
+	}
+	
+	function postSyncRec( ctx : RenderContext.SyncContext ) : Void {
+		// this is mostly a hack for h3d.scene.World's need to override syncRec
+	}
+
+	final function updateAbsPosChildren( changed: Bool ) {
+		if( !changed ) return;
+		for( c in this.children ) {
+			c.calcAbsPos();
 		}
 	}
 
