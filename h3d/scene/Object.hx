@@ -9,6 +9,7 @@ private enum abstract ObjectFlags(Int) {
 	public var FNoSerialize = 0x20;
 	public var FIgnoreBounds = 0x40;
 	public var FInitialTransformDone = 0x80;
+	public var FSyncVisibility = 0x100;
 	public inline function new(value) {
 		this = value;
 	}
@@ -18,6 +19,12 @@ private enum abstract ObjectFlags(Int) {
 		if( b ) this |= f.toInt() else this &= ~f.toInt();
 		return b;
 	}
+}
+
+enum abstract AnimationResult(Int) {
+	var Removed;
+	var Animated;
+	var NoAnimation;
 }
 
 /**
@@ -117,6 +124,22 @@ class Object implements hxd.impl.Serializable {
 	public var alwaysSync(get, set) : Bool;
 
 	/**
+		Is the Object visible for the purposes of sync.
+	
+		To replace RenderContext.SyncContext::visibileFlag
+
+		- Current object during a syncRec updates it so children can query it
+		- If an object is visible and it hasn't been culled then it's considered visible
+		- Children query the parent, which breaks the SyncContext dependency
+
+		Once all SyncContext dependencies no longer require depth first traversal,
+		we can switch to breadth first traversal and work towards ECS.
+
+		NB: This isn't public because it's only ever managed in the graph
+	**/
+	var syncVisibleFlag(get, set) : Bool;
+
+	/**
 		When enabled, the object bounds are ignored when using getBounds()
 	**/
 	public var ignoreBounds(get, set) : Bool;
@@ -164,6 +187,7 @@ class Object implements hxd.impl.Serializable {
 
 		posChanged = false;
 		visible = true;
+		syncVisibleFlag = true;
 		children = [];
 		if( parent != null )
 			parent.addChild(this);
@@ -184,6 +208,7 @@ class Object implements hxd.impl.Serializable {
 	inline function get_qRot() return this.relPos.rotationQuat;
 	inline function set_qRot(q) return this.relPos.rotationQuat = q;
 	inline function get_visible() return flags.has(FVisible);
+	inline function get_syncVisibleFlag() return flags.has(FSyncVisibility);
 	inline function get_allocated() return flags.has(FAllocated);
 	inline function get_posChanged() return this.relPos.posChanged;
 	inline function get_culled() return flags.has(FCulled);
@@ -195,6 +220,7 @@ class Object implements hxd.impl.Serializable {
 	inline function set_posChanged(b) return this.relPos.posChanged = (b);
 	inline function set_culled(b) return flags.set(FCulled, b);
 	inline function set_visible(b) return flags.set(FVisible,b);
+	inline function set_syncVisibleFlag(b) return flags.set(FSyncVisibility,b);
 	inline function set_allocated(b) return flags.set(FAllocated, b);
 	inline function set_lightCameraCenter(b) return flags.set(FLightCameraCenter, b);
 	inline function set_alwaysSync(b) return flags.set(FAlwaysSync, b);
@@ -405,15 +431,6 @@ class Object implements hxd.impl.Serializable {
 		Add a child object at the end of the children list.
 	**/
 	public function addChild( o : Object ) {
-		addChildAt(o, children.length);
-	}
-
-	/**
-		Insert a child object at the specified position of the children list.
-	**/
-	function addChildAt( o : Object, pos : Int ) {
-		if( pos < 0 ) pos = 0;
-		if( pos > children.length ) pos = children.length;
 		var p = this;
 		while( p != null ) {
 			if( p == o ) throw "Recursive addChild";
@@ -426,7 +443,7 @@ class Object implements hxd.impl.Serializable {
 			o.parent.removeChild(o);
 			o.allocated = old;
 		}
-		children.insert(pos, o);
+		children.push(o);
 		if( !allocated && o.allocated )
 			o.onRemove();
 		o.parent = this;
@@ -627,25 +644,54 @@ class Object implements hxd.impl.Serializable {
 	function sync( ctx : RenderContext.SyncContext ) {
 	}
 
-	function syncRec( ctx : RenderContext.SyncContext ) {
+	final inline function animateSelf( ctx : RenderContext.AnimationContext ) : AnimationResult {
 		if( currentAnimation != null ) {
 			var old = parent;
 			var dt = ctx.elapsedTime;
 			while( dt > 0 && currentAnimation != null )
 				dt = currentAnimation.update(dt);
-			if( currentAnimation != null && ((ctx.visibleFlag && visible && !culled) || alwaysSync)  )
+
+			if( currentAnimation != null && ((syncVisibleFlag && visible && !culled) || alwaysSync)  )
 				currentAnimation.sync();
 			if( parent == null && old != null )
-				return; // if we were removed by an animation event
+				return AnimationResult.Removed; // if we were removed by an animation event
+
+			// Handle animations making a visible object invisible or culled(?)
+			this.syncVisibleFlag = this.syncVisibleFlag && visible && !culled;
+
+			return AnimationResult.Animated;
 		}
-		var old = ctx.visibleFlag;
-		if( !visible || culled )
-			ctx.visibleFlag = false;
-		var changed = posChanged;
-		if( changed ) calcAbsPos();
+
+		return AnimationResult.NoAnimation;
+	}
+
+	final inline function objectSyncSelf( ctx : RenderContext.SyncContext ) {
 		sync(ctx);
-		posChanged = false;
-		lastFrame = ctx.frame;
+		this.posChanged = false;
+		this.lastFrame = ctx.frame;
+	}
+
+	final inline function updateSyncVisibilitySelf() {
+		this.syncVisibleFlag = this.parent != null ? parent.syncVisibleFlag : visible && !culled;
+	}
+
+	function syncRec( ctx : RenderContext.SyncContext ) : Void {
+		updateSyncVisibilitySelf();
+
+		final changed: Bool = (switch(animateSelf(new RenderContext.AnimationContext(ctx))) {
+			case Animated: true;
+			case NoAnimation: false;
+			case Removed: return;
+		}) || posChanged;
+
+		if( changed ) calcAbsPos();
+
+		objectSyncSelf(ctx);
+
+		syncRecRecPart(changed, ctx);
+	}
+
+	final inline function syncRecRecPart( changed: Bool, ctx : RenderContext.SyncContext ) {
 		var p = 0;
 		while( p < children.length ) {
 			var c = children[p];
@@ -662,7 +708,6 @@ class Object implements hxd.impl.Serializable {
 			} else
 				p++;
 		}
-		ctx.visibleFlag = old;
 	}
 
 	function syncPos() {

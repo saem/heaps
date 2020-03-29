@@ -898,7 +898,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 				return; // was removed
 		}
 
-		if( !ctx.visibleFlag && !alwaysSync )
+		if( !syncVisibleFlag && !alwaysSync )
 			return;
 
 		for( g in groups ) {
@@ -929,7 +929,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 		uploadedCount = 0;
 		var hasPart = false;
 		for( g in groups ) {
-			syncGroup(g, camera, prev, ctx.visibleFlag);
+			syncGroup(g, camera, prev, syncVisibleFlag);
 			if( g.currentParts == 0 )
 				continue;
 			// sync shader params

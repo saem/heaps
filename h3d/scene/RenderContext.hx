@@ -32,9 +32,6 @@ class RenderContext extends h3d.impl.RenderContext {
 	// Timing: Pass::draw, Pass::setupShader, HardwarePick::draw, pbr.Renderer::render
 	public var extraShaders : hxsl.ShaderList;
 
-	// Timing: Skin::sync, Object::syncRec, GpuParticles::sync, CameraController::sync
-	public var visibleFlag : Bool;
-	
 	// Timing: Pass::draw
 	public var shaderBuffers : h3d.shader.Buffers;
 
@@ -76,7 +73,6 @@ class RenderContext extends h3d.impl.RenderContext {
 		passes = null;
 		lights = null;
 		cachedPos = 0;
-		visibleFlag = true;
 		time += elapsedTime;
 		passIndex = -1;
 		frame++;
@@ -199,9 +195,22 @@ class RenderContext extends h3d.impl.RenderContext {
 	}
 }
 
-@:forward(camera, computingStatic, elapsedTime, frame, setGlobal, time, visibleFlag)
+@:forward(camera, computingStatic, elapsedTime, frame, setGlobal, time)
 abstract SyncContext(RenderContext) {
 	public function new(ctx: RenderContext) {
+		this = ctx;
+	}
+}
+
+/**
+	Force read-only rather than use forwards
+**/
+abstract AnimationContext(RenderContext.SyncContext) {
+	public var elapsedTime(get, never): Float;
+
+	inline function get_elapsedTime() return this.elapsedTime;
+
+	public function new(ctx: RenderContext.SyncContext) {
 		this = ctx;
 	}
 }

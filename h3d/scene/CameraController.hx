@@ -217,7 +217,7 @@ class CameraController extends h3d.scene.Object {
 
 	override function sync(ctx:RenderContext.SyncContext) {
 
-		if( !ctx.visibleFlag && !alwaysSync ) {
+		if( !syncVisibleFlag && !alwaysSync ) {
 			super.sync(ctx);
 			return;
 		}
