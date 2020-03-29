@@ -195,7 +195,7 @@ class RenderContext extends h3d.impl.RenderContext {
 	}
 }
 
-@:forward(camera, computingStatic, elapsedTime, frame, setGlobal, time)
+@:forward(camera, computingStatic, elapsedTime, frame, time)
 abstract SyncContext(RenderContext) {
 	public function new(ctx: RenderContext) {
 		this = ctx;
