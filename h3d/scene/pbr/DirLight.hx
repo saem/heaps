@@ -4,7 +4,8 @@ class DirLight extends Light {
 
 	var pbr : h3d.shader.pbr.Light.DirLight;
 
-	public function new(?dir: h3d.Vector, ?parent) {
+	@:allow(h3d.scene.Object.createPbrDirLight)
+	private function new(?dir: h3d.Vector, ?parent) {
 		pbr = new h3d.shader.pbr.Light.DirLight();
 		shadows = new h3d.pass.DirShadowMap(this);
 		super(pbr,parent);
@@ -12,7 +13,7 @@ class DirLight extends Light {
 	}
 
 	public override function clone( ?o : h3d.scene.Object ) : h3d.scene.Object {
-		var dl = o == null ? new DirLight(null) : cast o;
+		var dl = o == null ? h3d.scene.Object.createPbrDirLight(null) : cast o;
 		super.clone(dl);
 		return dl;
 	}

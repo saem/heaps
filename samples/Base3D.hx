@@ -31,10 +31,10 @@ class Base3D extends SampleApp {
 		var mat = h3d.mat.Material.create(tex);
 
 		// our first cube mesh on the 3D scene with our created material
-		obj1 = new Mesh(prim, mat, s3d);
+		obj1 = h3d.scene.Object.createMesh(prim, mat, s3d);
 
 		// creates another cube, this time with no texture
-		obj2 = new Mesh(prim, s3d);
+		obj2 = h3d.scene.Object.createMesh(prim, s3d);
 
 		// set the second cube color
 		obj2.material.color.setColor(0xFFB280);
@@ -46,7 +46,7 @@ class Base3D extends SampleApp {
 		obj2.scale(0.6);
 
 		// adds a directional light to the scene
-		var light = new h3d.scene.fwd.DirLight(new h3d.Vector(0.5, 0.5, -0.5), s3d);
+		var light = h3d.scene.Object.createFwdDirLight(new h3d.Vector(0.5, 0.5, -0.5), s3d);
 		light.enableSpecular = true;
 
 		// set the ambient light to 30%

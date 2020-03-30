@@ -1,10 +1,11 @@
 package h3d.scene;
 
-class Joint extends Object {
+class Joint extends h3d.scene.Object {
 	@:s public var skin : Skin;
 	@:s public var index : Int;
 
-	public function new(skin, j : h3d.anim.Skin.Joint ) {
+	@:allow(h3d.scene.Object.createSkinJoint)
+	private function new(skin, j : h3d.anim.Skin.Joint ) {
 		super(null);
 		name = j.name;
 		this.skin = skin;
@@ -29,14 +30,15 @@ class Skin extends MultiMaterial {
 
 	public var showJoints : Bool = false;
 
-	public function new(s, ?mat, ?parent) {
+	@:allow(h3d.scene.Object.createSkin)
+	private function new(s, ?mat, ?parent) {
 		super(null, mat, parent);
 		if( s != null )
 			setSkinData(s);
 	}
 
 	override function clone( ?o : Object ) {
-		var s = o == null ? new Skin(null,materials.copy()) : cast o;
+		var s = o == null ? h3d.scene.Object.createSkin(null,materials.copy()) : cast o;
 		super.clone(s);
 		s.setSkinData(skinData);
 		s.currentRelPose = currentRelPose.copy(); // copy current pose
@@ -74,7 +76,7 @@ class Skin extends MultiMaterial {
 		if( skinData != null ) {
 			var j = skinData.namedJoints.get(name);
 			if( j != null )
-				return new Joint(this, j);
+				return h3d.scene.Object.createSkinJoint(this, j);
 		}
 		return null;
 	}
@@ -153,7 +155,7 @@ class Skin extends MultiMaterial {
 
 		if( showJoints ) {
 			if( jointsGraphics == null ) {
-				jointsGraphics = new Graphics(null);
+				jointsGraphics = Object.createGraphics(null);
 				jointsGraphics.material.mainPass.depth(false, Always);
 				jointsGraphics.material.mainPass.setPassName("additive");
 			}

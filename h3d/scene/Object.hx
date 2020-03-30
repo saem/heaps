@@ -192,10 +192,107 @@ class Object implements hxd.impl.Serializable {
 	var anim(get, null): Animation;
 	inline function get_anim() return Object.AnimationComp[this.id];
 
+	// Static factor methods to start indirect new calls
+
+	public static function createObject( ?parent : Object = null ) {
+		return new Object(parent);
+	}
+
+	public static function createScene( ?createRenderer = true, ?createLightSystem = true ) {
+		return new Scene(createRenderer, createLightSystem);
+	}
+
+	public static function createGraphics( ?parent : Object = null ) {
+		return new Graphics(parent);
+	}
+
+	public static function createBox( ?colour = 0xFFFF0000, ?bounds : h3d.col.Bounds = null, ?depth = true, ?parent = null) {
+		return new Box(colour, bounds, depth, parent);
+	}
+
+	public static function createSphere( ?colour = 0xFFFF0000, ?radius : Float = 1.0, ?depth = true, ?parent = null ) {
+		return new Sphere(colour, radius, depth, parent);
+	}
+
+	public static function createMesh( primitive, ?material = null, ?parent = null ) {
+		return new Mesh(primitive, material, parent);
+	}
+
+	public static function createMeshBatch( primitive, ?material = null, ?parent = null ) {
+		return new MeshBatch(primitive, material, parent);
+	}
+
+	public static function createMultiMaterial( primitive, ?material = null, ?parent = null ) {
+		return new MultiMaterial(primitive, material, parent);
+	}
+
+	public static function createTrail( ?parent = null ) {
+		return new Trail(parent);
+	}
+
+	public static function createSkin( s, ?mat = null, ?parent = null ) {
+		return new Skin(s, mat, parent);
+	}
+
+	@:allow(h3d.scene.Skin.getObjectByName)
+	private static function createSkinJoint( skin : h3d.scene.Skin, joint : h3d.anim.Skin.Joint ) {
+		return new Skin.Joint(skin, joint);
+	}
+
+	public static function createParticles( ?texture = null, ?parent = null ) {
+		return new h3d.parts.Particles(texture, parent);
+	}
+
+	public static function createGpuParticles( ?parent = null ) {
+		return new h3d.parts.GpuParticles(parent);
+	}
+
+	public static function createEmitter( ?state = null, ?parent = null ) {
+		return new h3d.parts.Emitter(state, parent);
+	}
+
+	public static function createWorld(chunkSize, worldSize, parent, ?autoCollect = true) {
+		return new World(chunkSize, worldSize, parent, autoCollect);
+	}
+
+	public static function createFwdDirLight( ?dir : h3d.Vector = null, ?parent = null ) {
+		return new h3d.scene.fwd.DirLight(dir, parent);
+	}
+
+	public static function createFwdPointLight( ?parent = null ) {
+		return new h3d.scene.fwd.PointLight(parent);
+	}
+
+	public static function createPbrDecal( primitive, ?material = null, ?parent = null ) {
+		return new h3d.scene.pbr.Decal(primitive, material, parent);
+	}
+
+	public static function createPbrDirLight( ?dir : h3d.Vector = null, ?parent = null ) {
+		return new h3d.scene.pbr.DirLight(dir, parent);
+	}
+
+	public static function createPbrPointLight( ?parent = null ) {
+		return new h3d.scene.pbr.PointLight(parent);
+	}
+
+	public static function createPbrSpotLight( ?parent = null ) {
+		return new h3d.scene.pbr.SpotLight(parent);
+	}
+
+	public static function createCameraController( ?distance = 1.0, ?parent = null ) {
+		return new CameraController(distance, parent);
+	}
+
+	public static function createInteractive( shape, ?parent = null) {
+		return new Interactive(shape, parent);
+	}
+
 	/**
 		Create a new empty object, and adds it to the parent object if not null.
+
+		No longer allow direct creation, use static methods instead.
 	**/
-	public function new( ?parent : Object ) {
+	private function new( ?parent : Object ) {
 		flags = new ObjectFlags(0);
 		absPos = new h3d.Matrix();
 		absPos.identity();
@@ -431,7 +528,7 @@ class Object implements hxd.impl.Serializable {
 		Make a copy of the object and all its children.
 	**/
 	public function clone( ?o : Object ) : Object {
-		if( o == null ) o = new Object();
+		if( o == null ) o = h3d.scene.Object.createObject();
 		#if debug
 		if( Type.getClass(o) != Type.getClass(this) ) throw this + " is missing clone()";
 		#end

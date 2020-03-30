@@ -12,37 +12,37 @@ class Quaternion extends hxd.App {
 		p.addUVs();
 		p.addNormals();
 
-		cube = new h3d.scene.Mesh(p, s3d);
+		cube = h3d.scene.Object.createMesh(p, s3d);
 		cube.material.texture = h2d.Tile.fromColor(0x808080).getTexture();
 
-		var axis = new h3d.scene.Object(s3d);
+		var axis = h3d.scene.Object.createObject(s3d);
 
-		var ax = new h3d.scene.Box(0xFFFF0000, true, axis);
+		var ax = h3d.scene.Object.createBox(0xFFFF0000, true, axis);
 		ax.x = 0.5;
 		ax.scaleY = 0.001;
 		ax.scaleZ = 0.001;
 
-		var ay = new h3d.scene.Box(0xFF00FF00, true, axis);
+		var ay = h3d.scene.Object.createBox(0xFF00FF00, true, axis);
 		ay.y = 0.5;
 		ay.scaleX = 0.001;
 		ay.scaleZ = 0.001;
 
-		var az = new h3d.scene.Box(0xFF0000FF, true, axis);
+		var az = h3d.scene.Object.createBox(0xFF0000FF, true, axis);
 		az.z = 0.5;
 		az.scaleX = 0.001;
 		az.scaleY = 0.001;
 
-		var ax = new h3d.scene.Box(0xFF800000, true, cube);
+		var ax = h3d.scene.Object.createBox(0xFF800000, true, cube);
 		ax.x = 0.5;
 		ax.scaleY = 0.001;
 		ax.scaleZ = 0.001;
 
-		var ay = new h3d.scene.Box(0xFF008000, true, cube);
+		var ay = h3d.scene.Object.createBox(0xFF008000, true, cube);
 		ay.y = 0.5;
 		ay.scaleX = 0.001;
 		ay.scaleZ = 0.001;
 
-		var az = new h3d.scene.Box(0xFF000080, true, cube);
+		var az = h3d.scene.Object.createBox(0xFF000080, true, cube);
 		az.z = 0.5;
 		az.scaleX = 0.001;
 		az.scaleY = 0.001;

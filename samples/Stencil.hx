@@ -6,7 +6,7 @@ class Stencil extends hxd.App {
 	var root : Object;
 
 	override function init() {
-		root = new Object(s3d);
+		root = h3d.scene.Object.createObject(s3d);
 
 		// creates a new unit cube
 		var prim = new h3d.prim.Cube();
@@ -17,12 +17,12 @@ class Stencil extends hxd.App {
 		var tex = hxd.Res.hxlogo.toTexture();
 
 		{	// create the top cube
-			var obj = new Mesh(prim, h3d.mat.Material.create(tex), root);
+			var obj = h3d.scene.Object.createMesh(prim, h3d.mat.Material.create(tex), root);
 			obj.material.shadows = false;
 		}
 
 		{	// create the cube reflection
-			var obj = new Mesh(prim, h3d.mat.Material.create(tex), root);
+			var obj = h3d.scene.Object.createMesh(prim, h3d.mat.Material.create(tex), root);
 			obj.scaleZ = -1;
 			obj.material.color.setColor(0x55C8FF);
 			obj.material.shadows = false;
@@ -40,7 +40,7 @@ class Stencil extends hxd.App {
 			prim.addNormals();
 			prim.translate( -1, -1, 0);
 
-			var obj = new Mesh(prim, root);
+			var obj = h3d.scene.Object.createMesh(prim, root);
 			obj.material.color.setColor(0x0080C0);
 			obj.material.shadows = false;
 
@@ -54,7 +54,7 @@ class Stencil extends hxd.App {
 		}
 
 		// adds a directional light to the scene
-		var light = new h3d.scene.fwd.DirLight(new h3d.Vector(-0.5, -0.5, -0.5), s3d);
+		var light = h3d.scene.Object.createFwdDirLight(new h3d.Vector(-0.5, -0.5, -0.5), s3d);
 		light.enableSpecular = true;
 		s3d.lightSystem.ambientLight.set(0.3, 0.3, 0.3);
 

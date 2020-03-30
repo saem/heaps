@@ -29,13 +29,13 @@ class Lights extends SampleApp {
 		super.init();
 
 		s3d.camera.pos.set(100, 20, 80);
-		new h3d.scene.CameraController(s3d).loadFromCamera();
+		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
 
 		var prim = new h3d.prim.Grid(100,100,1,1);
 		prim.addNormals();
 		prim.addUVs();
 
-		var floor = new h3d.scene.Mesh(prim, s3d);
+		var floor = h3d.scene.Object.createMesh(prim, s3d);
 		floor.material.castShadows = false;
 		floor.x = -50;
 		floor.y = -50;
@@ -44,7 +44,7 @@ class Lights extends SampleApp {
 		box.unindex();
 		box.addNormals();
 		for( i in 0...50 ) {
-			var m = new h3d.scene.Mesh(box, s3d);
+			var m = h3d.scene.Object.createMesh(box, s3d);
 			m.material.color.set(Math.random(), Math.random(), Math.random());
 			m.material.color.normalize();
 			m.scale(1 + Math.random() * 10);
@@ -63,7 +63,7 @@ class Lights extends SampleApp {
 		var sp = new h3d.prim.Sphere(1,16,16);
 		sp.addNormals();
 		for( i in 0...20 ) {
-			var m = new h3d.scene.Mesh(sp, s3d);
+			var m = h3d.scene.Object.createMesh(sp, s3d);
 			m.material.color.set(Math.random(), Math.random(), Math.random());
 			m.material.color.normalize();
 			m.scale(0.5 + Math.random() * 4);
@@ -77,12 +77,12 @@ class Lights extends SampleApp {
 			movingObjects.push({ m : m, pos : Math.random() * Math.PI * 2, cx : cx, cy : cy, ray : 8 + Math.random() * 50, speed : (0.5 + Math.random()) * 0.2 });
 		}
 
-		var pt = new h3d.scene.pbr.PointLight(s3d);
+		var pt = h3d.scene.Object.createPbrPointLight(s3d);
 		pt.setPosition(0,0,15);
 		pt.range = 40;
 		pt.color.scale3(20);
 
-		var sp = new h3d.scene.pbr.SpotLight(s3d);
+		var sp = h3d.scene.Object.createPbrSpotLight(s3d);
 		sp.setPosition(-30,-30,30);
 		sp.setDirection(new h3d.Vector(1,2,-5));
 		sp.range = 70;
@@ -91,7 +91,7 @@ class Lights extends SampleApp {
 		sp.color.scale3(10);
 
 		lights = [
-			new h3d.scene.pbr.DirLight(new h3d.Vector(1,2,-5), s3d),
+			h3d.scene.Object.createPbrDirLight(new h3d.Vector(1,2,-5), s3d),
 			pt,
 			sp,
 		];

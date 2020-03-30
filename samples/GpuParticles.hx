@@ -9,7 +9,7 @@ class GpuParticles extends SampleApp {
 
 	override function init() {
 		super.init();
-		parts = new h3d.parts.GpuParticles(s3d);
+		parts = h3d.scene.Object.createGpuParticles(s3d);
 
 		var g = new h3d.parts.GpuParticles.GpuPartGroup(parts);
 
@@ -48,13 +48,11 @@ class GpuParticles extends SampleApp {
 		parts.addGroup(g);
 		group = g;
 
-		new h3d.scene.CameraController(20, s3d);
-		box = new h3d.scene.Box(0x80404050, parts.bounds, parts);
+		h3d.scene.Object.createCameraController(20, s3d);
+		box = h3d.scene.Object.createBox(0x80404050, parts.bounds, parts);
 
 		tf = addText();
 	}
-
-
 
 	override function update(dt:Float) {
 

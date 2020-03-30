@@ -81,7 +81,7 @@ class Sao extends SampleApp {
 		var floor = new h3d.prim.Grid(40,40,0.25,0.25);
 		floor.addNormals();
 		floor.translate( -5, -5, 0);
-		var m = new h3d.scene.Mesh(floor, s3d);
+		var m = h3d.scene.Object.createMesh(floor, s3d);
 		m.material.color.makeColor(0.35, 0.5, 0.5);
 		m.setScale(wscale);
 
@@ -89,7 +89,7 @@ class Sao extends SampleApp {
 			var box : h3d.prim.Polygon = new h3d.prim.Cube(0.3 + r.rand() * 0.5, 0.3 + r.rand() * 0.5, 0.2 + r.rand());
 			box.unindex();
 			box.addNormals();
-			var p = new h3d.scene.Mesh(box, s3d);
+			var p = h3d.scene.Object.createMesh(box, s3d);
 			p.setScale(wscale);
 			p.x = r.srand(3) * wscale;
 			p.y = r.srand(3) * wscale;
@@ -99,13 +99,13 @@ class Sao extends SampleApp {
 		s3d.camera.zFar = 150 * wscale;
 
 		s3d.lightSystem.ambientLight.set(0.5, 0.5, 0.5);
-		var dir = new h3d.scene.fwd.DirLight(new h3d.Vector( -0.3, -0.2, -1), s3d);
+		var dir = h3d.scene.Object.createFwdDirLight(new h3d.Vector( -0.3, -0.2, -1), s3d);
 		dir.color.set(0.5, 0.5, 0.5);
 
 		var time = Math.PI * 0.25;
 		var camdist = 6 * wscale;
 		s3d.camera.pos.set(camdist * Math.cos(time), camdist * Math.sin(time), camdist * 0.5);
-		new h3d.scene.CameraController(s3d).loadFromCamera();
+		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
 
 		var c = renderer;
 		addSlider("Samples", function() return c.sao.shader.numSamples, function(v) c.sao.shader.numSamples = Std.int(v), 1, 101);

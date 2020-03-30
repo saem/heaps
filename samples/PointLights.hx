@@ -11,7 +11,7 @@ class PointLights extends hxd.App {
 		prim.translate( -0.5, -0.5, -0.5);
 		prim.addNormals();
 		for( i in 0...100 ) {
-			var b = new h3d.scene.Mesh(prim, s3d);
+			var b = h3d.scene.Object.createMesh(prim, s3d);
 			b.x = Math.srand() * 3;
 			b.y = Math.srand() * 3;
 			b.z = Math.srand() * 2 - 0.5;
@@ -27,14 +27,14 @@ class PointLights extends hxd.App {
 		var colors = [0xFFFFFF, 0xFF0000, 0x00FF00, 0x0000FF, 0xFF00FF, 0xFFFF00, 0x00FFFF];
 		for( c in colors ) {
 			for( i in 0...3 ) {
-				var l = new h3d.scene.fwd.PointLight(s3d);
+				var l = h3d.scene.Object.createFwdPointLight(s3d);
 				l.x = Math.srand() * 3;
 				l.y = Math.srand() * 3;
 				l.z = Math.srand() * 2 - 0.5;
 				l.color.setColor(c);
 				l.params.y = 3;
 				lights.push(l);
-				var p = new h3d.scene.Mesh(sphere, l);
+				var p = h3d.scene.Object.createMesh(sphere, l);
 				p.scale(0.03);
 				p.material.shadows = false;
 				p.material.mainPass.enableLights = false;
@@ -44,13 +44,13 @@ class PointLights extends hxd.App {
 		s3d.camera.zNear = 2;
 
 
-		dir = new h3d.scene.fwd.DirLight(new h3d.Vector(0.2, 0.3, -1), s3d);
+		dir = h3d.scene.Object.createFwdDirLight(new h3d.Vector(0.2, 0.3, -1), s3d);
 		dir.color.set(0.1, 0.1, 0.1);
 
 		s3d.lightSystem.ambientLight.set(0, 0, 0);
 
 		s3d.camera.pos.set(5, 1, 3);
-		new h3d.scene.CameraController(s3d).loadFromCamera();
+		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
 	}
 
 	override function update( dt : Float ) {

@@ -50,7 +50,8 @@ class MeshBatch extends Mesh {
 	**/
 	public var shadersChanged = true;
 
-	public function new( primitive, ?material, ?parent ) {
+	@:allow(h3d.scene.Object.createMeshBatch)
+	private function new( primitive, ?material, ?parent ) {
 		instanced = new h3d.prim.Instanced();
 		instanced.commands = new h3d.impl.InstanceBuffer();
 		instanced.setMesh(primitive);

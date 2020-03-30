@@ -4,7 +4,8 @@ class MultiMaterial extends Mesh {
 
 	public var materials : Array<h3d.mat.Material>;
 
-	public function new( prim, ?mats, ?parent ) {
+	@:allow(h3d.scene.Object.createMultiMaterial)
+	private function new( prim, ?mats, ?parent ) {
 		super(prim, mats == null ? null : mats[0], parent);
 		this.materials = (mats == null || mats.length == 0) ? [material] : mats;
 	}
@@ -14,7 +15,7 @@ class MultiMaterial extends Mesh {
 	}
 
 	override function clone( ?o : Object ) {
-		var m = o == null ? new MultiMaterial(null, materials) : cast o;
+		var m = o == null ? h3d.scene.Object.createMultiMaterial(null, materials) : cast o;
 		m.materials = [];
 		for( mat in materials )
 			m.materials.push(if( mat == null ) null else cast mat.clone());

@@ -1,6 +1,6 @@
 package h3d.scene;
 
-class Interactive extends Object implements hxd.SceneEvents.Interactive {
+class Interactive extends h3d.scene.Object implements hxd.SceneEvents.Interactive {
 
 	@:s public var shape : h3d.col.Collider;
 
@@ -36,7 +36,8 @@ class Interactive extends Object implements hxd.SceneEvents.Interactive {
 	@:allow(h3d.scene.Scene)
 	var hitPoint = new h3d.Vector();
 
-	public function new(shape, ?parent) {
+	@:allow(h3d.scene.Object.createInteractive)
+	private function new(shape, ?parent) {
 		super(parent);
 		this.shape = shape;
 		cursor = Button;

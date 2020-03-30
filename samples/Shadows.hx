@@ -13,7 +13,7 @@ class Shadows extends SampleApp {
 		var floor = new h3d.prim.Cube(10, 10, 0.1);
 		floor.addNormals();
 		floor.translate( -5, -5, 0);
-		var m = new h3d.scene.Mesh(floor, s3d);
+		var m = h3d.scene.Object.createMesh(floor, s3d);
 		m.material.mainPass.enableLights = true;
 		m.material.shadows = true;
 
@@ -21,7 +21,7 @@ class Shadows extends SampleApp {
 		sphere.addNormals();
 		spheres  = [];
 		for( i in 0...15 ) {
-			var p = new h3d.scene.Mesh(sphere, s3d);
+			var p = h3d.scene.Object.createMesh(sphere, s3d);
 			p.scale(0.2 + Math.random());
 			p.x = Math.srand(3);
 			p.y = Math.srand(3);
@@ -34,7 +34,7 @@ class Shadows extends SampleApp {
 		s3d.camera.zFar = 30;
 		s3d.lightSystem.ambientLight.set(0.5, 0.5, 0.5);
 
-		dir = new h3d.scene.fwd.DirLight(new h3d.Vector(-0.3, -0.2, -1), s3d);
+		dir = h3d.scene.Object.createFwdDirLight(new h3d.Vector(-0.3, -0.2, -1), s3d);
 		dir.enableSpecular = true;
 
 		shadow = s3d.renderer.getPass(h3d.pass.DefaultShadowMap);
@@ -44,7 +44,7 @@ class Shadows extends SampleApp {
 		addSlider("Bias", function() return shadow.bias, function(r) shadow.bias = r, 0, 0.1);
 
 		s3d.camera.pos.set(12, 12, 6);
-		new h3d.scene.CameraController(s3d).loadFromCamera();
+		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
 	}
 
 	override function update( dt : Float ) {

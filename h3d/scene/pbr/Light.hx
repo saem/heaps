@@ -8,7 +8,7 @@ class Light extends h3d.scene.Light {
 	public var shadows : h3d.pass.Shadows;
 	public var occlusionFactor : Float;
 
-	function new(shader,?parent) {
+	private function new(shader,?parent) {
 		super(shader,parent);
 		_color = new h3d.Vector(1,1,1,1);
 		if( shadows == null ) shadows = new h3d.pass.Shadows(this);

@@ -339,8 +339,6 @@ class ScenePanel extends Panel {
 			return "sun-o";
 		if( Std.is(o, h3d.scene.Mesh) )
 			return "cube";
-		if( Std.is(o, h3d.scene.CustomObject) )
-			return "globe";
 		if( Std.is(o, h3d.scene.Scene) )
 			return "picture-o";
 		if( Std.is(o, h3d.scene.Light) )

@@ -276,9 +276,6 @@ class SceneProps {
 			} else
 				props.push(getMaterialProps(o.toMesh().material));
 		} else {
-			var c = hxd.impl.Api.downcast(o, h3d.scene.CustomObject);
-			if( c != null )
-				props.push(getMaterialProps(c.material));
 			var l = hxd.impl.Api.downcast(o, h3d.scene.Light);
 			if( l != null )
 				props.push(getLightProps(l));

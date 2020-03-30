@@ -34,14 +34,14 @@ class MeshBatch extends hxd.App {
 	var instanced : h3d.prim.Instanced;
 
 	override function init() {
-		new h3d.scene.fwd.DirLight(new h3d.Vector(-2,-3,-10), s3d);
+		h3d.scene.Object.createFwdDirLight(new h3d.Vector(-2,-3,-10), s3d);
 		var cube = new h3d.prim.Cube(1,1,1,true);
 		cube.unindex();
 		cube.addNormals();
 		s3d.lightSystem.ambientLight.set(0.5,0.5,0.5);
-		batch = new h3d.scene.MeshBatch(cube,s3d);
+		batch = h3d.scene.Object.createMeshBatch(cube,s3d);
 		meshes = [];
-		new h3d.scene.CameraController(20,s3d);
+		h3d.scene.Object.createCameraController(20,s3d);
 	}
 
 	override function update(dt:Float) {

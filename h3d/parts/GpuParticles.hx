@@ -482,7 +482,8 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 	**/
 	public var count(get,never) : Int;
 
-	public function new( ?parent ) {
+	@:allow(h3d.scene.Object)
+	private function new( ?parent ) {
 		super(null, [], parent);
 		bounds = new h3d.col.Bounds();
 		bounds.addPos(0, 0, 0);
