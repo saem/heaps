@@ -147,8 +147,8 @@ class ShaderAdvanced extends hxd.App {
 		var icount = cube.triCount() * 3;
 		prim.commands.setCommand(16, icount);
 
-		new h3d.scene.fwd.DirLight(new h3d.Vector(-1,-2,-5),s3d);
-		new h3d.scene.CameraController(s3d).loadFromCamera();
+		h3d.scene.Object.createFwdDirLight(new h3d.Vector(-1,-2,-5),s3d);
+		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
 
 		var buf = new hxd.FloatBuffer();
 		for( i in 0...16 ) {
@@ -158,7 +158,7 @@ class ShaderAdvanced extends hxd.App {
 		var instanceBuffer = h3d.Buffer.ofFloats(buf,2);
 		prim.addBuffer("offset",instanceBuffer);
 
-		var m = new h3d.scene.Mesh(prim, s3d);
+		var m = h3d.scene.Object.createMesh(prim, s3d);
 		m.material.mainPass.addShader(new InstancedOffsetShader());
 		m.material.shadows = false;
 

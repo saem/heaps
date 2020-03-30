@@ -12,7 +12,8 @@ class Box extends Graphics {
 	var prevYMax = -1e9;
 	var prevZMax = -1e9;
 
-	public function new( ?color = 0xFFFF0000, ?bounds : h3d.col.Bounds, ?depth = true, ?parent) {
+	@:allow(h3d.scene.Object.createBox)
+	private function new( ?color = 0xFFFF0000, ?bounds : h3d.col.Bounds, ?depth = true, ?parent) {
 		super(parent);
 		this.color = color;
 		this.bounds = bounds;

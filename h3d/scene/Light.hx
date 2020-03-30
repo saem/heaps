@@ -1,6 +1,6 @@
 package h3d.scene;
 
-class Light extends Object {
+class Light extends h3d.scene.Object {
 
 	public var shader(default, null) : hxsl.Shader;
 	var objectDistance : Float; // used internaly
@@ -11,7 +11,7 @@ class Light extends Object {
 	public var color(get, set) : h3d.Vector;
 	public var enableSpecular(get, set) : Bool;
 
-	function new(shader,?parent) {
+	private function new(shader,?parent) {
 		super(parent);
 		this.shader = shader;
 	}

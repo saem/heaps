@@ -11,7 +11,8 @@ class SpotLight extends Light {
 	public var cookie : h3d.mat.Texture;
 	var lightProj : h3d.Camera;
 
-	public function new(?parent) {
+	@:allow(h3d.scene.Object.createPbrSpotLight)
+	private function new(?parent) {
 		pbr = new h3d.shader.pbr.Light.SpotLight();
 		shadows = new h3d.pass.SpotShadowMap(this);
 		primitive = spotLightPrim();
@@ -24,7 +25,7 @@ class SpotLight extends Light {
 	}
 
 	public override function clone( ?o : h3d.scene.Object ) : h3d.scene.Object {
-		var sl = o == null ? new SpotLight(null) : cast o;
+		var sl = o == null ? h3d.scene.Object.createPbrSpotLight(null) : cast o;
 		super.clone(sl);
 		sl.range = range;
 		sl.maxRange = maxRange;

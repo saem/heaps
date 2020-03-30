@@ -25,7 +25,7 @@ class Skin extends SampleApp {
 		obj.playAnimation(animation);
 
 		// add lights and setup materials
-		var dir = new DirLight(new h3d.Vector( -1, 3, -10), s3d);
+		var dir = h3d.scene.Object.createFwdDirLight(new h3d.Vector( -1, 3, -10), s3d);
 		for( m in obj.getMaterials() ) {
 			var t = m.mainPass.getShader(h3d.shader.Texture);
 			if( t != null ) t.killAlpha = true;
@@ -39,7 +39,7 @@ class Skin extends SampleApp {
 		shadow.color.setColor(0x301030);
 		dir.enableSpecular = true;
 
-		new h3d.scene.CameraController(s3d).loadFromCamera();
+		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
 
 		var showJoints = false;
 		final skins = s3d.findAll((o) -> Std.downcast(o, h3d.scene.Skin));

@@ -7,7 +7,7 @@ class World extends hxd.App {
 
 	override function init() {
 
-		world = new h3d.scene.World(64, 128, s3d);
+		world = h3d.scene.Object.createWorld(64, 128, s3d);
 		var t = world.loadModel(hxd.Res.tree);
 		var r = world.loadModel(hxd.Res.rock);
 
@@ -17,7 +17,7 @@ class World extends hxd.App {
 		world.done();
 
 		//
-		new h3d.scene.fwd.DirLight(new h3d.Vector( 0.3, -0.4, -0.9), s3d);
+		h3d.scene.Object.createFwdDirLight(new h3d.Vector( 0.3, -0.4, -0.9), s3d);
 		s3d.lightSystem.ambientLight.setColor(0x909090);
 
 		s3d.camera.target.set(72, 72, 0);
@@ -35,7 +35,7 @@ class World extends hxd.App {
 		#end
 
 		//
-		var parts = new h3d.parts.GpuParticles(world);
+		var parts = h3d.scene.Object.createGpuParticles(world);
 		var g = parts.addGroup();
 		g.size = 0.2;
 		g.gravity = 1;
@@ -46,7 +46,7 @@ class World extends hxd.App {
 
 		s3d.camera.zNear = 1;
 		s3d.camera.zFar = 100;
-		new h3d.scene.CameraController(s3d).loadFromCamera();
+		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
 	}
 
 

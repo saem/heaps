@@ -29,7 +29,8 @@ class Trail extends Mesh {
 	public var texture(get, set) : h3d.mat.Texture;
 	var pending = new TrailElement(); // tmp
 
-	public function new(?parent) {
+	@:allow(h3d.scene.Object.createTrail)
+	private function new(?parent) {
 		dprim = new h3d.prim.DynamicPrimitive(8);
 		super(dprim, null, parent);
 		material.props = getMaterialProps();

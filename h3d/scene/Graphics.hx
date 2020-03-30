@@ -39,7 +39,8 @@ class Graphics extends Mesh {
 	**/
 	public var is3D(default, set) : Bool;
 
-	public function new(?parent) {
+	@:allow(h3d.scene.Object.createGraphics)
+	private function new(?parent) {
 		bprim = new h3d.prim.BigPrimitive(12);
 		bprim.isStatic = false;
 		super(bprim, null, parent);

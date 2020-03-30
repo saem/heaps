@@ -13,7 +13,8 @@ class Emitter extends Particles implements Randomized {
 	var colorMap : ColorKey;
 	var curPart : Particle;
 
-	public function new(?state,?parent) {
+	@:allow(h3d.scene.Object.createEmitter)
+	private function new(?state: State = null, ?parent: h3d.scene.Object = null) {
 		super(null, parent);
 		time = 0;
 		emitCount = 0;

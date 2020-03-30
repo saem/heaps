@@ -4,7 +4,8 @@ class DirLight extends Light {
 
 	var dshader : h3d.shader.DirLight;
 
-	public function new(?dir: h3d.Vector, ?parent) {
+	@:allow(h3d.scene.Object.createFwdDirLight)
+	private function new(?dir: h3d.Vector, ?parent) {
 		dshader = new h3d.shader.DirLight();
 		super(dshader, parent);
 		priority = 100;

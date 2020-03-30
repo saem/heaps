@@ -15,7 +15,7 @@ class Interactive extends hxd.App {
 			m.material.color.set(0, 1, 0);
 			var s = new h3d.prim.Sphere(1, 32, 32);
 			s.addNormals();
-			beacon = new h3d.scene.Mesh(s, s3d);
+			beacon = h3d.scene.Object.createMesh(s, s3d);
 			beacon.material.mainPass.enableLights = true;
 			beacon.material.color.set(1, 0, 0);
 			beacon.scale(0.01);
@@ -37,7 +37,7 @@ class Interactive extends hxd.App {
 	}
 
 	override function init() {
-		light = new h3d.scene.fwd.DirLight(new h3d.Vector( 0.3, -0.4, -0.9), s3d);
+		light = h3d.scene.Object.createFwdDirLight(new h3d.Vector( 0.3, -0.4, -0.9), s3d);
 		light.enableSpecular = true;
 		light.color.set(0.28, 0.28, 0.28);
 
@@ -49,7 +49,7 @@ class Interactive extends hxd.App {
 			//c.unindex();
 			c.addNormals();
 			c.addUVs();
-			var m = new h3d.scene.Mesh(c, s3d);
+			var m = h3d.scene.Object.createMesh(c, s3d);
 			m.x = rnd.srand() * 0.9;
 			m.y = rnd.srand() * 0.9;
 			m.scale(0.25 + rnd.rand() * 0.3);
@@ -59,7 +59,7 @@ class Interactive extends hxd.App {
 			var color = new h3d.Vector(c, c * 0.6, c * 0.6);
 			m.material.color.load(color);
 
-			var interact = new h3d.scene.Interactive(m.getCollider(), s3d);
+			var interact = h3d.scene.Object.createInteractive(m.getCollider(), s3d);
 			initInteract(interact, m);
 		}
 
@@ -75,7 +75,7 @@ class Interactive extends hxd.App {
 
 		for( o in obj ) {
 			var m = o.toMesh();
-			var i = new h3d.scene.Interactive(m.getCollider(), s3d);
+			var i = h3d.scene.Object.createInteractive(m.getCollider(), s3d);
 			initInteract(i, m);
 		}
 

@@ -10,7 +10,8 @@ class PointLight extends Light {
 	**/
 	public var range(get,set) : Float;
 
-	public function new(?parent) {
+	@:allow(h3d.scene.Object.createPbrPointLight)
+	private function new(?parent) {
 		pbr = new h3d.shader.pbr.Light.PointLight();
 		shadows = new h3d.pass.PointShadowMap(this, true);
 		super(pbr,parent);
@@ -19,7 +20,7 @@ class PointLight extends Light {
 	}
 
 	public override function clone( ?o : h3d.scene.Object ) : h3d.scene.Object {
-		var pl = o == null ? new PointLight(null) : cast o;
+		var pl = o == null ? h3d.scene.Object.createPbrPointLight(null) : cast o;
 		super.clone(pl);
 		pl.size = size;
 		pl.range = range;

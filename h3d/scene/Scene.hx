@@ -4,7 +4,7 @@ package h3d.scene;
 /**
 	h3d.scene.Scene is the root class for a 3D scene. All root objects are added to it before being drawn on screen.
 **/
-class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.InteractiveScene {
+class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.SceneEvents.InteractiveScene {
 
 	/**
 		The scene current camera.
@@ -35,7 +35,8 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 	/**
 		Create a new scene. A default 3D scene is already available in `hxd.App.s3d`
 	**/
-	public function new( ?createRenderer = true, ?createLightSystem = true ) {
+	@:allow(h3d.scene.Object.createScene)
+	private function new( ?createRenderer = true, ?createLightSystem = true ) {
 		super(null);
 		window = hxd.Window.getInstance();
 		eventListeners = [];
@@ -245,7 +246,7 @@ class Scene extends Object implements h3d.IDrawable implements hxd.SceneEvents.I
 	}
 
 	override function clone( ?o : Object ) {
-		var s = o == null ? new Scene() : cast o;
+		var s = o == null ? h3d.scene.Object.createScene() : cast o;
 		s.camera = camera.clone();
 		super.clone(s);
 		return s;

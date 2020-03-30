@@ -18,7 +18,7 @@ class Pbr extends SampleApp {
 	override function init() {
 		super.init();
 
-		new h3d.scene.CameraController(5.5, s3d);
+		h3d.scene.Object.createCameraController(5.5, s3d);
 
 		#if flash
 		new h2d.Text(getFont(), s2d).text = "Not supported on this platform (requires render to mipmap target and fragment textureCubeLod support)";
@@ -36,7 +36,7 @@ class Pbr extends SampleApp {
 		sp.addNormals();
 		sp.addUVs();
 
-		var bg = new h3d.scene.Mesh(sp, s3d);
+		var bg = h3d.scene.Object.createMesh(sp, s3d);
 		bg.scale(10);
 		bg.material.mainPass.culling = Front;
 		bg.material.mainPass.setPassName("overlay");
@@ -58,7 +58,7 @@ class Pbr extends SampleApp {
 		set(4, hxd.Res.top);
 		set(5, hxd.Res.bottom);
 
-		var axis = new h3d.scene.Graphics(s3d);
+		var axis = h3d.scene.Object.createGraphics(s3d);
 		axis.lineStyle(2, 0xFF0000);
 		axis.lineTo(2, 0, 0);
 		axis.lineStyle(2, 0x00FF00);
@@ -79,7 +79,7 @@ class Pbr extends SampleApp {
 		renderer.env = env;
 
 		var cubeShader = bg.material.mainPass.addShader(new h3d.shader.pbr.CubeLod(env.env));
-		var light = new h3d.scene.pbr.PointLight(s3d);
+		var light = h3d.scene.Object.createPbrPointLight(s3d);
 		light.setPosition(30, 10, 40);
 		light.range = 100;
 		light.power = 2;
@@ -90,7 +90,7 @@ class Pbr extends SampleApp {
 		brightness = 0.2;
 
 		function addSphere(x,y) {
-			var sphere = new h3d.scene.Mesh(sp, s3d);
+			var sphere = h3d.scene.Object.createMesh(sp, s3d);
 			sphere.x = x;
 			sphere.y = y;
 			return sphere;
@@ -99,7 +99,7 @@ class Pbr extends SampleApp {
 		sphere = addSphere(0, 0);
 		sphere.material.mainPass.addShader(pbrValues);
 
-		grid = new h3d.scene.Object(s3d);
+		grid = h3d.scene.Object.createObject(s3d);
 		var max = 8;
 		for( x in 0...max )
 			for( y in 0...max ) {

@@ -33,7 +33,8 @@ class Particles extends h3d.scene.Mesh {
 	var tmp : h3d.Vector;
 	var tmpBuf : hxd.FloatBuffer;
 
-	public function new( ?texture, ?parent) {
+	@:allow(h3d.scene.Object.createParticles)
+	private function new( ?texture, ?parent) {
 		super(null, null, parent);
 		material.props = material.getDefaultProps("particles3D");
 		sortMode = Back;

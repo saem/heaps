@@ -4,7 +4,7 @@ package h3d.scene;
 	h3d.scene.Mesh is the base class for all 3D objects displayed on screen.
 	Unlike Object base class, all properties of Mesh only apply to the current object and are not inherited by its children.
 **/
-class Mesh extends Object {
+class Mesh extends h3d.scene.Object {
 
 	/**
 		The primitive of the mesh: the list of vertexes and indices necessary to display the mesh.
@@ -20,7 +20,8 @@ class Mesh extends Object {
 		Creates a new mesh with given primitive, material and parent object.
 		If material is not specified, a new default material is created for the current renderer.
 	**/
-	public function new( primitive, ?material, ?parent ) {
+	@:allow(h3d.scene.Object.createMesh)
+	private function new( primitive, ?material, ?parent ) {
 		super(parent);
 		this.primitive = primitive;
 		if( material == null ) {
@@ -48,7 +49,7 @@ class Mesh extends Object {
 	}
 
 	override function clone( ?o : Object ) : Object {
-		var m = o == null ? new Mesh(null,material) : cast o;
+		var m = o == null ? h3d.scene.Object.createMesh(null,material) : cast o;
 		m.primitive = primitive;
 		m.material = cast material.clone();
 		super.clone(m);

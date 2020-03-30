@@ -28,7 +28,8 @@ class CameraController extends h3d.scene.Object {
 	var targetPos = new h3d.Vector(10. / 25., Math.PI / 4, Math.PI * 5 / 13);
 	var targetOffset = new h3d.Vector(0, 0, 0, 0);
 
-	public function new(?distance,?parent) {
+	@:allow(h3d.scene.Object.createCameraController)
+	private function new(?distance,?parent) {
 		super(parent);
 		name = "CameraController";
 		set(distance);

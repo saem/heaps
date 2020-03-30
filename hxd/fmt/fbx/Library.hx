@@ -4,7 +4,7 @@ using hxd.fmt.fbx.Data;
 class Library extends BaseLibrary {
 
 	public function makeObject( ?textureLoader : String -> FbxNode -> h3d.mat.Material ) : h3d.scene.Object {
-		var scene = new h3d.scene.Object();
+		var scene = h3d.scene.Object.createObject();
 		var hgeom = new Map();
 		var hskins = new Map();
 
@@ -59,10 +59,10 @@ class Library extends BaseLibrary {
 					tmats.push(h3d.mat.Material.create(h3d.mat.Texture.fromColor(0xFF00FF)));
 				// create object
 				if( tmats.length == 1 )
-					o.obj = new h3d.scene.Mesh(prim, tmats[0], scene);
+					o.obj = h3d.scene.Object.createMesh(prim, tmats[0], scene);
 				else {
 					prim.multiMaterial = true;
-					o.obj = new h3d.scene.MultiMaterial(prim, tmats, scene);
+					o.obj = h3d.scene.Object.createMultiMaterial(prim, tmats, scene);
 				}
 			} else if( o.isJoint ) {
 				var j = new h3d.anim.Skin.Joint();
@@ -79,9 +79,9 @@ class Library extends BaseLibrary {
 						break;
 					}
 				if( hasJoint )
-					o.obj = new h3d.scene.Skin(null);
+					o.obj = h3d.scene.Object.createSkin(null);
 				else
-					o.obj = new h3d.scene.Object();
+					o.obj = h3d.scene.Object.createObject();
 			}
 			o.obj.name = name;
 			var m = getDefaultMatrixes(o.model);

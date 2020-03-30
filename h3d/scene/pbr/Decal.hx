@@ -2,7 +2,8 @@ package h3d.scene.pbr;
 
 class Decal extends Mesh {
 
-	public function new( primitive, ?material, ?parent ) {
+	@:allow(h3d.scene.Object.createPbrDecal)
+	private function new( primitive, ?material, ?parent ) {
 		super(primitive, material, parent);
 	}
 

@@ -5,7 +5,8 @@ class PointLight extends Light {
 	var pshader : h3d.shader.PointLight;
 	public var params(get, set) : h3d.Vector;
 
-	public function new(?parent) {
+	@:allow(h3d.scene.Object.createFwdPointLight)
+	private function new(?parent) {
 		pshader = new h3d.shader.PointLight();
 		super(pshader, parent);
 	}

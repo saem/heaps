@@ -5,7 +5,8 @@ class Sphere extends Graphics {
 	public var color : Int;
 	public var radius(default, set) : Float;
 
-	public function new( ?color = 0xFFFF0000, ?radius : Float=1.0, ?depth = true, ?parent) {
+	@:allow(h3d.scene.Object.createSphere)
+	private function new( ?color = 0xFFFF0000, ?radius : Float=1.0, ?depth = true, ?parent) {
 		super(parent);
 		this.color = color;
 		this.radius = radius;
