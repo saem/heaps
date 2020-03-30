@@ -21,7 +21,7 @@ class Box extends Graphics {
 	}
 
 	public override function clone( ?o : h3d.scene.Object ) : h3d.scene.Object {
-		var b = o == null ? new Box(color, bounds.clone(), material.mainPass.depthWrite, null) : cast o;
+		var b = o == null ? h3d.scene.Object.createBox(color, bounds.clone(), material.mainPass.depthWrite, null) : cast o;
 		super.clone(b);
 		b.bounds = bounds.clone();
 		b.prevXMin = prevXMin;
