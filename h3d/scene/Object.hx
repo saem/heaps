@@ -275,10 +275,6 @@ class Object implements hxd.impl.Serializable {
 		return new h3d.scene.pbr.SpotLight(parent);
 	}
 
-	public static function createCameraController( ?distance = 1.0, ?parent = null ) {
-		return new CameraController(distance, parent);
-	}
-
 	public static function createInteractive( shape, ?parent = null) {
 		return new Interactive(shape, parent);
 	}

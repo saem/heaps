@@ -1,6 +1,6 @@
 package h3d.scene;
 
-class CameraController extends h3d.scene.Object {
+class CameraController {
 
 	public var distance(get, never) : Float;
 	public var theta(get, never) : Float;
@@ -28,12 +28,10 @@ class CameraController extends h3d.scene.Object {
 	var targetPos = new h3d.Vector(10. / 25., Math.PI / 4, Math.PI * 5 / 13);
 	var targetOffset = new h3d.Vector(0, 0, 0, 0);
 
-	@:allow(h3d.scene.Object.createCameraController)
-	private function new(?distance,?parent) {
-		super(parent);
-		name = "CameraController";
+	@:allow(h3d.scene.Scene.createCameraController)
+	private function new(scene:h3d.scene.Scene, ?distance) {
+		this.scene = scene;
 		set(distance);
-		flags.set(FNoSerialize,true);
 		toTarget();
 	}
 
@@ -66,40 +64,35 @@ class CameraController extends h3d.scene.Object {
 		Load current position from current camera position and target.
 		Call if you want to modify manually the camera.
 	**/
-	public function loadFromCamera( animate = false ) {
-		var scene = if( scene == null ) getScene() else scene;
-		if( scene == null ) throw "Not in scene";
-		targetOffset.load(scene.camera.target);
-		targetOffset.w = scene.camera.fovY;
+	public function loadFromCamera( camera : h3d.Camera, animate = false ) {
+		targetOffset.load(camera.target);
+		targetOffset.w = camera.fovY;
 
-		var pos = scene.camera.pos.sub(scene.camera.target);
+		var pos = camera.pos.sub(camera.target);
 		var r = pos.length();
 		targetPos.set(r, Math.atan2(pos.y, pos.x), Math.acos(pos.z / r));
 		targetPos.x *= targetOffset.w;
 
-		curOffset.w = scene.camera.fovY;
+		curOffset.w = camera.fovY;
 
 		if( !animate )
 			toTarget();
 		else
-			syncCamera(); // reset camera to current
+			syncCamera(camera); // reset camera to current
 	}
 
 	/**
 		Initialize to look at the whole scene, based on reported scene bounds.
 	**/
-	public function initFromScene() {
-		var scene = getScene();
-		if( scene == null ) throw "Not in scene";
-		var bounds = scene.getBounds();
+	public function initFromCamera( camera : h3d.Camera, bounds : h3d.col.Bounds ) {
 		var center = bounds.getCenter();
-		scene.camera.target.load(center.toVector());
+		camera.target.load(center.toVector());
 		var d = bounds.getMax().sub(center);
 		d.scale(5);
 		d.z *= 0.5;
 		d = d.add(center);
-		scene.camera.pos.load(d.toVector());
-		loadFromCamera();
+		camera.pos.load(d.toVector());
+		loadFromCamera(camera);
 	}
 
 	/**
@@ -111,9 +104,7 @@ class CameraController extends h3d.scene.Object {
 		curOffset.load(targetOffset);
 	}
 
-	override function onAdd() {
-		super.onAdd();
-		scene = getScene();
+	public function onAdd( scene : h3d.scene.Scene, camera : h3d.Camera) {
 		scene.addEventListener(onEvent);
 		if( curOffset.w == 0 )
 			curPos.x *= scene.camera.fovY;
@@ -122,22 +113,12 @@ class CameraController extends h3d.scene.Object {
 		targetOffset.load(curOffset);
 	}
 
-	override function onRemove() {
-		super.onRemove();
+	public function onRemove( scene : h3d.scene.Scene ) {
 		scene.removeEventListener(onEvent);
 		scene = null;
 	}
 
 	function onEvent( e : hxd.Event ) {
-
-		var p : Object = this;
-		while( p != null ) {
-			if( !p.visible ) {
-				e.propagate = true;
-				return;
-			}
-			p = p.parent;
-		}
 
 		switch( e.kind ) {
 		case EWheel:
@@ -204,8 +185,7 @@ class CameraController extends h3d.scene.Object {
 		targetOffset = targetOffset.add(v);
 	}
 
-	function syncCamera() {
-		var cam = getScene().camera;
+	function syncCamera( cam : h3d.Camera ) {
 		cam.target.load(curOffset);
 		cam.target.w = 1;
 		cam.pos.set( distance * Math.cos(theta) * Math.sin(phi) + cam.target.x, distance * Math.sin(theta) * Math.sin(phi) + cam.target.y, distance * Math.cos(phi) + cam.target.z );
@@ -216,12 +196,7 @@ class CameraController extends h3d.scene.Object {
 		cam.fovY = curOffset.w;
 	}
 
-	override function sync(ctx:RenderContext.SyncContext) {
-
-		if( !syncVisibleFlag && !alwaysSync ) {
-			super.sync(ctx);
-			return;
-		}
+	public function sync( camera : h3d.Camera, elapsedTime: Float) {
 
 		if( moveX != 0 ) {
 			targetPos.y += moveX * 0.003 * rotateSpeed;
@@ -239,14 +214,11 @@ class CameraController extends h3d.scene.Object {
 			if( Math.abs(moveY) < 1 ) moveY = 0;
 		}
 
-		var dt = hxd.Math.min(1, 1 - Math.pow(smooth, ctx.elapsedTime * 60));
-		var cam = scene.camera;
+		var dt = hxd.Math.min(1, 1 - Math.pow(smooth, elapsedTime * 60));
 		curOffset.lerp(curOffset, targetOffset, dt);
 		curPos.lerp(curPos, targetPos, dt );
 
-		syncCamera();
-
-		super.sync(ctx);
+		syncCamera( camera );
 	}
 
 }

@@ -43,7 +43,7 @@ class Helpers extends hxd.App {
 			pointLightHelper( l );
 		}
 
-		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
+		this.s3d.createCameraController().loadFromCamera(this.s3d.camera);
 	}
 
 	override function update( dt : Float ) {

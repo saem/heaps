@@ -18,7 +18,7 @@ class Pbr extends SampleApp {
 	override function init() {
 		super.init();
 
-		h3d.scene.Object.createCameraController(5.5, s3d);
+		this.s3d.createCameraController(5.5);
 
 		#if flash
 		new h2d.Text(getFont(), s2d).text = "Not supported on this platform (requires render to mipmap target and fragment textureCubeLod support)";

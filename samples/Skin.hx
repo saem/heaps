@@ -39,7 +39,7 @@ class Skin extends SampleApp {
 		shadow.color.setColor(0x301030);
 		dir.enableSpecular = true;
 
-		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
+		this.s3d.createCameraController().loadFromCamera(this.s3d.camera);
 
 		var showJoints = false;
 		final skins = s3d.findAll((o) -> Std.downcast(o, h3d.scene.Skin));

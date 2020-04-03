@@ -38,7 +38,7 @@ class CubeTexture extends hxd.App {
 
 		s3d.lightSystem.ambientLight.set(0.1, 0.1, 0.1);
 
-		h3d.scene.Object.createCameraController(5, s3d).loadFromCamera();
+		this.s3d.createCameraController(5).loadFromCamera(this.s3d.camera);
 
 	}
 

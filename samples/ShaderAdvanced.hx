@@ -148,7 +148,7 @@ class ShaderAdvanced extends hxd.App {
 		prim.commands.setCommand(16, icount);
 
 		h3d.scene.Object.createFwdDirLight(new h3d.Vector(-1,-2,-5),s3d);
-		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
+		this.s3d.createCameraController().loadFromCamera(this.s3d.camera);
 
 		var buf = new hxd.FloatBuffer();
 		for( i in 0...16 ) {

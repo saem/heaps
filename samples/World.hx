@@ -46,7 +46,7 @@ class World extends hxd.App {
 
 		s3d.camera.zNear = 1;
 		s3d.camera.zFar = 100;
-		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
+		this.s3d.createCameraController().loadFromCamera(this.s3d.camera);
 	}
 
 

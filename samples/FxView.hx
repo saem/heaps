@@ -40,7 +40,7 @@ class FxView extends hxd.App {
 		}
 		play();
 
-		new h3d.scene.CameraController(20,s3d);
+		this.s3d.createCameraController(20);
 
 	}
 
