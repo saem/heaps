@@ -50,7 +50,7 @@ class PointLights extends hxd.App {
 		s3d.lightSystem.ambientLight.set(0, 0, 0);
 
 		s3d.camera.pos.set(5, 1, 3);
-		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
+		this.s3d.createCameraController().loadFromCamera(this.s3d.camera);
 	}
 
 	override function update( dt : Float ) {

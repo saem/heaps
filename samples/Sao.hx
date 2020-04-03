@@ -105,7 +105,7 @@ class Sao extends SampleApp {
 		var time = Math.PI * 0.25;
 		var camdist = 6 * wscale;
 		s3d.camera.pos.set(camdist * Math.cos(time), camdist * Math.sin(time), camdist * 0.5);
-		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
+		this.s3d.createCameraController().loadFromCamera(this.s3d.camera);
 
 		var c = renderer;
 		addSlider("Samples", function() return c.sao.shader.numSamples, function(v) c.sao.shader.numSamples = Std.int(v), 1, 101);

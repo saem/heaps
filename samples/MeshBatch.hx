@@ -41,7 +41,7 @@ class MeshBatch extends hxd.App {
 		s3d.lightSystem.ambientLight.set(0.5,0.5,0.5);
 		batch = h3d.scene.Object.createMeshBatch(cube,s3d);
 		meshes = [];
-		h3d.scene.Object.createCameraController(20,s3d);
+		this.s3d.createCameraController(20);
 	}
 
 	override function update(dt:Float) {

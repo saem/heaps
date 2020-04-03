@@ -44,7 +44,7 @@ class Shadows extends SampleApp {
 		addSlider("Bias", function() return shadow.bias, function(r) shadow.bias = r, 0, 0.1);
 
 		s3d.camera.pos.set(12, 12, 6);
-		h3d.scene.Object.createCameraController(s3d).loadFromCamera();
+		this.s3d.createCameraController().loadFromCamera(this.s3d.camera);
 	}
 
 	override function update( dt : Float ) {
