@@ -226,10 +226,6 @@ class Object implements hxd.impl.Serializable {
 		return new MultiMaterial(primitive, material, parent);
 	}
 
-	public static function createTrail( ?parent = null ) {
-		return new Trail(parent);
-	}
-
 	public static function createSkin( s, ?mat = null, ?parent = null ) {
 		return new Skin(s, mat, parent);
 	}
