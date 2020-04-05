@@ -261,4 +261,8 @@ class CameraControllerStorage {
 	public function deallocateRow(id: CameraControllerId) {
 		if(row.id == id) { row = null; }
 	}
+
+	public function reset() {
+		this.row = null;
+	}
 }

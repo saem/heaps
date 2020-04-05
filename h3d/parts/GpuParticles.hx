@@ -1,4 +1,5 @@
 package h3d.parts;
+import h3d.scene.SceneStorage.EntityId;
 import hxd.Math;
 
 private typedef GpuSave = {
@@ -90,6 +91,7 @@ private class GpuPart {
 }
 
 @:allow(h3d.parts.GpuParticles)
+@:allow(h3d.parts.GpuParticlesRow)
 class GpuPartGroup {
 
 	static var FIELDS = null;
@@ -190,7 +192,7 @@ class GpuPartGroup {
 	inline function set_rotSpeedRand(v) { needRebuild = true; return rotSpeedRand = v; }
 	inline function set_isRelative(v) { needRebuild = true; return isRelative = v; }
 
-	public function new(parent) {
+	public function new(parent: GpuParticles) {
 		this.parent = parent;
 	}
 
@@ -255,12 +257,9 @@ class GpuPartGroup {
 			material = {};
 		}
 		if( parent != null ) {
-			var index = @:privateAccess parent.groups.indexOf(this);
-			if( index >= 0 ) {
-				var mat = parent.materials[index];
-				mat.name = name;
-				mat.props = getMaterialProps();
-			}
+			final mat = parent.findMaterialForGrouop(this);
+			mat.name = name;
+			mat.props = getMaterialProps();
 		}
 	}
 
@@ -449,60 +448,42 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 	static inline var VERSION = 2;
 	static inline var STRIDE = 14;
 
-	var groups : Array<GpuPartGroup>;
-	var primitiveBuffers : Array<hxd.FloatBuffer>;
-	var primitives : Array<h3d.prim.Primitive>;
-	var resourcePath : String;
-	var partAlloc : GpuPart;
-	var rnd = new hxd.Rand(0);
-	var prevX : Float = 0;
-	var prevY : Float = 0;
-	var prevZ : Float = 0;
-	var hideProps : Dynamic;
+	private final row: GpuParticlesRow;
+	private final rowRef: GpuParticlesRowRef;
 
-	public var seed(default, set) : Int	= Std.random(0x1000000);
-	public var volumeBounds(default, set) : h3d.col.Bounds;
-	public var currentTime : Float = 0.;
-	public var duration(default, null) : Float = 0.;
-	public var bounds(default, null) : h3d.col.Bounds;
+	public var amount(get,set): Float;
+	inline function get_amount() return this.row.amount;
+	inline function set_amount(a) return this.row.amount = a;
+	public var currentTime(get,set): Float;
+	inline function get_currentTime() return this.row.currentTime;
+	inline function set_currentTime(c) return this.row.currentTime = c;
+	public var volumeBounds(get,set): h3d.col.Bounds;
+	inline function get_volumeBounds() return this.row.volumeBounds;
+	inline function set_volumeBounds(v) return this.row.volumeBounds = v;
+	public var bounds(get,never): h3d.col.Bounds;
+	inline function get_bounds() return this.row.bounds;
+	public var uploadedCount(get,never): Float;
+	inline function get_uploadedCount() return this.row.uploadedCount;
 
-	/**
-		Tells how much percent of the particles to display. This can be used to progressively display a particle effect.
-		This can also be done per group in GpuPartGroup.progress
-	**/
-	public var amount : Float = 1.;
-
-	/**
-		Tells how many particles were uploaded to GPU last frame (for performance tuning).
-	**/
-	public var uploadedCount(default,null) : Int;
-
-	/**
-		Tells how many particles are live actually
-	**/
-	public var count(get,never) : Int;
-
-	@:allow(h3d.scene.Object)
-	private function new( ?parent ) {
+	@:allow(h3d.scene.Scene.createGpuParticles)
+	private function new(rowRef:GpuParticlesRowRef, parent:h3d.scene.Object) {
 		super(null, [], parent);
-		bounds = new h3d.col.Bounds();
-		bounds.addPos(0, 0, 0);
-		groups = [];
-		materials = [];
-		primitiveBuffers = [];
-		primitives = [];
+		this.row = rowRef.getRow(); // cache this for now
+		this.rowRef = rowRef;
+		this.materials = []; //reset to empty so it is in sync with groups
 	}
 
 	override function onRemove() {
 		super.onRemove();
-		for( p in primitives )
+		for( p in row.primitives )
 			if( p != null ) p.dispose();
+		this.rowRef.deleteRow();
 	}
 
 	override function getBoundsRec(b:h3d.col.Bounds) {
 		if( ignoreBounds )
 			return super.getBoundsRec(b);
-		for( g in groups )
+		for( g in row.groups )
 			if( g.needRebuild ) {
 				var s = getScene();
 				if( s != null ) {
@@ -518,14 +499,15 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 	}
 
 	public dynamic function onEnd() {
-		if( duration > 0 ) currentTime = -1;
+		if( row.duration > 0 ) row.currentTime = -1;
 	}
 
 	public function save() : Dynamic {
 		var bounds = null;
-		for( g in groups )
+		for( g in row.groups )
 			switch( g.emitMode ) {
 			case CameraBounds, VolumeBounds:
+				final volumeBounds = row.volumeBounds;
 				if( volumeBounds != null ) {
 					var c = volumeBounds.getCenter();
 					bounds = [c.x, c.y, c.z, volumeBounds.xSize, volumeBounds.ySize, volumeBounds.zSize];
@@ -533,27 +515,28 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 				}
 			default:
 			}
-		var save : GpuSave = { type : "particles3D", version : VERSION, groups : [for( g in groups ) g.save()], bounds : bounds };
-		if( hideProps != null ) save.hide = hideProps;
+		var save : GpuSave = { type : "particles3D", version : VERSION, groups : [for( g in row.groups ) g.save()], bounds : bounds };
+		if( row.hideProps != null ) save.hide = row.hideProps;
 		return save;
 	}
 
 	public function load( _o : Dynamic, ?resourcePath : String ) {
-		this.resourcePath = resourcePath;
+		row.resourcePath = resourcePath;
 		var o : GpuSave = _o;
 		if( o.version == 0 || o.version > VERSION ) throw "Unsupported version " + _o.version;
 		for( g in o.groups )
 			addGroup().load(o.version, g);
 		if( o.bounds != null )
-			volumeBounds = h3d.col.Bounds.fromValues(o.bounds[0] - o.bounds[3] * 0.5, o.bounds[1] - o.bounds[4] * 0.5, o.bounds[2] - o.bounds[5] * 0.5, o.bounds[3], o.bounds[4], o.bounds[5]);
-		hideProps = o.hide;
+			row.volumeBounds = h3d.col.Bounds.fromValues(o.bounds[0] - o.bounds[3] * 0.5, o.bounds[1] - o.bounds[4] * 0.5, o.bounds[2] - o.bounds[5] * 0.5, o.bounds[3], o.bounds[4], o.bounds[5]);
+		row.hideProps = o.hide;
 	}
 
-	public function addGroup( ?g : GpuPartGroup, ?material : h3d.mat.Material, ?index ) {
+	public function addGroup( ?g : GpuPartGroup, ?material : h3d.mat.Material ) {
+		final index = row.groups.length;
 		if( g == null )
 			g = new GpuPartGroup(this);
 		if( g.name == null )
-			g.name = "Group#" + (groups.length + 1);
+			g.name = "Group#" + (index + 1);
 		if( material == null ) {
 			material = h3d.mat.MaterialSetup.current.createMaterial();
 			material.mainPass.culling = None;
@@ -566,66 +549,60 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 		}
 		if( this.material == null ) this.material = material;
 		material.mainPass.addShader(g.pshader);
-		if( index == null )
-			index = groups.length;
 		materials.insert(index, material);
-		groups.insert(index, g);
+		row.groups.insert(index, g);
 		g.needRebuild = true;
 		return g;
 	}
 
-	function set_seed(s) {
-		if( groups != null )
-			for( g in groups ) g.needRebuild = true;
-		return seed = s;
-	}
-
-	function set_volumeBounds(v) {
-		for( g in groups ) g.needRebuild = true;
-		return volumeBounds = v;
-	}
-
 	public function removeGroup( g : GpuPartGroup ) {
-		var idx = groups.indexOf(g);
+		var idx = row.groups.indexOf(g);
 		if( idx < 0 ) return;
-		groups.splice(idx,1);
+		row.groups.splice(idx,1);
 		materials.splice(idx, 1);
 		if( materials.length == 0 ) material = null;
 	}
 
 	public function getGroup( name : String ) {
-		for( g in groups )
+		for( g in row.groups )
 			if( g.name == name )
 				return g;
 		return null;
 	}
 
+	public function findMaterialForGrouop(g: GpuPartGroup) {
+		for(i in 0...row.groups.length) {
+			if(g == row.groups[i]) { return this.materials[i]; }
+		}
+		return null;
+	}
+
 	public inline function getGroups() {
-		return groups.iterator();
+		return row.groups.iterator();
 	}
 
 	override function calcAbsPos() {
 		super.calcAbsPos();
 		// should we check for pure rotation too ?
-		if( prevX != absPos.tx || prevY != absPos.ty || prevZ != absPos.tz ) {
-			prevX = absPos.tx;
-			prevY = absPos.ty;
-			prevZ = absPos.tz;
-			for( g in groups )
+		if( row.prevX != absPos.tx || row.prevY != absPos.ty || row.prevZ != absPos.tz ) {
+			row.prevX = absPos.tx;
+			row.prevY = absPos.ty;
+			row.prevZ = absPos.tz;
+			for( g in row.groups )
 				if( g.emitLoop )
-					g.lastMove = currentTime;
+					g.lastMove = row.currentTime;
 		}
 	}
 
 	function rebuildAll(cam) {
 
-		var ebounds = null, calcEmit = null, partCount = 0, partAlloc = this.partAlloc;
-		bounds.empty();
-		duration = 0.;
+		var ebounds = null, calcEmit = null, partCount = 0, partAlloc = row.partAlloc;
+		row.bounds.empty();
+		row.duration = 0.;
 
 		var hasLoop = false;
-		for( gid in 0...groups.length ) {
-			var g = groups[gid];
+		for( gid in 0...row.groups.length ) {
+			var g = row.groups[gid];
 			g.partIndex = partCount;
 			partCount += g.nparts;
 
@@ -633,7 +610,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 			while( p != null ) {
 				var n = p.next;
 				p.next = partAlloc;
-				partAlloc = p;
+				row.partAlloc = p;
 				p = n;
 			}
 			g.particles = null;
@@ -649,8 +626,8 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 					ignoreBounds = ignore;
 					ebounds.transform(getInvPos());
 				case VolumeBounds, CameraBounds:
-					ebounds = volumeBounds;
-					if( ebounds == null ) ebounds = volumeBounds = h3d.col.Bounds.fromValues( -1, -1, -1, 2, 2, 2 );
+					ebounds = row.volumeBounds;
+					if( ebounds == null ) ebounds = row.volumeBounds = h3d.col.Bounds.fromValues( -1, -1, -1, 2, 2, 2 );
 				case Cone, Point, Disc:
 					ebounds = null;
 				}
@@ -658,41 +635,41 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 			g.ebounds = ebounds;
 
 			var maxLife = g.life * (1 + g.lifeRand + 1 - g.emitSync) + g.emitDelay;
-			if( maxLife > duration )
-				duration = maxLife;
+			if( maxLife > row.duration )
+				row.duration = maxLife;
 			if( g.emitLoop )
 				hasLoop = true;
-			g.updateBounds(bounds);
+			g.updateBounds(row.bounds);
 		}
 
-		this.partAlloc = partAlloc;
+		row.partAlloc = partAlloc;
 
-		for( p in primitives )
+		for( p in row.primitives )
 			if( p != null ) p.dispose();
 
-		if( primitives.length != groups.length )
-			primitives.resize(groups.length);
+		if( row.primitives.length != row.groups.length )
+			row.primitives.resize(row.groups.length);
 
-		if( primitiveBuffers.length != groups.length )
-			primitiveBuffers.resize(groups.length);
+		if( row.primitiveBuffers.length != row.groups.length )
+			row.primitiveBuffers.resize(row.groups.length);
 
-		for( gid in 0...groups.length ) {
-			if( primitiveBuffers[gid] == null ||  primitiveBuffers[gid].length > STRIDE * partCount * 4 )
-				primitiveBuffers[gid] = new hxd.FloatBuffer();
-			primitiveBuffers[gid].grow(STRIDE * groups[gid].nparts * 4);
-			primitives[gid] = new h3d.prim.RawPrimitive( { vbuf : primitiveBuffers[gid], stride : STRIDE, quads : true, bounds:bounds }, true);
-			primitives[gid].buffer.flags.set(RawFormat);
+		for( gid in 0...row.groups.length ) {
+			if( row.primitiveBuffers[gid] == null ||  row.primitiveBuffers[gid].length > STRIDE * partCount * 4 )
+				row.primitiveBuffers[gid] = new hxd.FloatBuffer();
+			row.primitiveBuffers[gid].grow(STRIDE * row.groups[gid].nparts * 4);
+			row.primitives[gid] = new h3d.prim.RawPrimitive( { vbuf : row.primitiveBuffers[gid], stride : STRIDE, quads : true, bounds:row.bounds }, true);
+			row.primitives[gid].buffer.flags.set(RawFormat);
 		}
 
 		if( hasLoop ) {
-			if( currentTime < duration )
-				currentTime = duration;
-			duration = 0;
-		} else if( currentTime > duration )
-			currentTime = duration;
-		for( g in groups )
+			if( row.currentTime < row.duration )
+				row.currentTime = row.duration;
+			row.duration = 0;
+		} else if( row.currentTime > row.duration )
+			row.currentTime = row.duration;
+		for( g in row.groups )
 			g.needRebuild = false;
-		rnd.init(seed);
+		row.rnd.init(row.seed);
 	}
 
 	static var PUVS = [new h3d.prim.UV(0, 0), new h3d.prim.UV(1, 0), new h3d.prim.UV(0, 1), new h3d.prim.UV(1, 1)];
@@ -704,12 +681,12 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 		var prev = null;
 		var ftime = g.maxTime;
 		while( p != null && g.currentParts > pneeded ) {
-			var t = p.time + currentTime;
+			var t = p.time + row.currentTime;
 			var st = t - (t % p.life);
 			if( st > p.time + ftime && (!checkMove || -p.time < ftime) ) {
 				var n = p.next;
-				p.next = partAlloc;
-				partAlloc = p;
+				p.next = row.partAlloc;
+				row.partAlloc = p;
 				if( prev == null )
 					g.particles = n;
 				else
@@ -728,7 +705,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 
 		// emit
 		var needSync = false;
-		var pneeded = Math.ceil(hxd.Math.clamp(g.amount * amount) * g.nparts);
+		var pneeded = Math.ceil(hxd.Math.clamp(g.amount * row.amount) * g.nparts);
 
 		if( g.lastMove != 0 ) {
 			var p = g.particles;
@@ -755,33 +732,33 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 				if( g.lastMove == 0 )
 					cleanParts(g, pneeded);
 
-				var partAlloc = partAlloc;
+				var partAlloc = row.partAlloc;
 				while( g.currentParts < pneeded ) {
 					var pt = partAlloc;
 					if( pt == null )
 						pt = new GpuPart();
 					else
 						partAlloc = pt.next;
-					g.emitPart(rnd, pt, absPos);
+					g.emitPart(row.rnd, pt, absPos);
 					if( g.lastMove != 0 ) pt.time = -prevTime /* no delay */ else pt.time -= prevTime;
 					pt.index = -1;
 					pt.next = g.particles;
 					g.particles = pt;
 					g.currentParts++;
 				}
-				this.partAlloc = partAlloc;
+				row.partAlloc = partAlloc;
 				needSync = true;
 			}
 
 			if( g.currentParts > pneeded && g.lastMove == 0 ) {
 				var ftime = g.maxTime;
 				if( ftime < 0 )
-					g.maxTime = ftime = currentTime;
+					g.maxTime = ftime = row.currentTime;
 				// count how many particles life has ended
 				var p = g.particles;
 				var count = 0;
 				while( p != null ) {
-					if( currentTime - ((p.time + currentTime) % p.life) > ftime ) count++;
+					if( row.currentTime - ((p.time + row.currentTime) % p.life) > ftime ) count++;
 					p = p.next;
 				}
 				// remove at once
@@ -800,7 +777,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 			var p = g.particles;
 			var m = camera.m;
 			while( p != null ) {
-				var t = p.time + currentTime;
+				var t = p.time + row.currentTime;
 				if( g.emitLoop ) t %= p.life;
 
 				var acc = (1 + g.speedIncr * t) * t;
@@ -824,7 +801,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 		// sync buffer
 		var startIndex = 0;
 		var index = startIndex;
-		var vbuf = primitiveBuffers[groups.indexOf(g)];
+		var vbuf = row.primitiveBuffers[row.groups.indexOf(g)];
 		var p = g.particles;
 		var uvs = PUVS;
 		var pidx = 0;
@@ -869,8 +846,8 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 			p = p.next;
 		}
 		if( firstPart <= lastPart ) {
-			uploadedCount += lastPart - firstPart + 1;
-			var primitive = primitives[groups.indexOf(g)];
+			row.uploadedCount += lastPart - firstPart + 1;
+			var primitive = row.primitives[row.groups.indexOf(g)];
 			primitive.buffer.uploadVector(vbuf, (firstPart) * 4 * STRIDE, (lastPart - firstPart + 1) * 4, (firstPart) * 4);
 		}
 	}
@@ -878,7 +855,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 	override function emit( ctx : h3d.scene.RenderContext.EmitContext ) {
 		for( i in 0...materials.length ) {
 			var m = materials[i];
-			var g = groups[i];
+			var g = row.groups[i];
 			if( m != null && g.enable && g.currentParts > 0 )
 				ctx.emit(m, this, i);
 		}
@@ -888,12 +865,12 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 		super.sync(ctx);
 
 		// free memory
-		if( partAlloc != null )
-			partAlloc = partAlloc.next;
+		if( row.partAlloc != null )
+			row.partAlloc = row.partAlloc.next;
 
-		var prev = currentTime;
-		currentTime += ctx.elapsedTime;
-		if( prev < duration && currentTime >= duration ) {
+		var prev = row.currentTime;
+		row.currentTime += ctx.elapsedTime;
+		if( prev < row.duration && row.currentTime >= row.duration ) {
 			onEnd();
 			if( !allocated )
 				return; // was removed
@@ -902,14 +879,14 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 		if( !syncVisibleFlag && !alwaysSync )
 			return;
 
-		for( g in groups ) {
-			var gid = groups.indexOf(g);
-			if( primitives[gid] != null ) {
+		for( g in row.groups ) {
+			var gid = row.groups.indexOf(g);
+			if( row.primitives[gid] != null ) {
 				if( g.needRebuild ) {
 					prev = 0;
-					currentTime = 0;
-					primitives[gid].dispose();
-					primitives[gid] = null;
+					row.currentTime = 0;
+					row.primitives[gid].dispose();
+					row.primitives[gid] = null;
 					break;
 				}
 			}
@@ -919,24 +896,25 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 		if( camera == null )
 			camera = new h3d.Camera();
 
-		for( gid in 0 ... groups.length ) {
-			var primitive = gid < primitives.length ? primitives[gid] : null;
+		for( gid in 0 ... row.groups.length ) {
+			var primitive = gid < row.primitives.length ? row.primitives[gid] : null;
 			if( primitive == null || primitive.buffer == null || primitive.buffer.isDisposed() ) {
 				rebuildAll(camera);
 				break;
 			}
 		}
 
-		uploadedCount = 0;
+		row.uploadedCount = 0;
 		var hasPart = false;
-		for( g in groups ) {
+		for( g in row.groups ) {
+			final volumeBounds = row.volumeBounds;
 			syncGroup(g, camera, prev, syncVisibleFlag);
 			if( g.currentParts == 0 )
 				continue;
 			// sync shader params
 			hasPart = true;
 			g.syncParams();
-			g.pshader.time = currentTime;
+			g.pshader.time = row.currentTime;
 			if( g.pshader.clipBounds ) {
 				g.pshader.volumeMin.set(volumeBounds.xMin, volumeBounds.yMin, volumeBounds.zMin);
 				g.pshader.volumeSize.set(volumeBounds.xSize, volumeBounds.ySize, volumeBounds.zSize);
@@ -965,24 +943,17 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 			}
 		}
 
-		if( duration == 0 && !hasPart )
+		if( row.duration == 0 && !hasPart )
 			onEnd();
 	}
 
-	function get_count() {
-		var n = 0;
-		for( g in groups )
-			n += g.currentParts;
-		return n;
-	}
-
 	override function draw( ctx : h3d.scene.RenderContext.DrawContext ) {
-		var primitive = primitives[ctx.drawPass.index];
+		var primitive = row.primitives[ctx.drawPass.index];
 		if( primitive == null || primitive.buffer.isDisposed() )
 			return; // wait next sync()
-		var g = groups[ctx.drawPass.index];
-		@:privateAccess if( primitive.buffer == null || primitive.buffer.isDisposed() ) primitive.alloc(ctx.engine);
-		@:privateAccess ctx.engine.renderQuadBuffer(primitive.buffer,0,g.currentParts*2);
+		var g = row.groups[ctx.drawPass.index];
+		if( !primitive.isBufferAllocated() ) primitive.alloc(ctx.engine);
+		ctx.engine.renderQuadBuffer(primitive.buffer,0,g.currentParts*2);
 	}
 
 	function loadTexture( path : String ) {
@@ -1023,3 +994,136 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 	#end
 
 }
+
+abstract GpuParticlesId(Int) to Int {
+	public inline function new(id:Int) { this = id; }
+}
+
+private abstract InternalGpuParticlesId(Int) {
+	public inline function new(id:Int) { this = id; }
+}
+
+class GpuParticlesRowRef {
+	final rowId: GpuParticlesId;
+	final sceneStorage: h3d.scene.SceneStorage;
+	
+	public function new(rowId: GpuParticlesId, sceneStorage: h3d.scene.SceneStorage) {
+		this.rowId = rowId;
+		this.sceneStorage = sceneStorage;
+	}
+
+	public inline function getRow() {
+		return this.sceneStorage.selectGpuParticles(rowId);
+	}
+
+	/**
+		TODO Leaving this here as it's not a general delete
+	**/
+	public inline function deleteRow() {
+		final eid = this.getRow().entityId;
+		this.sceneStorage.gpuParticleStorage.deallocateRow(rowId);
+		this.sceneStorage.entityStorage.deallocateRow(eid);
+	}
+}
+
+class GpuParticlesRow {
+	public var id: GpuParticlesId;
+	public var internalId: InternalGpuParticlesId;
+	public var entityId(default,null): h3d.scene.SceneStorage.EntityId;
+
+	public var groups = new Array<GpuPartGroup>();
+	public var primitiveBuffers = new Array<hxd.FloatBuffer>();
+	public var primitives = new Array<h3d.prim.Primitive>();
+	public var resourcePath : String;
+	public var partAlloc : GpuPart;
+	public var rnd = new hxd.Rand(0);
+	public var prevX : Float = 0;
+	public var prevY : Float = 0;
+	public var prevZ : Float = 0;
+	public var hideProps : Dynamic;
+
+	public var seed(default, set) : Int	= Std.random(0x1000000);
+	public var volumeBounds(default, set) : h3d.col.Bounds;
+	public var currentTime : Float = 0.;
+	public var duration : Float = 0.;
+	public var bounds(default, null) = new h3d.col.Bounds();
+
+	/**
+		Tells how much percent of the particles to display. This can be used to progressively display a particle effect.
+		This can also be done per group in GpuPartGroup.progress
+	**/
+	public var amount : Float = 1.;
+
+	/**
+		Tells how many particles were uploaded to GPU last frame (for performance tuning).
+	**/
+	public var uploadedCount : Int = 0;
+
+	/**
+		Tells how many particles are live actually
+	**/
+	public var count(get,never) : Int;
+
+	function set_seed(s) {
+		if( groups != null )
+			for( g in groups ) g.needRebuild = true;
+		return seed = s;
+	}
+
+	function set_volumeBounds(v) {
+		for( g in groups ) g.needRebuild = true;
+		return volumeBounds = v;
+	}
+
+	function get_count() {
+		var n = 0;
+		for( g in groups )
+			n += g.currentParts;
+		return n;
+	}
+	public function new(id:GpuParticlesId, iid:InternalGpuParticlesId, eid:h3d.scene.SceneStorage.EntityId) {
+		this.id = id;
+		this.internalId = iid;
+		this.entityId = eid;
+		bounds.addPos(0, 0, 0);
+	}
+}
+
+class GpuParticlesStorage {
+	final entityIdToGpuIdIndex = new h3d.scene.SceneStorage.Map<EntityId, GpuParticlesId>();
+	final storage = new h3d.scene.SceneStorage.Map<InternalGpuParticlesId, GpuParticlesRow>();
+	var sequence = new SequenceGpuParticles();
+	
+	public function new() {}
+
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId) {
+		final id = sequence.next();
+
+		this.entityIdToGpuIdIndex.set(eid, id);
+		final iid = externalToInternalId(id);
+		this.storage.set(iid, new GpuParticlesRow(id, iid, eid));
+
+		return id;
+	}
+
+	public function deallocateRow(gid: GpuParticlesId) {
+		return this.storage.delete(externalToInternalId(gid));
+	}
+
+	public function fetchRow(gid: GpuParticlesId) {
+		return storage.get(externalToInternalId(gid));
+	}
+
+	private inline function externalToInternalId(id: GpuParticlesId): InternalGpuParticlesId {
+        // make these zero based
+		return new InternalGpuParticlesId(id--);
+	}
+
+	public function reset() {
+		this.entityIdToGpuIdIndex.clear();
+		this.storage.clear();
+		this.sequence = new SequenceGpuParticles();
+	}
+}
+
+private typedef SequenceGpuParticles = h3d.scene.SceneStorage.Sequence<GpuParticlesId>;

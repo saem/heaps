@@ -272,6 +272,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 			renderer.dispose();
 			renderer = new Renderer();
 		}
+		sceneStorage.reset();
 	}
 
 	/**
@@ -465,5 +466,14 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		this.cameraControllerId = this.sceneStorage.insertCameraController(distance);
 
 		return this.sceneStorage.selectCameraController(this.cameraControllerId);
+	}
+
+	public function createGpuParticles( parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final gid = this.sceneStorage.insertGpuParticles();
+
+		final gpuRowRef = new h3d.parts.GpuParticles.GpuParticlesRowRef(gid, this.sceneStorage);
+
+		return new h3d.parts.GpuParticles(gpuRowRef, parent);
 	}
 }

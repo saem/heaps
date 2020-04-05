@@ -239,10 +239,6 @@ class Object implements hxd.impl.Serializable {
 		return new h3d.parts.Particles(texture, parent);
 	}
 
-	public static function createGpuParticles( ?parent = null ) {
-		return new h3d.parts.GpuParticles(parent);
-	}
-
 	public static function createEmitter( ?state = null, ?parent = null ) {
 		return new h3d.parts.Emitter(state, parent);
 	}
@@ -546,7 +542,7 @@ class Object implements hxd.impl.Serializable {
 	/**
 		Add a child object at the end of the children list.
 	**/
-	public function addChild( o : Object ) {
+	public final function addChild( o : Object ) {
 		var p = this;
 		while( p != null ) {
 			if( p == o ) throw "Recursive addChild";
@@ -610,7 +606,7 @@ class Object implements hxd.impl.Serializable {
 	/**
 		Remove the given object from our immediate children list if it's part of it.
 	**/
-	public function removeChild( o : Object ) {
+	public final function removeChild( o : Object ) {
 		if( children.remove(o) ) {
 			if( o.allocated ) o.onRemove();
 			o.parent = null;
