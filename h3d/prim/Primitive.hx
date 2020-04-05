@@ -80,6 +80,10 @@ class Primitive implements hxd.impl.Serializable {
 		throw "not implemented";
 	}
 
+	public function isBufferAllocated() {
+		return buffer != null && !buffer.isDisposed();
+	}
+
 	/**
 		Select the specified sub material before drawin. Used for internal usage.
 	**/

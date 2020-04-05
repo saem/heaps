@@ -35,7 +35,7 @@ class World extends hxd.App {
 		#end
 
 		//
-		var parts = h3d.scene.Object.createGpuParticles(world);
+		var parts = s3d.createGpuParticles(world);
 		var g = parts.addGroup();
 		g.size = 0.2;
 		g.gravity = 1;

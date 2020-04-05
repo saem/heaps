@@ -9,7 +9,7 @@ class GpuParticles extends SampleApp {
 
 	override function init() {
 		super.init();
-		parts = h3d.scene.Object.createGpuParticles(s3d);
+		parts = this.s3d.createGpuParticles(s3d);
 
 		var g = new h3d.parts.GpuParticles.GpuPartGroup(parts);
 
