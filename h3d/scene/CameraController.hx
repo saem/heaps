@@ -2,6 +2,9 @@ package h3d.scene;
 
 class CameraController {
 
+	public var entityId(default, null): h3d.scene.SceneStorage.EntityId;
+	public final id: CameraControllerId = new CameraControllerId(1);
+
 	public var distance(get, never) : Float;
 	public var theta(get, never) : Float;
 	public var phi(get, never) : Float;
@@ -28,8 +31,8 @@ class CameraController {
 	var targetPos = new h3d.Vector(10. / 25., Math.PI / 4, Math.PI * 5 / 13);
 	var targetOffset = new h3d.Vector(0, 0, 0, 0);
 
-	@:allow(h3d.scene.Scene.createCameraController)
-	private function new(scene:h3d.scene.Scene, ?distance) {
+	private function new(entityId: h3d.scene.SceneStorage.EntityId, scene:h3d.scene.Scene, ?distance: Float) {
+		this.entityId = entityId;
 		this.scene = scene;
 		set(distance);
 		toTarget();
@@ -82,9 +85,9 @@ class CameraController {
 	}
 
 	/**
-		Initialize to look at the whole scene, based on reported scene bounds.
+		Initialize to look at the bounds.
 	**/
-	public function initFromCamera( camera : h3d.Camera, bounds : h3d.col.Bounds ) {
+	public function initFromBounds( camera : h3d.Camera, bounds : h3d.col.Bounds ) {
 		var center = bounds.getCenter();
 		camera.target.load(center.toVector());
 		var d = bounds.getMax().sub(center);
@@ -107,15 +110,14 @@ class CameraController {
 	public function onAdd( scene : h3d.scene.Scene, camera : h3d.Camera) {
 		scene.addEventListener(onEvent);
 		if( curOffset.w == 0 )
-			curPos.x *= scene.camera.fovY;
-		curOffset.w = scene.camera.fovY; // load
+			curPos.x *= camera.fovY;
+		curOffset.w = camera.fovY; // load
 		targetPos.load(curPos);
 		targetOffset.load(curOffset);
 	}
 
 	public function onRemove( scene : h3d.scene.Scene ) {
 		scene.removeEventListener(onEvent);
-		scene = null;
 	}
 
 	function onEvent( e : hxd.Event ) {
@@ -196,29 +198,67 @@ class CameraController {
 		cam.fovY = curOffset.w;
 	}
 
-	public function sync( camera : h3d.Camera, elapsedTime: Float) {
+	public static function sync( controller: h3d.scene.CameraController, camera : h3d.Camera, elapsedTime: Float) {
 
-		if( moveX != 0 ) {
-			targetPos.y += moveX * 0.003 * rotateSpeed;
-			moveX *= 1 - friction;
-			if( Math.abs(moveX) < 1 ) moveX = 0;
+		final targetPos = controller.targetPos;
+		if( controller.moveX != 0 ) {
+			targetPos.y += controller.moveX * 0.003 * controller.rotateSpeed;
+			controller.moveX *= 1 - controller.friction;
+			if( Math.abs(controller.moveX) < 1 ) controller.moveX = 0;
 		}
 
-		if( moveY != 0 ) {
-			targetPos.z -= moveY * 0.003 * rotateSpeed;
+		if( controller.moveY != 0 ) {
+			targetPos.z -= controller.moveY * 0.003 * controller.rotateSpeed;
 			var E = 2e-5;
 			var bound = Math.PI - E;
 			if( targetPos.z < E ) targetPos.z = E;
 			if( targetPos.z > bound ) targetPos.z = bound;
-			moveY *= 1 - friction;
-			if( Math.abs(moveY) < 1 ) moveY = 0;
+			controller.moveY *= 1 - controller.friction;
+			if( Math.abs(controller.moveY) < 1 ) controller.moveY = 0;
 		}
 
-		var dt = hxd.Math.min(1, 1 - Math.pow(smooth, elapsedTime * 60));
-		curOffset.lerp(curOffset, targetOffset, dt);
-		curPos.lerp(curPos, targetPos, dt );
+		var dt = hxd.Math.min(1, 1 - Math.pow(controller.smooth, elapsedTime * 60));
+		controller.curOffset.lerp(controller.curOffset, controller.targetOffset, dt);
+		controller.curPos.lerp(controller.curPos, targetPos, dt );
 
-		syncCamera( camera );
+		controller.syncCamera( camera );
 	}
 
+}
+
+abstract CameraControllerId(Int) to Int {
+	public inline function new(i: Int) { this = i; }
+
+	public inline function nullOut() { this *= -1; }
+	public inline function isNull() { return this <= 0; }
+	public inline function isNotNull() { return !isNull(); }
+
+	public static inline function nullRef() { return new CameraControllerId(0); }
+}
+
+/**
+	Went overboard with the checks here, especially with the static id
+**/
+class CameraControllerStorage {
+	var row: CameraController = null;
+
+	public function new() {}
+
+	public function allocateRow(entityId: h3d.scene.SceneStorage.EntityId, scene:h3d.scene.Scene, ?distance: Float) {
+		if( row != null ) {
+			throw "CameraController already allocated, must be singleton";
+		}
+
+		this.row = @:privateAccess new CameraController(entityId, scene, distance);
+
+		return this.row.id;
+	}
+
+	public function fetchRow(id: CameraControllerId) {
+		return row != null && row.id == id ? row : null;
+	}
+
+	public function deallocateRow(id: CameraControllerId) {
+		if(row.id == id) { row = null; }
+	}
 }

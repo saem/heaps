@@ -11,6 +11,8 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	**/
 	public var camera : h3d.Camera;
 
+	private var cameraControllerId = CameraController.CameraControllerId.nullRef();
+
 	/**
 		The scene light system. Can be customized.
 	**/
@@ -392,8 +394,8 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		renderer.start();
 
 		scene.syncScene(new RenderContext.SyncContext(ctx));
-		if(scene.sceneStorage.cameraController != null)
-			scene.sceneStorage.cameraController.sync(scene.camera, ctx.elapsedTime);
+		if(scene.cameraControllerId.isNotNull())
+			CameraController.sync(scene.sceneStorage.selectCameraController(scene.cameraControllerId), camera, ctx.elapsedTime);
 		scene.emitRec(new RenderContext.EmitContext(ctx));
 
 		ctx.sortPasses();
@@ -459,27 +461,9 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	}
 	#end
 
-	public function createCameraController( ?distance ) {
-		final controller = this.sceneStorage.cameraController = new CameraController(this, distance);
+	public function createCameraController( ?distance : Float ) {
+		this.cameraControllerId = this.sceneStorage.insertCameraController(distance);
 
-		return this.sceneStorage.cameraController = controller;
-	}
-}
-
-class SceneStorage {
-	public final sceneObject: Scene;
-	public var cameraController(default, set): CameraController = null;
-	public function new(scene: Scene) { this.sceneObject = scene; }
-
-	// TODO rework this with something more like insert/delete
-	inline function set_cameraController(c : CameraController) {
-		// TODO onAdd/onRemove should be more like triggers
-		if (c != null) {
-			c.onAdd(this.sceneObject, this.sceneObject.camera);
-		} else {
-			c.onRemove(this.sceneObject);
-		}
-
-		return this.cameraController = c;
+		return this.sceneStorage.selectCameraController(this.cameraControllerId);
 	}
 }
