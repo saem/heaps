@@ -214,8 +214,12 @@ class Object implements hxd.impl.Serializable {
 		return new Sphere(colour, radius, depth, parent);
 	}
 
-	public static function createMesh( primitive, ?material = null, ?parent = null ) {
-		return new Mesh(primitive, material, parent);
+	public static function createMesh( primitive, ?material : h3d.mat.Material = null, ?parent = null ) {
+		return new Mesh(primitive, material == null ? [] : [material], parent);
+	}
+
+	public static function createMeshWithMaterials( primitive, ?materials = null, ?parent = null ) {
+		return new Mesh(primitive, materials == null ? [] : materials, parent);
 	}
 
 	public static function createMeshBatch( primitive, ?material = null, ?parent = null ) {
