@@ -1,6 +1,5 @@
 package h3d.parts;
 import h3d.scene.SceneStorage.EntityId;
-import hxd.Math;
 
 private typedef GpuSave = {
 	var type : String;
@@ -547,7 +546,6 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 				material.name = g.name;
 			}
 		}
-		if( this.material == null ) this.material = material;
 		material.mainPass.addShader(g.pshader);
 		materials.insert(index, material);
 		row.groups.insert(index, g);
@@ -560,7 +558,6 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 		if( idx < 0 ) return;
 		row.groups.splice(idx,1);
 		materials.splice(idx, 1);
-		if( materials.length == 0 ) material = null;
 	}
 
 	public function getGroup( name : String ) {
@@ -594,7 +591,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 		}
 	}
 
-	function rebuildAll(cam) {
+	function rebuildAll() {
 
 		var ebounds = null, calcEmit = null, partCount = 0, partAlloc = row.partAlloc;
 		row.bounds.empty();
@@ -880,7 +877,7 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 			return;
 
 		for( g in row.groups ) {
-			var gid = row.groups.indexOf(g);
+			final gid = row.groups.indexOf(g);
 			if( row.primitives[gid] != null ) {
 				if( g.needRebuild ) {
 					prev = 0;
@@ -892,14 +889,12 @@ class GpuParticles extends h3d.scene.MultiMaterial {
 			}
 		}
 
-		var camera = ctx.camera;
-		if( camera == null )
-			camera = new h3d.Camera();
+		final camera = ctx.camera != null ? ctx.camera : new h3d.Camera();
 
 		for( gid in 0 ... row.groups.length ) {
-			var primitive = gid < row.primitives.length ? row.primitives[gid] : null;
+			final primitive = gid < row.primitives.length ? row.primitives[gid] : null;
 			if( primitive == null || primitive.buffer == null || primitive.buffer.isDisposed() ) {
-				rebuildAll(camera);
+				rebuildAll();
 				break;
 			}
 		}
@@ -1081,6 +1076,7 @@ class GpuParticlesRow {
 			n += g.currentParts;
 		return n;
 	}
+
 	public function new(id:GpuParticlesId, iid:InternalGpuParticlesId, eid:h3d.scene.SceneStorage.EntityId) {
 		this.id = id;
 		this.internalId = iid;
