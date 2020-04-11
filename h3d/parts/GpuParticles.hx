@@ -1086,8 +1086,8 @@ class GpuParticlesRow {
 }
 
 class GpuParticlesStorage {
-	final entityIdToGpuIdIndex = new h3d.scene.SceneStorage.Map<EntityId, GpuParticlesId>();
-	final storage = new h3d.scene.SceneStorage.Map<InternalGpuParticlesId, GpuParticlesRow>();
+	final entityIdToGpuIdIndex = new hds.Map<EntityId, GpuParticlesId>();
+	final storage = new hds.Map<InternalGpuParticlesId, GpuParticlesRow>();
 	var sequence = new SequenceGpuParticles();
 	
 	public function new() {}
@@ -1103,7 +1103,7 @@ class GpuParticlesStorage {
 	}
 
 	public function deallocateRow(gid: GpuParticlesId) {
-		return this.storage.delete(externalToInternalId(gid));
+		return this.storage.remove(externalToInternalId(gid));
 	}
 
 	public function fetchRow(gid: GpuParticlesId) {
