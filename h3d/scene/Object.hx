@@ -226,10 +226,6 @@ class Object implements hxd.impl.Serializable {
 		return new MeshBatch(primitive, material, parent);
 	}
 
-	public static function createMultiMaterial( primitive, ?material = null, ?parent = null ) {
-		return new MultiMaterial(primitive, material, parent);
-	}
-
 	public static function createSkin( s, ?mat = null, ?parent = null ) {
 		return new Skin(s, mat, parent);
 	}
@@ -237,14 +233,6 @@ class Object implements hxd.impl.Serializable {
 	@:allow(h3d.scene.Skin.getObjectByName)
 	private static function createSkinJoint( skin : h3d.scene.Skin, joint : h3d.anim.Skin.Joint ) {
 		return new Skin.Joint(skin, joint);
-	}
-
-	public static function createParticles( ?texture = null, ?parent = null ) {
-		return new h3d.parts.Particles(texture, parent);
-	}
-
-	public static function createEmitter( ?state = null, ?parent = null ) {
-		return new h3d.parts.Emitter(state, parent);
 	}
 
 	public static function createWorld(chunkSize, worldSize, parent, ?autoCollect = true) {

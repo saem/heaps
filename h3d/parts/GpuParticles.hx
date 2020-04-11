@@ -442,7 +442,7 @@ class GpuPartGroup {
 
 }
 
-class GpuParticles extends h3d.scene.MultiMaterial {
+class GpuParticles extends h3d.scene.Mesh {
 
 	static inline var VERSION = 2;
 	static inline var STRIDE = 14;

@@ -1,4 +1,5 @@
 package h3d.parts;
+import h3d.scene.SceneStorage.EntityId;
 
 private class ParticleIterator {
 	var p : Particle;
@@ -18,32 +19,24 @@ private class ParticleIterator {
 @:access(h3d.parts.Particle)
 class Particles extends h3d.scene.Mesh {
 
-	var pshader : h3d.shader.ParticleShader;
-	public var frames : Array<h2d.Tile>;
-	public var count(default, null) : Int = 0;
-	public var hasColor(default, set) : Bool;
-	public var sortMode : Data.SortMode;
-	public var globalSize : Float = 1;
-	public var emitTrail : Bool;
+	private final pRowRef: ParticlesRowRef;
+	private final pRow: ParticlesRow;
 
-	var head : Particle;
-	var tail : Particle;
-	var pool : Particle;
-
-	var tmp : h3d.Vector;
-	var tmpBuf : hxd.FloatBuffer;
-
-	@:allow(h3d.scene.Object.createParticles)
-	private function new( ?texture, ?parent) {
+	@:allow(h3d.scene.Scene.createParticles)
+	private function new( pRowRef:ParticlesRowRef, ?texture:h3d.mat.Texture = null, ?parent:h3d.scene.Object = null) {
 		super(null, null, parent);
+		this.pRowRef = pRowRef;
+		this.pRow = pRowRef.getRow();
+		
 		material.props = material.getDefaultProps("particles3D");
-		sortMode = Back;
-		pshader = new h3d.shader.ParticleShader();
-		pshader.isAbsolute = true;
-		material.mainPass.addShader(pshader);
+		material.mainPass.addShader(this.pRow.pshader);
 		material.mainPass.dynamicParameters = true;
 		material.texture = texture;
-		tmp = new h3d.Vector();
+	}
+
+	override function onRemove() {
+		super.onRemove();
+		this.pRowRef.deleteRow();
 	}
 
 	function set_hasColor(b) {
@@ -55,14 +48,14 @@ class Particles extends h3d.scene.Mesh {
 			if( c != null )
 				material.mainPass.removeShader(c);
 		}
-		return hasColor = b;
+		return this.pRow.hasColor = b;
 	}
 
 	/**
 		Offset all existing particles by the given values.
 	**/
 	public function offsetParticles( dx : Float, dy : Float, dz = 0. ) {
-		var p = head;
+		var p = this.pRow.head;
 		while( p != null ) {
 			p.x += dx;
 			p.y += dy;
@@ -72,8 +65,8 @@ class Particles extends h3d.scene.Mesh {
 	}
 
 	public function clear() {
-		while( head != null )
-			kill(head);
+		while( this.pRow.head != null )
+			kill(this.pRow.head);
 	}
 
 	public function alloc() {
@@ -97,45 +90,45 @@ class Particles extends h3d.scene.Mesh {
 
 	function emitParticle( ?p ) {
 		if( p == null ) {
-			if( pool == null )
+			if( this.pRow.pool == null )
 				p = new Particle();
 			else {
-				p = pool;
-				pool = p.next;
+				p = this.pRow.pool;
+				this.pRow.pool = p.next;
 			}
 		}
-		count++;
-		switch( sortMode ) {
+		this.pRow.count++;
+		switch( this.pRow.sortMode ) {
 		case Front, Sort, InvSort:
-			if( head == null ) {
+			if( this.pRow.head == null ) {
 				p.next = null;
-				head = tail = p;
+				this.pRow.head = this.pRow.tail = p;
 			} else {
-				head.prev = p;
-				p.next = head;
-				head = p;
+				this.pRow.head.prev = p;
+				p.next = this.pRow.head;
+				this.pRow.head = p;
 			}
 		case Back:
-			if( head == null ) {
+			if( this.pRow.head == null ) {
 				p.next = null;
-				head = tail = p;
+				this.pRow.head = this.pRow.tail = p;
 			} else {
-				tail.next = p;
-				p.prev = tail;
+				this.pRow.tail.next = p;
+				p.prev = this.pRow.tail;
 				p.next = null;
-				tail = p;
+				this.pRow.tail = p;
 			}
 		}
 		return p;
 	}
 
 	function kill(p:Particle) {
-		if( p.prev == null ) head = p.next else p.prev.next = p.next;
-		if( p.next == null ) tail = p.prev else p.next.prev = p.prev;
+		if( p.prev == null ) this.pRow.head = p.next else p.prev.next = p.next;
+		if( p.next == null ) this.pRow.tail = p.prev else p.next.prev = p.prev;
 		p.prev = null;
-		p.next = pool;
-		pool = p;
-		count--;
+		p.next = this.pRow.pool;
+		this.pRow.pool = p;
+		this.pRow.count--;
 	}
 
 	function sort( list : Particle ) {
@@ -147,45 +140,45 @@ class Particles extends h3d.scene.Mesh {
 	}
 
 	public inline function getParticles() {
-		return new ParticleIterator(head);
+		return new ParticleIterator(this.pRow.head);
 	}
 
 	@:access(h2d.Tile)
 	@:noDebug
 	override function draw( ctx : h3d.scene.RenderContext.DrawContext ) {
-		if( head == null )
+		if( this.pRow.head == null )
 			return;
-		switch( sortMode ) {
+		switch( this.pRow.sortMode ) {
 		case Sort, InvSort:
-			var p = head;
+			var p = this.pRow.head;
 			var m = ctx.camera.m;
 			while( p != null ) {
 				p.w = (p.x * m._13 + p.y * m._23 + p.z * m._33 + m._43) / (p.x * m._14 + p.y * m._24 + p.z * m._34 + m._44);
 				p = p.next;
 			}
-			head = sortMode == Sort ? sort(head) : sortInv(head);
-			tail = head.prev;
-			head.prev = null;
+			this.pRow.head = this.pRow.sortMode == Sort ? sort(this.pRow.head) : sortInv(this.pRow.head);
+			this.pRow.tail = this.pRow.head.prev;
+			this.pRow.head.prev = null;
 		default:
 		}
-		if( tmpBuf == null ) tmpBuf = new hxd.FloatBuffer();
+		if( this.pRow.tmpBuf == null ) this.pRow.tmpBuf = new hxd.FloatBuffer();
 		var pos = 0;
-		var p = head;
-		var tmp = tmpBuf;
+		var p = this.pRow.head;
+		var tmp = this.pRow.tmpBuf;
 		var surface = 0.;
-		if( frames == null || frames.length == 0 ) {
+		if( this.pRow.frames == null || this.pRow.frames.length == 0 ) {
 			var t = material.texture == null ? h2d.Tile.fromColor(0xFF00FF) : h2d.Tile.fromTexture(material.texture);
-			frames = [t];
+			this.pRow.frames = [t];
 		}
-		material.texture = frames[0].getTexture();
-		if( emitTrail ) {
+		material.texture = this.pRow.frames[0].getTexture();
+		if( this.pRow.emitTrail ) {
 			var prev = p;
 			var prevX1 = p.x, prevY1 = p.y, prevZ1 = p.z;
 			var prevX2 = p.x, prevY2 = p.y, prevZ2 = p.z;
 			if( p != null ) p = p.next;
 			while( p != null ) {
-				var f = frames[p.frame];
-				if( f == null ) f = frames[0];
+				var f = this.pRow.frames[p.frame];
+				if( f == null ) f = this.pRow.frames[0];
 				var ratio = p.size * p.ratio * (f.height / f.width);
 
 				// pos
@@ -203,7 +196,7 @@ class Particles extends h3d.scene.Mesh {
 				tmp[pos++] = f.u;
 				tmp[pos++] = f.v2;
 				// RBGA
-				if( hasColor ) {
+				if( this.pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -220,7 +213,7 @@ class Particles extends h3d.scene.Mesh {
 				tmp[pos++] = 0;
 				tmp[pos++] = f.u;
 				tmp[pos++] = f.v;
-				if( hasColor ) {
+				if( this.pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -257,7 +250,7 @@ class Particles extends h3d.scene.Mesh {
 				tmp[pos++] = 0;
 				tmp[pos++] = f.u2;
 				tmp[pos++] = f.v2;
-				if( hasColor ) {
+				if( this.pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -274,7 +267,7 @@ class Particles extends h3d.scene.Mesh {
 				tmp[pos++] = 0;
 				tmp[pos++] = f.u2;
 				tmp[pos++] = f.v;
-				if( hasColor ) {
+				if( this.pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -286,8 +279,8 @@ class Particles extends h3d.scene.Mesh {
 			}
 		} else {
 			while( p != null ) {
-				var f = frames[p.frame];
-				if( f == null ) f = frames[0];
+				var f = this.pRow.frames[p.frame];
+				if( f == null ) f = this.pRow.frames[0];
 				var ratio = p.size * p.ratio * (f.height / f.width);
 				tmp[pos++] = p.x;
 				tmp[pos++] = p.y;
@@ -302,7 +295,7 @@ class Particles extends h3d.scene.Mesh {
 				tmp[pos++] = f.u;
 				tmp[pos++] = f.v2;
 				// RBGA
-				if( hasColor ) {
+				if( this.pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -319,7 +312,7 @@ class Particles extends h3d.scene.Mesh {
 				tmp[pos++] = 0.5;
 				tmp[pos++] = f.u;
 				tmp[pos++] = f.v;
-				if( hasColor ) {
+				if( this.pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -336,7 +329,7 @@ class Particles extends h3d.scene.Mesh {
 				tmp[pos++] = -0.5;
 				tmp[pos++] = f.u2;
 				tmp[pos++] = f.v2;
-				if( hasColor ) {
+				if( this.pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -353,7 +346,7 @@ class Particles extends h3d.scene.Mesh {
 				tmp[pos++] = 0.5;
 				tmp[pos++] = f.u2;
 				tmp[pos++] = f.v;
-				if( hasColor ) {
+				if( this.pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -364,15 +357,116 @@ class Particles extends h3d.scene.Mesh {
 			}
 		}
 		var stride = 10;
-		if( hasColor ) stride += 4;
+		if( this.pRow.hasColor ) stride += 4;
 		var buffer = h3d.Buffer.ofSubFloats(tmp, stride, Std.int(pos/stride), [Quads, Dynamic, RawFormat]);
-		if( pshader.is3D )
-			pshader.size.set(globalSize, globalSize);
+		if( this.pRow.pshader.is3D )
+			this.pRow.pshader.size.set(this.pRow.globalSize, this.pRow.globalSize);
 		else
-			pshader.size.set(globalSize * ctx.engine.height / ctx.engine.width * 4, globalSize * 4);
+			this.pRow.pshader.size.set(this.pRow.globalSize * ctx.engine.height / ctx.engine.width * 4, this.pRow.globalSize * 4);
 		ctx.uploadParams();
 		ctx.engine.renderQuadBuffer(buffer);
 		buffer.dispose();
 	}
 
 }
+
+abstract ParticlesId(Int) to Int {
+	public inline function new(id:Int) { this = id; }
+}
+
+private abstract InternalParticlesId(Int) {
+	public inline function new(id:Int) { this = id; }
+}
+
+class ParticlesRowRef {
+	final rowId: ParticlesId;
+	final sceneStorage: h3d.scene.SceneStorage;
+	
+	public function new(rowId: ParticlesId, sceneStorage: h3d.scene.SceneStorage) {
+		this.rowId = rowId;
+		this.sceneStorage = sceneStorage;
+	}
+
+	public inline function getRow() {
+		return this.sceneStorage.selectParticles(rowId);
+	}
+
+	/**
+		TODO Leaving this here as it's not a general delete
+	**/
+	public inline function deleteRow() {
+		final eid = this.getRow().entityId;
+		this.sceneStorage.particlesStorage.deallocateRow(rowId);
+		this.sceneStorage.entityStorage.deallocateRow(eid);
+	}
+}
+
+class ParticlesRow {
+	public var id: ParticlesId;
+	public var internalId: InternalParticlesId;
+	public var entityId(default,null): h3d.scene.SceneStorage.EntityId;
+
+	public var pshader : h3d.shader.ParticleShader;
+	public var frames : Array<h2d.Tile>;
+	public var count : Int = 0;
+	public var hasColor : Bool;
+	public var sortMode : Data.SortMode = Back;
+	public var globalSize : Float = 1;
+	public var emitTrail : Bool = false;
+
+	public var head : Particle = null;
+	public var tail : Particle = null;
+	public var pool : Particle = null;
+
+	public var tmp = new h3d.Vector();
+	public var tmpBuf : hxd.FloatBuffer = null;
+
+	public function new(id:ParticlesId, iid:InternalParticlesId, eid:h3d.scene.SceneStorage.EntityId) {
+		this.id = id;
+		this.internalId = iid;
+		this.entityId = eid;
+		
+		sortMode = Back;
+		pshader = new h3d.shader.ParticleShader();
+		pshader.isAbsolute = true;
+	}
+}
+
+class ParticlesStorage {
+	final entityIdToParticlesIdIndex = new hds.Map<EntityId, ParticlesId>();
+	final storage = new hds.Map<InternalParticlesId, ParticlesRow>();
+	var sequence = new SequenceParticles();
+	
+	public function new() {}
+
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId) {
+		final id = sequence.next();
+
+		this.entityIdToParticlesIdIndex.set(eid, id);
+		final iid = externalToInternalId(id);
+		this.storage.set(iid, new ParticlesRow(id, iid, eid));
+
+		return id;
+	}
+
+	public function deallocateRow(id: ParticlesId) {
+		return this.storage.remove(externalToInternalId(id));
+	}
+
+	public function fetchRow(id: ParticlesId) {
+		return this.storage.get(externalToInternalId(id));
+	}
+
+	private inline function externalToInternalId(id: ParticlesId): InternalParticlesId {
+        // make these zero based
+		return new InternalParticlesId(id--);
+	}
+
+	public function reset() {
+		this.entityIdToParticlesIdIndex.clear();
+		this.storage.clear();
+		this.sequence = new SequenceParticles();
+	}
+}
+
+private typedef SequenceParticles = h3d.scene.SceneStorage.Sequence<ParticlesId>;

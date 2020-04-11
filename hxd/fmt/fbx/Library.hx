@@ -58,12 +58,8 @@ class Library extends BaseLibrary {
 				if( tmats.length == 0 )
 					tmats.push(h3d.mat.Material.create(h3d.mat.Texture.fromColor(0xFF00FF)));
 				// create object
-				if( tmats.length == 1 )
-					o.obj = h3d.scene.Object.createMesh(prim, tmats[0], scene);
-				else {
-					prim.multiMaterial = true;
-					o.obj = h3d.scene.Object.createMultiMaterial(prim, tmats, scene);
-				}
+				prim.multiMaterial = tmats.length > 1;
+				o.obj = h3d.scene.Object.createMeshWithMaterials(prim, tmats, scene);
 			} else if( o.isJoint ) {
 				var j = new h3d.anim.Skin.Joint();
 				getDefaultMatrixes(o.model); // store for later usage in animation
@@ -122,9 +118,7 @@ class Library extends BaseLibrary {
 				var m = o2.obj.toMesh();
 				if( m.primitive != skinData.primitive ) continue;
 
-				var mt = hxd.impl.Api.downcast(m, h3d.scene.MultiMaterial);
-				skin.materials = mt == null ? [m.material] : mt.materials;
-				skin.material = skin.materials[0];
+				skin.materials = m.materials;
 				m.remove();
 				// ignore key frames for this object
 				defaultModelMatrixes.get(m.name).wasRemoved = o.model.getId();

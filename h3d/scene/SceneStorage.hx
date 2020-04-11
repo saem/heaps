@@ -6,8 +6,14 @@ class SceneStorage {
     public final entityStorage: EntityStorage = new EntityStorage();
     public final cameraControllerStorage = new CameraController.CameraControllerStorage();
     public final gpuParticleStorage = new h3d.parts.GpuParticles.GpuParticlesStorage();
+    public final emitterStorage = new h3d.parts.Emitter.EmitterStorage();
+    public final particlesStorage = new h3d.parts.Particles.ParticlesStorage();
 
-    public function new(scene: Scene) { this.sceneObject = scene; }
+	public function new(scene: Scene) { this.sceneObject = scene; }
+	
+	public function insertEntity(): EntityId {
+		return this.entityStorage.allocateRow();
+	}
     
     public function insertGpuParticles(): h3d.parts.GpuParticles.GpuParticlesId {
         final eid = this.entityStorage.allocateRow();
@@ -17,6 +23,28 @@ class SceneStorage {
     // The return type here isn't the best, return the raw row.
     public function selectGpuParticles(gid: h3d.parts.GpuParticles.GpuParticlesId): h3d.parts.GpuParticles.GpuParticlesRow {
         return this.gpuParticleStorage.fetchRow(gid);
+    }
+    
+    public function insertParticles(eid: EntityId): h3d.parts.Particles.ParticlesId {
+		final row = this.particlesStorage.allocateRow(eid);
+		
+		return row;
+	}
+
+    // The return type here isn't the best, return the raw row.
+    public function selectParticles(id: h3d.parts.Particles.ParticlesId): h3d.parts.Particles.ParticlesRow {
+        return this.particlesStorage.fetchRow(id);
+    }
+    
+    public function insertEmitter(eid: EntityId, state:h3d.parts.Data.State = null): h3d.parts.Emitter.EmitterId {
+		final row = this.emitterStorage.allocateRow(eid,state);
+		
+		return row;
+	}
+
+    // The return type here isn't the best, return the raw row.
+    public function selectEmitter(id: h3d.parts.Emitter.EmitterId): h3d.parts.Emitter.EmitterRow {
+        return this.emitterStorage.fetchRow(id);
     }
 
 	public function insertCameraController( ?distance ): h3d.scene.CameraController.CameraControllerId {
