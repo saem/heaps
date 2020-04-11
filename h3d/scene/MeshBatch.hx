@@ -1,4 +1,5 @@
 package h3d.scene;
+import h3d.scene.SceneStorage.EntityId;
 
 private class BatchData {
 
@@ -22,68 +23,51 @@ private class BatchData {
 **/
 class MeshBatch extends Mesh {
 
-	var instanced : h3d.prim.Instanced;
-	var curInstances : Int = 0;
-	var maxInstances : Int = 0;
-	var shaderInstances : Int = 0;
-	var dataBuffer : h3d.Buffer;
-	var dataPasses : BatchData;
-	var indexCount : Int;
-	var modelViewID = hxsl.Globals.allocID("global.modelView");
-	var modelViewInverseID = hxsl.Globals.allocID("global.modelViewInverse");
-	var colorSave = new h3d.Vector();
-	var colorMult : h3d.shader.ColorMult;
+	private final mbRowRef: MeshBatchRowRef;
+	private final mbRow: MeshBatchRow;
 
-	/**
-		Tells if we can use material.color as a global multiply over each instance color (default: true)
-	**/
-	public var allowGlobalMaterialColor : Bool = true;
+	public var shadersChanged(get,set): Bool;
+	inline function get_shadersChanged() return this.mbRow.shadersChanged;
+	inline function set_shadersChanged(s) return this.mbRow.shadersChanged = s;
 
-	/**
-	 * 	If set, use this position in emitInstance() instead MeshBatch absolute position
-	**/
-	public var worldPosition : Matrix;
-	var invWorldPosition : Matrix;
+	@:allow(h3d.scene.Scene.createMeshBatch)
+	private function new( mbRowRef:MeshBatchRowRef, primitive:h3d.prim.MeshPrimitive, material:Array<h3d.mat.Material> = null, parent:h3d.scene.Object ) {
+		this.mbRowRef = mbRowRef;
+		this.mbRow = this.mbRowRef.getRow();
 
-	/**
-		Set if shader list or shader constants has changed, before calling begin()
-	**/
-	public var shadersChanged = true;
+		this.mbRow.instanced.setMesh(primitive);
 
-	@:allow(h3d.scene.Object.createMeshBatch)
-	private function new( primitive, ?material, ?parent ) {
-		instanced = new h3d.prim.Instanced();
-		instanced.commands = new h3d.impl.InstanceBuffer();
-		instanced.setMesh(primitive);
-		super(instanced, material, parent);
+		super(this.mbRow.instanced, material, parent);
 		for( p in this.material.getPasses() )
 			@:privateAccess p.batchMode = true;
-		indexCount = primitive.indexes == null ? primitive.triCount() * 3 : primitive.indexes.count;
+
+		this.mbRow.indexCount = primitive.indexes == null ? primitive.triCount() * 3 : primitive.indexes.count;
 	}
 
 	override function onRemove() {
 		super.onRemove();
 		cleanPasses();
+		this.mbRowRef.deleteRow();
 	}
 
 	function cleanPasses() {
 		var alloc = hxd.impl.Allocator.get();
-		while( dataPasses != null ) {
-			dataPasses.pass.removeShader(dataPasses.shader);
-			alloc.disposeBuffer(dataPasses.buffer);
-			alloc.disposeFloats(dataPasses.data);
-			dataPasses = dataPasses.next;
+		while( this.mbRow.dataPasses != null ) {
+			this.mbRow.dataPasses.pass.removeShader(this.mbRow.dataPasses.shader);
+			alloc.disposeBuffer(this.mbRow.dataPasses.buffer);
+			alloc.disposeFloats(this.mbRow.dataPasses.data);
+			this.mbRow.dataPasses = this.mbRow.dataPasses.next;
 		}
-		instanced.commands.dispose();
-		shaderInstances = 0;
-		shadersChanged = true;
+		this.mbRow.instanced.commands.dispose();
+		this.mbRow.shaderInstances = 0;
+		this.mbRow.shadersChanged = true;
 	}
 
 	function initShadersMapping() {
 		var scene = getScene();
 		if( scene == null ) return;
 		cleanPasses();
-		shaderInstances = maxInstances;
+		this.mbRow.shaderInstances = this.mbRow.maxInstances;
 		for( p in material.getPasses() ) @:privateAccess {
 			var ctx = scene.renderer.getPassByName(p.name);
 			if( ctx == null ) throw "Could't find renderer pass "+p.name;
@@ -114,15 +98,15 @@ class MeshBatch extends Mesh {
 				b.params = hd;
 			}
 
-			var tot = b.count * shaderInstances;
+			var tot = b.count * this.mbRow.shaderInstances;
 			b.shader = shader;
 			b.pass = p;
 			b.shaders = [null/*link shader*/];
 			var alloc = hxd.impl.Allocator.get();
 			b.buffer = alloc.allocBuffer(tot,4,UniformDynamic);
 			b.data = alloc.allocFloats(tot * 4);
-			b.next = dataPasses;
-			dataPasses = b;
+			b.next = this.mbRow.dataPasses;
+			this.mbRow.dataPasses = b;
 
 			var sl = shaders;
 			while( sl != null ) {
@@ -136,7 +120,7 @@ class MeshBatch extends Mesh {
 			shader.updateConstants(null);
 		}
 		// add batch shaders
-		var p = dataPasses;
+		var p = this.mbRow.dataPasses;
 		while( p != null ) {
 			p.pass.addShader(p.shader);
 			p = p.next;
@@ -144,27 +128,27 @@ class MeshBatch extends Mesh {
 	}
 
 	public function begin( maxCount : Int ) {
-		if( maxCount > shaderInstances )
-			shadersChanged = true;
-		colorSave.load(material.color);
-		curInstances = 0;
-		maxInstances = maxCount;
-		if( shadersChanged ) {
-			if( colorMult != null ) {
-				material.mainPass.removeShader(colorMult);
-				colorMult = null;
+		if( maxCount > this.mbRow.shaderInstances )
+			this.mbRow.shadersChanged = true;
+		this.mbRow.colorSave.load(material.color);
+		this.mbRow.curInstances = 0;
+		this.mbRow.maxInstances = maxCount;
+		if( this.mbRow.shadersChanged ) {
+			if( this.mbRow.colorMult != null ) {
+				material.mainPass.removeShader(this.mbRow.colorMult);
+				this.mbRow.colorMult = null;
 			}
 			initShadersMapping();
-			shadersChanged = false;
-			if( allowGlobalMaterialColor ) {
-				if( colorMult == null ) {
-					colorMult = new h3d.shader.ColorMult();
-					material.mainPass.addShader(colorMult);
+			this.mbRow.shadersChanged = false;
+			if( this.mbRow.allowGlobalMaterialColor ) {
+				if( this.mbRow.colorMult == null ) {
+					this.mbRow.colorMult = new h3d.shader.ColorMult();
+					material.mainPass.addShader(this.mbRow.colorMult);
 				}
 			} else {
-				if( colorMult != null ) {
-					material.mainPass.removeShader(colorMult);
-					colorMult = null;
+				if( this.mbRow.colorMult != null ) {
+					material.mainPass.removeShader(this.mbRow.colorMult);
+					this.mbRow.colorMult = null;
 				}
 			}
 		}
@@ -174,7 +158,7 @@ class MeshBatch extends Mesh {
 		var p = data.params;
 		var buf = data.data;
 		var shaders = data.shaders;
-		var startPos = data.count * curInstances * 4;
+		var startPos = data.count * this.mbRow.curInstances * 4;
 		var calcInv = false;
 		while( p != null ) {
 			var pos = startPos + p.pos;
@@ -197,18 +181,18 @@ class MeshBatch extends Mesh {
 				buf[pos++] = m._44;
 			}
 			if( p.perObjectGlobal != null ) {
-				if( p.perObjectGlobal.gid == modelViewID ) {
-					addMatrix(worldPosition != null ? worldPosition : absPos);
-				} else if( p.perObjectGlobal.gid == modelViewInverseID ) {
-					if( worldPosition == null )
+				if( p.perObjectGlobal.gid == this.mbRow.modelViewID ) {
+					addMatrix(this.mbRow.worldPosition != null ? this.mbRow.worldPosition : absPos);
+				} else if( p.perObjectGlobal.gid == this.mbRow.modelViewInverseID ) {
+					if( this.mbRow.worldPosition == null )
 						addMatrix(getInvPos());
 					else {
 						if( !calcInv ) {
 							calcInv = true;
-							if( invWorldPosition == null ) invWorldPosition = new h3d.Matrix();
-							invWorldPosition.initInverse(worldPosition);
+							if( this.mbRow.invWorldPosition == null ) this.mbRow.invWorldPosition = new h3d.Matrix();
+							this.mbRow.invWorldPosition.initInverse(this.mbRow.worldPosition);
 						}
-						addMatrix(invWorldPosition);
+						addMatrix(this.mbRow.invWorldPosition);
 					}
 				} else
 					throw "Unsupported global param "+p.perObjectGlobal.path;
@@ -246,36 +230,148 @@ class MeshBatch extends Mesh {
 	}
 
 	public function emitInstance() {
-		if( curInstances == maxInstances ) throw "Too many instances";
+		if( this.mbRow.curInstances == this.mbRow.maxInstances ) throw "Too many instances";
 		syncPos();
-		var p = dataPasses;
+		var p = this.mbRow.dataPasses;
 		while( p != null ) {
 			syncData(p);
 			p = p.next;
 		}
-		if( allowGlobalMaterialColor ) material.color.load(colorSave);
-		curInstances++;
+		if( this.mbRow.allowGlobalMaterialColor ) material.color.load(this.mbRow.colorSave);
+		this.mbRow.curInstances++;
 	}
 
 	override function sync(ctx:RenderContext.SyncContext) {
 		super.sync(ctx);
-		if( curInstances == 0 ) return;
-		var p = dataPasses;
+		if( this.mbRow.curInstances == 0 ) return;
+		var p = this.mbRow.dataPasses;
 		while( p != null ) {
 			if( p.buffer.isDisposed() ) {
-				p.buffer = hxd.impl.Allocator.get().allocBuffer(p.count * shaderInstances,4,UniformDynamic);
+				p.buffer = hxd.impl.Allocator.get().allocBuffer(p.count * this.mbRow.shaderInstances,4,UniformDynamic);
 				p.shader.Batch_Buffer = p.buffer;
 			}
-			p.buffer.uploadVector(p.data,0,curInstances * p.count);
+			p.buffer.uploadVector(p.data,0,this.mbRow.curInstances * p.count);
 			p = p.next;
 		}
-		instanced.commands.setCommand(curInstances,indexCount);
-		if( colorMult != null ) colorMult.color.load(material.color);
+		this.mbRow.instanced.commands.setCommand(this.mbRow.curInstances,this.mbRow.indexCount);
+		if( this.mbRow.colorMult != null ) this.mbRow.colorMult.color.load(material.color);
 	}
 
 	override function emit(ctx:RenderContext.EmitContext) {
-		if( curInstances == 0 ) return;
+		if( this.mbRow.curInstances == 0 ) return;
 		super.emit(ctx);
 	}
 
 }
+
+abstract MeshBatchId(Int) to Int {
+	public inline function new(id:Int) { this = id; }
+}
+
+private abstract InternalMeshBatchId(Int) {
+	public inline function new(id:Int) { this = id; }
+}
+
+class MeshBatchRowRef {
+	final rowId: MeshBatchId;
+	final sceneStorage: h3d.scene.SceneStorage;
+	
+	public function new(rowId: MeshBatchId, sceneStorage: h3d.scene.SceneStorage) {
+		this.rowId = rowId;
+		this.sceneStorage = sceneStorage;
+	}
+
+	public inline function getRow() {
+		return this.sceneStorage.selectMeshBatch(rowId);
+	}
+
+	/**
+		TODO Leaving this here as it's not a general delete
+	**/
+	public inline function deleteRow() {
+		final eid = this.getRow().entityId;
+		this.sceneStorage.meshBatchStorage.deallocateRow(rowId);
+		this.sceneStorage.entityStorage.deallocateRow(eid);
+	}
+}
+
+class MeshBatchRow {
+	public var id: MeshBatchId;
+	public var internalId: InternalMeshBatchId;
+	public var entityId(default,null): h3d.scene.SceneStorage.EntityId;
+
+	public var instanced = new h3d.prim.Instanced();
+	public var curInstances : Int = 0;
+	public var maxInstances : Int = 0;
+	public var shaderInstances : Int = 0;
+	public var dataBuffer : h3d.Buffer;
+	public var dataPasses : BatchData;
+	public var indexCount : Int;
+	public var modelViewID = hxsl.Globals.allocID("global.modelView");
+	public var modelViewInverseID = hxsl.Globals.allocID("global.modelViewInverse");
+	public var colorSave = new h3d.Vector();
+	public var colorMult : h3d.shader.ColorMult;
+
+	/**
+		Tells if we can use material.color as a global multiply over each instance color (default: true)
+	**/
+	public var allowGlobalMaterialColor : Bool = true;
+
+	/**
+	 * 	If set, use this position in emitInstance() instead MeshBatch absolute position
+	**/
+	public var worldPosition : Matrix;
+	public var invWorldPosition : Matrix;
+
+	/**
+		Set if shader list or shader constants has changed, before calling begin()
+	**/
+	public var shadersChanged = true;
+
+	public function new(id:MeshBatchId, iid:InternalMeshBatchId, eid:h3d.scene.SceneStorage.EntityId) {
+		this.id = id;
+		this.internalId = iid;
+		this.entityId = eid;
+
+		this.instanced.commands = new h3d.impl.InstanceBuffer();
+	}
+}
+
+class MeshBatchStorage {
+	final entityIdToMeshBatchIdIndex = new hds.Map<EntityId, MeshBatchId>();
+	final storage = new hds.Map<InternalMeshBatchId, MeshBatchRow>();
+	var sequence = new SequenceMeshBatch();
+	
+	public function new() {}
+
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId) {
+		final id = sequence.next();
+
+		this.entityIdToMeshBatchIdIndex.set(eid, id);
+		final iid = externalToInternalId(id);
+		this.storage.set(iid, new MeshBatchRow(id, iid, eid));
+
+		return id;
+	}
+
+	public function deallocateRow(id: MeshBatchId) {
+		return this.storage.remove(externalToInternalId(id));
+	}
+
+	public function fetchRow(id: MeshBatchId) {
+		return this.storage.get(externalToInternalId(id));
+	}
+
+	private inline function externalToInternalId(id: MeshBatchId): InternalMeshBatchId {
+        // make these zero based
+		return new InternalMeshBatchId(id--);
+	}
+
+	public function reset() {
+		this.entityIdToMeshBatchIdIndex.clear();
+		this.storage.clear();
+		this.sequence = new SequenceMeshBatch();
+	}
+}
+
+private typedef SequenceMeshBatch = h3d.scene.SceneStorage.Sequence<MeshBatchId>;

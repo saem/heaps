@@ -8,12 +8,22 @@ class SceneStorage {
     public final gpuParticleStorage = new h3d.parts.GpuParticles.GpuParticlesStorage();
     public final emitterStorage = new h3d.parts.Emitter.EmitterStorage();
     public final particlesStorage = new h3d.parts.Particles.ParticlesStorage();
+    public final meshBatchStorage = new h3d.scene.MeshBatch.MeshBatchStorage();
 
 	public function new(scene: Scene) { this.sceneObject = scene; }
 	
 	public function insertEntity(): EntityId {
 		return this.entityStorage.allocateRow();
 	}
+    
+    public function insertMeshBatch(eid: EntityId): h3d.scene.MeshBatch.MeshBatchId {
+        return this.meshBatchStorage.allocateRow(eid);
+	}
+
+    // The return type here isn't the best, return the raw row.
+    public function selectMeshBatch(gid: h3d.scene.MeshBatch.MeshBatchId): h3d.scene.MeshBatch.MeshBatchRow {
+        return this.meshBatchStorage.fetchRow(gid);
+    }
     
     public function insertGpuParticles(): h3d.parts.GpuParticles.GpuParticlesId {
         final eid = this.entityStorage.allocateRow();

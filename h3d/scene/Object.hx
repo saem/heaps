@@ -222,10 +222,6 @@ class Object implements hxd.impl.Serializable {
 		return new Mesh(primitive, materials == null ? [] : materials, parent);
 	}
 
-	public static function createMeshBatch( primitive, ?material = null, ?parent = null ) {
-		return new MeshBatch(primitive, material, parent);
-	}
-
 	public static function createSkin( s, ?mat = null, ?parent = null ) {
 		return new Skin(s, mat, parent);
 	}
