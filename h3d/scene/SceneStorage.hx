@@ -1,6 +1,5 @@
 package h3d.scene;
-
-typedef Map<K,V> = #if (js) js.lib.Map<K,V>; #else std.Map<K,V>; #end
+import hds.Map;
 
 class SceneStorage {
 	public final sceneObject: Scene;
@@ -85,7 +84,7 @@ abstract EntityId(Int) to Int {
 }
 
 private class EntityStorage {
-	final storage = new Map<InternalEntityId, EntityRow>();
+	final storage = new hds.Map<InternalEntityId, EntityRow>();
 	var sequence = new SequenceEntity();
 
 	public function new() {}
@@ -99,7 +98,7 @@ private class EntityStorage {
 	}
 
 	public function deallocateRow(eid: EntityId) {
-		return this.storage.delete(externalToInternalId(eid));
+		return this.storage.remove(externalToInternalId(eid));
 	}
 
 	private inline function externalToInternalId(id: EntityId): InternalEntityId {
