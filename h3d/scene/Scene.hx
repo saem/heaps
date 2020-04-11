@@ -468,6 +468,16 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		return this.sceneStorage.selectCameraController(this.cameraControllerId);
 	}
 
+	public function createMeshBatch( primitive : h3d.prim.MeshPrimitive, materials : Array<h3d.mat.Material> = null, parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final id  = this.sceneStorage.insertMeshBatch(eid);
+
+		final rowRef = new h3d.scene.MeshBatch.MeshBatchRowRef(id, this.sceneStorage);
+
+		return new h3d.scene.MeshBatch(rowRef, primitive, materials, parent);
+	}
+
 	public function createParticles( ?texture : h3d.mat.Texture = null, parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.sceneStorage.insertEntity();

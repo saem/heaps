@@ -39,7 +39,7 @@ class MeshBatch extends hxd.App {
 		cube.unindex();
 		cube.addNormals();
 		s3d.lightSystem.ambientLight.set(0.5,0.5,0.5);
-		batch = h3d.scene.Object.createMeshBatch(cube,s3d);
+		batch = this.s3d.createMeshBatch(cube,s3d);
 		meshes = [];
 		this.s3d.createCameraController(20);
 	}
