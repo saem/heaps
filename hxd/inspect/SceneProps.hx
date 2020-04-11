@@ -269,12 +269,8 @@ class SceneProps {
 		props.push(PBool("visible", function() return o.visible, function(v) o.visible = v));
 
 		if( o.isMesh() ) {
-			var multi = hxd.impl.Api.downcast(o, h3d.scene.MultiMaterial);
-			if( multi != null && multi.materials.length > 1 ) {
-				for( m in multi.materials )
-					props.push(getMaterialProps(m));
-			} else
-				props.push(getMaterialProps(o.toMesh().material));
+			for( m in o.toMesh().materials )
+				props.push(getMaterialProps(m));
 		} else {
 			var l = hxd.impl.Api.downcast(o, h3d.scene.Light);
 			if( l != null )

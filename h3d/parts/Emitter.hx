@@ -1,43 +1,38 @@
 package h3d.parts;
 import h3d.parts.Data;
+import h3d.scene.SceneStorage.EntityId;
+import h3d.parts.Particles.ParticlesRowRef;
 
 class Emitter extends Particles implements Randomized {
 
-	public var time(default,null) : Float;
-	public var state(default, null) : State;
-	public var speed : Float = 1.;
-	public var collider : Collider;
+	private final eRowRef: EmitterRowRef;
+	private final eRow: EmitterRow;
 
-	var rnd : Float;
-	var emitCount : Float;
-	var colorMap : ColorKey;
-	var curPart : Particle;
+	@:allow(h3d.scene.Scene.createEmitter)
+	private function new(eRowRef:EmitterRowRef, pRowRef:ParticlesRowRef, ?parent: h3d.scene.Object = null) {
+		super(pRowRef, null, parent);
+		this.eRowRef = eRowRef;
+		this.eRow = eRowRef.getRow();
 
-	@:allow(h3d.scene.Object.createEmitter)
-	private function new(?state: State = null, ?parent: h3d.scene.Object = null) {
-		super(null, parent);
-		time = 0;
-		emitCount = 0;
-		rnd = Math.random();
-		if( state == null ) {
-			state = new State();
-			state.setDefaults();
-			state.initFrames();
-		}
-		setState(state);
+		setState(this.eRow.state);
+	}
+
+	override function onRemove() {
+		super.onRemove();
+		this.eRowRef.deleteRow();
 	}
 
 	override function clear() {
 		super.clear();
-		time = 0;
-		emitCount = 0;
-		rnd = Math.random();
+		this.eRow.time = 0;
+		this.eRow.emitCount = 0;
+		this.eRow.rnd = Math.random();
 	}
 
 	public function setState(s) {
-		this.state = s;
+		this.eRow.state = s;
 		material.texture = s.frames == null || s.frames.length == 0 ? null : s.frames[0].getTexture();
-		frames = s.frames;
+		this.pRow.frames = s.frames;
 		switch( s.blendMode ) {
 		case Add:
 			material.blendMode = Add;
@@ -46,56 +41,56 @@ class Emitter extends Particles implements Randomized {
 		case Alpha:
 			material.blendMode = Alpha;
 		}
-		colorMap = null;
+		this.eRow.colorMap = null;
 		if( s.colors != null ) {
 			for( i in 0...s.colors.length ) {
-				var c = s.colors[s.colors.length - (1 + i)];
-				var k = new ColorKey(c.time, ((c.color>>16)&0xFF)/255, ((c.color>>8)&0xFF)/255, (c.color&0xFF)/255);
-				k.next = colorMap;
-				colorMap = k;
+				final c = s.colors[s.colors.length - (1 + i)];
+				final k = new ColorKey(c.time, ((c.color>>16)&0xFF)/255, ((c.color>>8)&0xFF)/255, (c.color&0xFF)/255);
+				k.next = this.eRow.colorMap;
+				this.eRow.colorMap = k;
 			}
 		}
-		hasColor = colorMap != null || !state.alpha.match(VConst(1)) || !state.light.match(VConst(1));
-		pshader.isAbsolute = !state.emitLocal;
-		pshader.is3D = state.is3D;
-		sortMode = state.sortMode;
-		emitTrail = state.emitTrail;
+		this.pRow.hasColor = this.eRow.colorMap != null || !this.eRow.state.alpha.match(VConst(1)) || !this.eRow.state.light.match(VConst(1));
+		this.pRow.pshader.isAbsolute = !this.eRow.state.emitLocal;
+		this.pRow.pshader.is3D = this.eRow.state.is3D;
+		this.pRow.sortMode = this.eRow.state.sortMode;
+		this.pRow.emitTrail = this.eRow.state.emitTrail;
 	}
 
 	inline function eval(v) {
-		return Data.State.eval(v,time, this, curPart);
+		return Data.State.eval(v,this.eRow.time, this, this.eRow.curPart);
 	}
 
 	public function update(dt:Float) {
-		var s = state;
-		var old = time;
+		var s = this.eRow.state;
+		var old = this.eRow.time;
 		if( posChanged ) syncPos();
-		curPart = null;
-		time += dt * eval(s.globalSpeed) / s.globalLife;
-		var et = (time - old) * s.globalLife;
-		if( time >= 1 && s.loop )
-			time -= 1;
-		if( time < 1 )
-			emitCount += eval(s.emitRate) * et;
+		this.eRow.curPart = null;
+		this.eRow.time += dt * eval(s.globalSpeed) / s.globalLife;
+		var et = (this.eRow.time - old) * s.globalLife;
+		if( this.eRow.time >= 1 && s.loop )
+			this.eRow.time -= 1;
+		if( this.eRow.time < 1 )
+			this.eRow.emitCount += eval(s.emitRate) * et;
 		for( b in s.bursts )
-			if( b.time <= time && b.time > old )
-				emitCount += b.count;
-		if( emitCount > 0 && posChanged ) syncPos();
-		while( emitCount > 0 ) {
-			if( count < s.maxParts )
+			if( b.time <= this.eRow.time && b.time > old )
+				this.eRow.emitCount += b.count;
+		if( this.eRow.emitCount > 0 && posChanged ) syncPos();
+		while( this.eRow.emitCount > 0 ) {
+			if( this.pRow.count < s.maxParts )
 				initPart(emitParticle());
-			emitCount -= 1;
-			if( state.emitTrail )
+			this.eRow.emitCount -= 1;
+			if( this.eRow.state.emitTrail )
 				break;
 		}
-		var p = head;
+		var p = this.pRow.head;
 		while( p != null ) {
 			var n = p.next;
-			curPart = p;
+			this.eRow.curPart = p;
 			updateParticle(p, et);
 			p = n;
 		}
-		curPart = null;
+		this.eRow.curPart = null;
 	}
 
 	public inline function rand() {
@@ -103,7 +98,7 @@ class Emitter extends Particles implements Randomized {
 	}
 
 	function initPosDir( p : Particle ) {
-		switch( state.shape ) {
+		switch( this.eRow.state.shape ) {
 		case SLine(size):
 			p.dx = 0;
 			p.dy = 0;
@@ -111,12 +106,12 @@ class Emitter extends Particles implements Randomized {
 			p.x = 0;
 			p.y = 0;
 			p.z = eval(size);
-			if( !state.emitFromShell ) p.z *= rand();
+			if( !this.eRow.state.emitFromShell ) p.z *= rand();
 		case SSphere(r):
 			var theta = rand() * Math.PI * 2;
 			var phi = Math.acos(rand() * 2 - 1);
 			var r = eval(r);
-			if( !state.emitFromShell ) r *= rand();
+			if( !this.eRow.state.emitFromShell ) r *= rand();
 			p.dx = Math.sin(phi) * Math.cos(theta);
 			p.dy = Math.sin(phi) * Math.sin(theta);
 			p.dz = Math.cos(phi);
@@ -127,7 +122,7 @@ class Emitter extends Particles implements Randomized {
 			var theta = rand() * Math.PI * 2;
 			var phi = eval(angle) * rand();
 			var r = eval(r);
-			if( !state.emitFromShell ) r *= rand();
+			if( !this.eRow.state.emitFromShell ) r *= rand();
 			p.dx = Math.sin(phi) * Math.cos(theta);
 			p.dy = Math.sin(phi) * Math.sin(theta);
 			p.dz = Math.cos(phi);
@@ -136,7 +131,7 @@ class Emitter extends Particles implements Randomized {
 			p.z = p.dz * r;
 		case SDisc(r):
 			var r = eval(r);
-			if( !state.emitFromShell ) r *= rand();
+			if( !this.eRow.state.emitFromShell ) r *= rand();
 			var a = rand() * Math.PI * 2;
 			p.dx = Math.cos(a);
 			p.dy = Math.sin(a);
@@ -147,7 +142,7 @@ class Emitter extends Particles implements Randomized {
 		case SCustom(f):
 			f(this,p);
 		}
-		if( state.randomDir ) {
+		if( this.eRow.state.randomDir ) {
 			var theta = rand() * Math.PI * 2;
 			var phi = Math.acos(rand() * 2 - 1);
 			p.dx = Math.sin(phi) * Math.cos(theta);
@@ -158,7 +153,7 @@ class Emitter extends Particles implements Randomized {
 
 	function initPart(p:Particle) {
 		initPosDir(p);
-		if( !state.emitLocal ) {
+		if( !this.eRow.state.emitLocal ) {
 			var pos = new h3d.Vector(p.x, p.y, p.z);
 			pos.transform3x4(absPos);
 			p.x = pos.x;
@@ -172,7 +167,7 @@ class Emitter extends Particles implements Randomized {
 		}
 		p.fx = p.fy = p.fz = 0;
 		p.time = 0;
-		p.lifeTimeFactor = 1 / eval(state.life);
+		p.lifeTimeFactor = 1 / eval(this.eRow.state.life);
 	}
 
 	function updateParticle( p : Particle, dt : Float ) {
@@ -184,39 +179,39 @@ class Emitter extends Particles implements Randomized {
 		p.randIndex = 0;
 
 		// apply forces
-		if( state.force != null ) {
-			p.fx += p.eval(state.force.vx, time) * dt;
-			p.fy += p.eval(state.force.vy, time) * dt;
-			p.fz += p.eval(state.force.vz, time) * dt;
+		if( this.eRow.state.force != null ) {
+			p.fx += p.eval(this.eRow.state.force.vx, this.eRow.time) * dt;
+			p.fy += p.eval(this.eRow.state.force.vy, this.eRow.time) * dt;
+			p.fz += p.eval(this.eRow.state.force.vz, this.eRow.time) * dt;
 		}
-		p.fz -= p.eval(state.gravity, time) * dt;
+		p.fz -= p.eval(this.eRow.state.gravity, this.eRow.time) * dt;
 		// calc speed and update position
-		var speed = p.eval(state.speed, p.time);
+		var speed = p.eval(this.eRow.state.speed, p.time);
 		var ds = speed * dt;
 		p.x += p.dx * ds + p.fx * dt;
 		p.y += p.dy * ds + p.fy * dt;
 		p.z += p.dz * ds + p.fz * dt;
-		p.size = p.eval(state.size, p.time);
-		p.ratio = p.eval(state.ratio, p.time);
-		p.rotation = p.eval(state.rotation, p.time);
+		p.size = p.eval(this.eRow.state.size, p.time);
+		p.ratio = p.eval(this.eRow.state.ratio, p.time);
+		p.rotation = p.eval(this.eRow.state.rotation, p.time);
 
 		// collide
-		if( state.collide && collider != null && collider.collidePart(p, tmp) ) {
-			if( state.collideKill ) {
+		if( this.eRow.state.collide && this.eRow.collider != null && this.eRow.collider.collidePart(p, this.pRow.tmp) ) {
+			if( this.eRow.state.collideKill ) {
 				kill(p);
 				return;
 			} else {
-				var v = new h3d.Vector(p.dx, p.dy, p.dz).reflect(tmp);
-				p.dx = v.x * state.bounce;
-				p.dy = v.y * state.bounce;
-				p.dz = v.z * state.bounce;
+				var v = new h3d.Vector(p.dx, p.dy, p.dz).reflect(this.pRow.tmp);
+				p.dx = v.x * this.eRow.state.bounce;
+				p.dy = v.y * this.eRow.state.bounce;
+				p.dz = v.z * this.eRow.state.bounce;
 			}
 		}
 
 
 		// calc color
-		var ck = colorMap;
-		var light = p.eval(state.light, p.time);
+		var ck = this.eRow.colorMap;
+		var light = p.eval(this.eRow.state.light, p.time);
 		if( ck != null ) {
 			if( ck.time >= p.time ) {
 				p.r = ck.r;
@@ -249,30 +244,132 @@ class Emitter extends Particles implements Randomized {
 			p.g = light;
 			p.b = light;
 		}
-		p.a = p.eval(state.alpha, p.time);
+		p.a = p.eval(this.eRow.state.alpha, p.time);
 
 		// frame
-		if( state.frame != null ) {
-			var f = p.eval(state.frame, p.time) % 1;
+		if( this.eRow.state.frame != null ) {
+			var f = p.eval(this.eRow.state.frame, p.time) % 1;
 			if( f < 0 ) f += 1;
-			p.frame = Std.int(f * state.frames.length);
+			p.frame = Std.int(f * this.eRow.state.frames.length);
 		}
 
-		if( state.update != null )
-			state.update(p);
+		if( this.eRow.state.update != null )
+			this.eRow.state.update(p);
 	}
 
 	override function sync( ctx : h3d.scene.RenderContext.SyncContext ) {
-		update(ctx.elapsedTime * speed);
+		update(ctx.elapsedTime * this.eRow.speed);
 	}
 
 	public function isActive() {
-		return count != 0 || time < 1 || state.loop;
+		return this.pRow.count != 0 || this.eRow.time < 1 || this.eRow.state.loop;
 	}
 
 	override function draw( ctx : h3d.scene.RenderContext.DrawContext ) {
-		globalSize = eval(state.globalSize) * 0.1;
+		this.pRow.globalSize = eval(this.eRow.state.globalSize) * 0.1;
 		super.draw(ctx);
 	}
 
 }
+
+abstract EmitterId(Int) to Int {
+	public inline function new(id:Int) { this = id; }
+}
+
+private abstract InternalEmitterId(Int) {
+	public inline function new(id:Int) { this = id; }
+}
+
+class EmitterRowRef {
+	final rowId: EmitterId;
+	final sceneStorage: h3d.scene.SceneStorage;
+	
+	public function new(rowId: EmitterId, sceneStorage: h3d.scene.SceneStorage) {
+		this.rowId = rowId;
+		this.sceneStorage = sceneStorage;
+	}
+
+	public inline function getRow() {
+		return this.sceneStorage.selectEmitter(rowId);
+	}
+
+	/**
+		TODO Leaving this here as it's not a general delete
+	**/
+	public inline function deleteRow() {
+		final eid = this.getRow().entityId;
+		this.sceneStorage.emitterStorage.deallocateRow(rowId);
+		this.sceneStorage.entityStorage.deallocateRow(eid);
+	}
+}
+
+class EmitterRow {
+	public var id: EmitterId;
+	public var internalId: InternalEmitterId;
+	public var entityId(default,null): h3d.scene.SceneStorage.EntityId;
+
+	public var time : Float = 0.;
+	public var state : State;
+	public var speed : Float = 1.;
+	public var collider : Collider = null;
+
+	public var rnd : Float;
+	public var emitCount : Float = 0.;
+	public var colorMap : ColorKey = null;
+	public var curPart : Particle = null;
+
+	public function new(id:EmitterId, iid:InternalEmitterId, eid:h3d.scene.SceneStorage.EntityId, ?state:h3d.parts.Data.State=null) {
+		this.id = id;
+		this.internalId = iid;
+		this.entityId = eid;
+		
+		rnd = Math.random();
+		this.state = if( state == null ) {
+			state = new State();
+			state.setDefaults();
+			state.initFrames();
+			state;
+		} else {
+			state;
+		}
+	}
+}
+
+class EmitterStorage {
+	final entityIdToEmitterIdIndex = new hds.Map<EntityId, EmitterId>();
+	final storage = new hds.Map<InternalEmitterId, EmitterRow>();
+	var sequence = new SequenceEmitter();
+	
+	public function new() {}
+
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId, state) {
+		final id = sequence.next();
+
+		this.entityIdToEmitterIdIndex.set(eid, id);
+		final iid = externalToInternalId(id);
+		this.storage.set(iid, new EmitterRow(id, iid, eid, state));
+
+		return id;
+	}
+
+	public function deallocateRow(id: EmitterId) {
+		return this.storage.remove(externalToInternalId(id));
+	}
+
+	public function fetchRow(id: EmitterId) {
+		return storage.get(externalToInternalId(id));
+	}
+
+	private inline function externalToInternalId(id: EmitterId): InternalEmitterId {
+        // make these zero based
+		return new InternalEmitterId(id--);
+	}
+
+	public function reset() {
+		this.entityIdToEmitterIdIndex.clear();
+		this.storage.clear();
+		this.sequence = new SequenceEmitter();
+	}
+}
+
+private typedef SequenceEmitter = h3d.scene.SceneStorage.Sequence<EmitterId>;

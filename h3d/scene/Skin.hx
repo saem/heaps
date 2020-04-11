@@ -15,7 +15,7 @@ class Joint extends h3d.scene.Object {
 	}
 }
 
-class Skin extends MultiMaterial {
+class Skin extends h3d.scene.Mesh {
 
 	var skinData : h3d.anim.Skin;
 	var currentRelPose : Array<h3d.Matrix>;

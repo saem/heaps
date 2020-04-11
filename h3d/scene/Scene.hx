@@ -468,6 +468,28 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		return this.sceneStorage.selectCameraController(this.cameraControllerId);
 	}
 
+	public function createParticles( ?texture : h3d.mat.Texture = null, parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final id  = this.sceneStorage.insertParticles(eid);
+
+		final rowRef = new h3d.parts.Particles.ParticlesRowRef(id, this.sceneStorage);
+		
+		return new h3d.parts.Particles(rowRef, texture, parent);
+	}
+
+	public function createEmitter( ?state : h3d.parts.Data.State = null, parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final pid = this.sceneStorage.insertParticles(eid);
+		final id  = this.sceneStorage.insertEmitter(eid, state);
+
+		final rowRef = new h3d.parts.Emitter.EmitterRowRef(id, this.sceneStorage);
+		final pRowRef = new h3d.parts.Particles.ParticlesRowRef(pid, this.sceneStorage);
+		
+		return new h3d.parts.Emitter(rowRef, pRowRef, parent);
+	}
+
 	public function createGpuParticles( parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final gid = this.sceneStorage.insertGpuParticles();

@@ -352,18 +352,13 @@ class Library {
 					var skinData = makeSkin(m.skin);
 					skinData.primitive = prim;
 					obj = h3d.scene.Object.createSkin(skinData, [for( mat in m.materials ) makeMaterial(m, mat, loadTexture)]);
-				} else if( m.materials.length <= 1 ) {
-					var mat;
-					if (m.materials.length == 1) {
-						mat = makeMaterial(m, m.materials[0],loadTexture);
-					} else {
-						mat = h3d.mat.MaterialSetup.current.createMaterial();
-						mat.props = mat.getDefaultProps();
-					}
+				} else if( m.materials.length == 0 ) {
+					final mat = h3d.mat.MaterialSetup.current.createMaterial();
+					mat.props = mat.getDefaultProps();
 
 					obj = h3d.scene.Object.createMesh(prim, mat);
 				} else {
-					obj = h3d.scene.Object.createMultiMaterial(prim, [for( mat in m.materials ) makeMaterial(m, mat, loadTexture)]);
+					obj = h3d.scene.Object.createMeshWithMaterials(prim, [for( mat in m.materials ) makeMaterial(m, mat, loadTexture)]);
 				}
 			}
 			obj.name = m.name;
