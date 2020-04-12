@@ -58,7 +58,7 @@ class Pbr extends SampleApp {
 		set(4, hxd.Res.top);
 		set(5, hxd.Res.bottom);
 
-		var axis = h3d.scene.Object.createGraphics(s3d);
+		var axis = s3d.createGraphics(s3d);
 		axis.lineStyle(2, 0xFF0000);
 		axis.lineTo(2, 0, 0);
 		axis.lineStyle(2, 0x00FF00);

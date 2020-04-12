@@ -476,6 +476,40 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		return new h3d.scene.CameraController(ccr);
 	}
 
+	public function createGraphics( ?parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final id = this.sceneStorage.insertGraphics(eid);
+
+		final rowRef = new h3d.scene.Graphics.GraphicsRowRef(id, this.sceneStorage);
+
+		return new h3d.scene.Graphics(rowRef, parent);
+	}
+
+	public function createBox( ?colour = 0xFFFF0000, ?bounds : h3d.col.Bounds = null, ?depth : Bool = true, ?parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final gid = this.sceneStorage.insertGraphics(eid);
+		final id = this.sceneStorage.insertBox(eid, colour, bounds, depth);
+
+		final rowRef = new h3d.scene.Box.BoxRowRef(id, this.sceneStorage);
+		final gRowRef = new h3d.scene.Graphics.GraphicsRowRef(gid, this.sceneStorage);
+
+		return new h3d.scene.Box(rowRef, gRowRef, depth, parent);
+	}
+
+	public function createSphere( ?colour = 0xFFFF0000, ?radius : Float = 1.0, ?depth : Bool = true, ?parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final gid = this.sceneStorage.insertGraphics(eid);
+		final id = this.sceneStorage.insertSphere(eid, colour, radius, depth);
+
+		final rowRef = new h3d.scene.Sphere.SphereRowRef(id, this.sceneStorage);
+		final gRowRef = new h3d.scene.Graphics.GraphicsRowRef(gid, this.sceneStorage);
+
+		return new h3d.scene.Sphere(rowRef, gRowRef, depth, parent);
+	}
+
 	public function createSkin( ?skinData:h3d.anim.Skin = null, ?materials : Array<h3d.mat.Material> = null, ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.sceneStorage.insertEntity();
@@ -494,6 +528,16 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		final rowRef = new h3d.scene.MeshBatch.MeshBatchRowRef(id, this.sceneStorage);
 
 		return new h3d.scene.MeshBatch(rowRef, primitive, materials, parent);
+	}
+
+	public function createPbrDecal( primitive : h3d.prim.Primitive, materials : Array<h3d.mat.Material> = null, parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final id  = this.sceneStorage.insertDecal(eid);
+
+		final rowRef = new h3d.scene.pbr.Decal.DecalRowRef(id, this.sceneStorage);
+
+		return new h3d.scene.pbr.Decal(rowRef, primitive, materials, parent);
 	}
 
 	public function createParticles( ?texture : h3d.mat.Texture = null, parent : Object = null ) {

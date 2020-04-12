@@ -1,5 +1,6 @@
 package h3d.scene;
 import hxd.Math;
+import h3d.scene.SceneStorage.EntityId;
 
 private class GPoint {
 	public var x : Float;
@@ -22,60 +23,52 @@ private class GPoint {
 
 class Graphics extends Mesh {
 
-	var bprim : h3d.prim.BigPrimitive;
-	var curX : Float = 0.;
-	var curY : Float = 0.;
-	var curZ : Float = 0.;
-	var curR : Float = 0.;
-	var curG : Float;
-	var curB : Float;
-	var curA : Float;
-	var lineSize = 0.;
-	var lineShader : h3d.shader.LineShader;
-	var tmpPoints : Array<GPoint>;
+	private final gRowRef : GraphicsRowRef;
+	private final gRow : GraphicsRow;
 
 	/**
 		Setting is3D to true will switch from a screen space line (constant size whatever the distance) to a world space line
 	**/
-	public var is3D(default, set) : Bool;
+	public var is3D(get, set) : Bool;
 
-	@:allow(h3d.scene.Object.createGraphics)
-	private function new(?parent) {
-		bprim = new h3d.prim.BigPrimitive(12);
-		bprim.isStatic = false;
-		super(bprim, null, parent);
-		tmpPoints = [];
-		lineShader = new h3d.shader.LineShader();
-		lineShader.setPriority(-100);
+	@:allow(h3d.scene.Scene.createGraphics)
+	private function new(gRowRef:GraphicsRowRef, ?parent:h3d.scene.Object = null) {
+		this.gRowRef = gRowRef;
+		this.gRow = this.gRowRef.getRow();
+
+		super(this.gRow.bprim, null, parent);
+
 		material.shadows = false;
 		material.mainPass.enableLights = false;
-		material.mainPass.addShader(lineShader);
-		var vcolor = new h3d.shader.VertexColorAlpha();
+		material.mainPass.addShader(this.gRow.lineShader);
+		final vcolor = new h3d.shader.VertexColorAlpha();
 		vcolor.setPriority(-100);
 		material.mainPass.addShader(vcolor);
 		material.mainPass.culling = None;
 	}
 
-	override function onRemove() {
-		super.onRemove();
-		bprim.clear();
-	}
-
+	inline function get_is3D() : Bool return this.gRow.is3D;
 	function set_is3D(v) {
-		if( is3D == v )
+		if( this.gRow.is3D == v )
 			return v;
 		if( v ) {
-			material.mainPass.removeShader(lineShader);
+			material.mainPass.removeShader(this.gRow.lineShader);
 		} else {
-			material.mainPass.addShader(lineShader);
+			material.mainPass.addShader(this.gRow.lineShader);
 		}
-		bprim.clear();
-		tmpPoints = [];
-		return is3D = v;
+		this.gRow.bprim.clear();
+		this.gRow.tmpPoints.resize(0);
+		return this.gRow.is3D = v;
+	}
+
+	override function onRemove() {
+		super.onRemove();
+		this.gRow.bprim.clear();
+		this.gRowRef.deleteRow();
 	}
 
 	function flushLine() {
-		var pts = tmpPoints;
+		var pts = this.gRow.tmpPoints;
 
 		var last = pts.length - 1;
 		var prev = pts[last];
@@ -96,7 +89,7 @@ class Graphics extends Mesh {
 			prev = pts[last];
 		}
 
-		var start = bprim.vertexCount();
+		var start = this.gRow.bprim.vertexCount();
 		var pindex = start;
 		var v = 0.;
 		for( i in 0...count ) {
@@ -120,16 +113,16 @@ class Graphics extends Mesh {
 			ny *= ns;
 
 			var size = nx * nx1 * ns1 + ny * ny1 * ns1; // N.N1
-			var d = lineSize * 0.5 / size;
+			var d = this.gRow.lineSize * 0.5 / size;
 			nx *= d;
 			ny *= d;
 
 			inline function add(v:Float) {
-				bprim.addVertexValue(v);
+				this.gRow.bprim.addVertexValue(v);
 			}
 
 			var hasIndex = i < count - 1 || closed;
-			bprim.begin(2, hasIndex ? 6 : 0);
+			this.gRow.bprim.begin(2, hasIndex ? 6 : 0);
 
 			add(p.x + nx);
 			add(p.y + ny);
@@ -167,13 +160,13 @@ class Graphics extends Mesh {
 
 			if( hasIndex ) {
 				var pnext = i == last ? start - pindex : 2;
-				bprim.addIndex(0);
-				bprim.addIndex(1);
-				bprim.addIndex(pnext);
+				this.gRow.bprim.addIndex(0);
+				this.gRow.bprim.addIndex(1);
+				this.gRow.bprim.addIndex(pnext);
 
-				bprim.addIndex(pnext);
-				bprim.addIndex(1);
-				bprim.addIndex(pnext + 1);
+				this.gRow.bprim.addIndex(pnext);
+				this.gRow.bprim.addIndex(1);
+				this.gRow.bprim.addIndex(pnext + 1);
 			}
 
 			pindex += 2;
@@ -184,45 +177,45 @@ class Graphics extends Mesh {
 	}
 
 	function flush() {
-		if( tmpPoints.length == 0 )
+		if( this.gRow.tmpPoints.length == 0 )
 			return;
 		if( is3D ) {
 			flushLine();
-			tmpPoints = [];
+			this.gRow.tmpPoints.resize(0);
 		}
 	}
 
 	override function sync(ctx:RenderContext.SyncContext) {
 		super.sync(ctx);
 		flush();
-		bprim.flush();
+		this.gRow.bprim.flush();
 	}
 
 	override function draw( ctx : RenderContext.DrawContext ) {
 		flush();
-		bprim.flush();
+		this.gRow.bprim.flush();
 		super.draw(ctx);
 	}
 
 	public function clear() {
 		flush();
-		bprim.clear();
+		this.gRow.bprim.clear();
 	}
 
 	public function lineStyle( size = 0., color = 0, alpha = 1. ) {
 		flush();
-		if( size > 0 && lineSize != size ) {
-			lineSize = size;
-			if( !is3D ) lineShader.width = lineSize;
+		if( size > 0 && this.gRow.lineSize != size ) {
+			this.gRow.lineSize = size;
+			if( !is3D ) this.gRow.lineShader.width = this.gRow.lineSize;
 		}
 		setColor(color, alpha);
 	}
 
 	public function setColor( color : Int, alpha = 1. ) {
-		curA = alpha;
-		curR = ((color >> 16) & 0xFF) / 255.;
-		curG = ((color >> 8) & 0xFF) / 255.;
-		curB = (color & 0xFF) / 255.;
+		this.gRow.curA = alpha;
+		this.gRow.curR = ((color >> 16) & 0xFF) / 255.;
+		this.gRow.curG = ((color >> 8) & 0xFF) / 255.;
+		this.gRow.curB = (color & 0xFF) / 255.;
 	}
 
 	public inline function drawLine( p1 : h3d.col.Point, p2 : h3d.col.Point ) {
@@ -235,38 +228,38 @@ class Graphics extends Mesh {
 			flush();
 			lineTo(x, y, z);
 		} else {
-			curX = x;
-			curY = y;
-			curZ = z;
+			this.gRow.curX = x;
+			this.gRow.curY = y;
+			this.gRow.curZ = z;
 		}
 	}
 
 	inline function addVertex( x, y, z, r, g, b, a ) {
-		tmpPoints.push(new GPoint(x, y, z, r, g, b, a));
+		this.gRow.tmpPoints.push(new GPoint(x, y, z, r, g, b, a));
 	}
 
 	public function lineTo( x : Float, y : Float, z : Float ) {
 		if( is3D ) {
-			addVertex(x, y, z, curR, curG, curB, curA);
+			addVertex(x, y, z, this.gRow.curR, this.gRow.curG, this.gRow.curB, this.gRow.curA);
 			return;
 		}
 
-		bprim.begin(4,6);
-		var nx = x - curX;
-		var ny = y - curY;
-		var nz = z - curZ;
+		this.gRow.bprim.begin(4,6);
+		var nx = x - this.gRow.curX;
+		var ny = y - this.gRow.curY;
+		var nz = z - this.gRow.curZ;
 
-		bprim.addBounds(curX, curY, curZ);
-		bprim.addBounds(x, y, z);
+		this.gRow.bprim.addBounds(this.gRow.curX, this.gRow.curY, this.gRow.curZ);
+		this.gRow.bprim.addBounds(x, y, z);
 
 		inline function push(v) {
-			bprim.addVertexValue(v);
+			this.gRow.bprim.addVertexValue(v);
 		}
 
 		inline function add(u, v) {
-			push(curX);
-			push(curY);
-			push(curZ);
+			push(this.gRow.curX);
+			push(this.gRow.curY);
+			push(this.gRow.curZ);
 
 			push(nx);
 			push(ny);
@@ -275,10 +268,10 @@ class Graphics extends Mesh {
 			push(u);
 			push(v);
 
-			push(curR);
-			push(curG);
-			push(curB);
-			push(curA);
+			push(this.gRow.curR);
+			push(this.gRow.curG);
+			push(this.gRow.curB);
+			push(this.gRow.curA);
 		}
 
 		add(0, 0);
@@ -286,16 +279,16 @@ class Graphics extends Mesh {
 		add(1, 0);
 		add(1, 1);
 
-		bprim.addIndex(0);
-		bprim.addIndex(1);
-		bprim.addIndex(2);
-		bprim.addIndex(2);
-		bprim.addIndex(3);
-		bprim.addIndex(1);
+		this.gRow.bprim.addIndex(0);
+		this.gRow.bprim.addIndex(1);
+		this.gRow.bprim.addIndex(2);
+		this.gRow.bprim.addIndex(2);
+		this.gRow.bprim.addIndex(3);
+		this.gRow.bprim.addIndex(1);
 
-		curX = x;
-		curY = y;
-		curZ = z;
+		this.gRow.curX = x;
+		this.gRow.curY = y;
+		this.gRow.curZ = z;
 	}
 
 	#if (hxbit && !macro && heaps_enable_serialize)
@@ -306,5 +299,112 @@ class Graphics extends Mesh {
 		bprim = cast primitive;
 	}
 	#end
-
 }
+
+abstract GraphicsId(Int) to Int {
+	public inline function new(id:Int) { this = id; }
+}
+
+private abstract InternalGraphicsId(Int) {
+	public inline function new(id:Int) { this = id; }
+}
+
+class GraphicsRowRef {
+	final rowId: GraphicsId;
+	final sceneStorage: h3d.scene.SceneStorage;
+	
+	public function new(rowId: GraphicsId, sceneStorage: h3d.scene.SceneStorage) {
+		this.rowId = rowId;
+		this.sceneStorage = sceneStorage;
+	}
+
+	public inline function getRow() {
+		return this.sceneStorage.selectGraphics(rowId);
+	}
+
+	/**
+		TODO Leaving this here as it's not a general delete
+	**/
+	public inline function deleteRow() {
+		final eid = this.getRow().entityId;
+		this.sceneStorage.graphicsStorage.deallocateRow(rowId);
+		this.sceneStorage.entityStorage.deallocateRow(eid);
+	}
+}
+
+class GraphicsRow {
+	public var id: GraphicsId;
+	public var internalId: InternalGraphicsId;
+	public var entityId(default,null): h3d.scene.SceneStorage.EntityId;
+
+	public var bprim = new h3d.prim.BigPrimitive(12);
+	public var curX : Float = 0.;
+	public var curY : Float = 0.;
+	public var curZ : Float = 0.;
+	public var curR : Float = 0.;
+	public var curG : Float;
+	public var curB : Float;
+	public var curA : Float;
+	public var lineSize = 0.;
+	public var lineShader : h3d.shader.LineShader = new h3d.shader.LineShader();
+	public var tmpPoints : Array<GPoint> = [];
+
+	/**
+		Setting is3D to true will switch from a screen space line (constant size whatever the distance) to a world space line
+	**/
+	public var is3D : Bool = false;
+
+	public function new(id:GraphicsId, iid:InternalGraphicsId, eid:h3d.scene.SceneStorage.EntityId) {
+		this.id = id;
+		this.internalId = iid;
+		this.entityId = eid;
+
+		bprim = new h3d.prim.BigPrimitive(12);
+		bprim.isStatic = false;
+
+		lineShader.setPriority(-100);
+	}
+}
+
+class GraphicsStorage {
+	final entityIdToGraphicsIdIndex = new hds.Map<EntityId, GraphicsId>();
+	final storage = new hds.Map<InternalGraphicsId, GraphicsRow>();
+	var sequence = new SequenceGraphics();
+	
+	public function new() {}
+
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId) {
+		final id = sequence.next();
+
+		this.entityIdToGraphicsIdIndex.set(eid, id);
+		final iid = externalToInternalId(id);
+		this.storage.set(iid, new GraphicsRow(id, iid, eid));
+
+		return id;
+	}
+
+	public function deallocateRow(id: GraphicsId) {
+		return this.storage.remove(externalToInternalId(id));
+	}
+
+	public function deallocateRowByEntityId(id: EntityId) {
+		return this.storage.remove(externalToInternalId(this.entityIdToGraphicsIdIndex[id]));
+	}
+
+	public function fetchRow(id: GraphicsId) {
+		return this.storage.get(externalToInternalId(id));
+	}
+
+	private inline function externalToInternalId(id: GraphicsId): InternalGraphicsId {
+        // make these zero based
+		return new InternalGraphicsId(id--);
+	}
+
+	public function reset() {
+		this.entityIdToGraphicsIdIndex.clear();
+		this.storage.clear();
+		this.sequence = new SequenceGraphics();
+	}
+}
+
+private typedef SequenceGraphics = h3d.scene.SceneStorage.Sequence<GraphicsId>;

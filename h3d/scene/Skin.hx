@@ -171,7 +171,7 @@ class Skin extends h3d.scene.Mesh {
 
 		if( this.sRow.showJoints ) {
 			if( this.sRow.jointsGraphics == null ) {
-				this.sRow.jointsGraphics = Object.createGraphics(null);
+				this.sRow.jointsGraphics = this.getScene().createGraphics(null);
 				this.sRow.jointsGraphics.material.mainPass.depth(false, Always);
 				this.sRow.jointsGraphics.material.mainPass.setPassName("additive");
 			}

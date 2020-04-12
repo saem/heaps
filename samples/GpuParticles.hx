@@ -49,7 +49,7 @@ class GpuParticles extends SampleApp {
 		group = g;
 
 		this.s3d.createCameraController(20);
-		box = h3d.scene.Object.createBox(0x80404050, parts.bounds, parts);
+		box = this.s3d.createBox(0x80404050, parts.bounds, parts);
 
 		tf = addText();
 	}

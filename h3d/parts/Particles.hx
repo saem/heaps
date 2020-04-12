@@ -453,6 +453,10 @@ class ParticlesStorage {
 		return this.storage.remove(externalToInternalId(id));
 	}
 
+	public function deallocateRowByEntityId(id: EntityId) {
+		return this.storage.remove(externalToInternalId(this.entityIdToParticlesIdIndex[id]));
+	}
+
 	public function fetchRow(id: ParticlesId) {
 		return this.storage.get(externalToInternalId(id));
 	}
