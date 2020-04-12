@@ -63,7 +63,7 @@ class Helpers extends hxd.App {
 	}
 
 	static function axesHelper( ?parent : h3d.scene.Object, size = 2.0, colorX = 0xEB304D, colorY = 0x7FC309, colorZ = 0x288DF9, lineWidth = 2.0 ) {
-		final g = h3d.scene.Object.createGraphics(parent);
+		final g = parent.getScene().createGraphics(parent);
 
 		g.material.props = h3d.mat.MaterialSetup.current.getDefaults( "ui" );
 
@@ -84,7 +84,7 @@ class Helpers extends hxd.App {
 	}
 
 	static function gridHelper( ?parent : Object, size = 10.0, divisions = 10, color1 = 0x444444, color2 = 0x888888, lineWidth = 1.0 ) {
-		final g = h3d.scene.Object.createGraphics(parent);
+		final g = parent.getScene().createGraphics(parent);
 
 		g.material.props = h3d.mat.MaterialSetup.current.getDefaults( "ui" );
 

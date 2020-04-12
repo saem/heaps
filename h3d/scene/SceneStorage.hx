@@ -9,6 +9,10 @@ class SceneStorage {
     public final particlesStorage = new h3d.parts.Particles.ParticlesStorage();
     public final meshBatchStorage = new h3d.scene.MeshBatch.MeshBatchStorage();
     public final skinStorage = new h3d.scene.Skin.SkinStorage();
+    public final graphicsStorage = new h3d.scene.Graphics.GraphicsStorage();
+    public final boxStorage = new h3d.scene.Box.BoxStorage();
+    public final sphereStorage = new h3d.scene.Sphere.SphereStorage();
+    public final decalStorage = new h3d.scene.pbr.Decal.DecalStorage();
 
 	public function new() {}
 	
@@ -23,6 +27,42 @@ class SceneStorage {
     // The return type here isn't the best, return the raw row.
     public function selectSkin(gid: h3d.scene.Skin.SkinId): h3d.scene.Skin.SkinRow {
         return this.skinStorage.fetchRow(gid);
+    }
+    
+    public function insertGraphics(eid: EntityId): h3d.scene.Graphics.GraphicsId {
+        return this.graphicsStorage.allocateRow(eid);
+	}
+
+    // The return type here isn't the best, return the raw row.
+    public function selectGraphics(gid: h3d.scene.Graphics.GraphicsId): h3d.scene.Graphics.GraphicsRow {
+        return this.graphicsStorage.fetchRow(gid);
+    }
+    
+    public function insertBox(eid: EntityId, colour: Int, bounds: h3d.col.Bounds, depth: Bool): h3d.scene.Box.BoxId {
+        return this.boxStorage.allocateRow(eid);
+	}
+
+    // The return type here isn't the best, return the raw row.
+    public function selectBox(gid: h3d.scene.Box.BoxId): h3d.scene.Box.BoxRow {
+        return this.boxStorage.fetchRow(gid);
+    }
+    
+    public function insertSphere(eid: EntityId, colour: Int, radius: Float, depth: Bool): h3d.scene.Sphere.SphereId {
+        return this.sphereStorage.allocateRow(eid);
+	}
+
+    // The return type here isn't the best, return the raw row.
+    public function selectSphere(gid: h3d.scene.Sphere.SphereId): h3d.scene.Sphere.SphereRow {
+        return this.sphereStorage.fetchRow(gid);
+    }
+    
+    public function insertDecal(eid: EntityId): h3d.scene.pbr.Decal.DecalId {
+        return this.decalStorage.allocateRow(eid);
+	}
+
+    // The return type here isn't the best, return the raw row.
+    public function selectDecal(gid: h3d.scene.pbr.Decal.DecalId): h3d.scene.pbr.Decal.DecalRow {
+        return this.decalStorage.fetchRow(gid);
     }
     
     public function insertMeshBatch(eid: EntityId): h3d.scene.MeshBatch.MeshBatchId {
@@ -80,8 +120,11 @@ class SceneStorage {
 		this.gpuParticleStorage.reset();
 		this.particlesStorage.reset();
 		this.emitterStorage.reset();
-		this.skinStorage.reset();
 		this.meshBatchStorage.reset();
+		this.skinStorage.reset();
+		this.graphicsStorage.reset();
+		this.boxStorage.reset();
+		this.decalStorage.reset();
 	}
 }
 

@@ -1,20 +1,32 @@
 package h3d.scene;
+import h3d.scene.SceneStorage.EntityId;
 
 class Sphere extends Graphics {
 
-	public var color : Int;
-	public var radius(default, set) : Float;
+	private final sRowRef : SphereRowRef;
+	private final sRow : SphereRow;
 
-	@:allow(h3d.scene.Object.createSphere)
-	private function new( ?color = 0xFFFF0000, ?radius : Float=1.0, ?depth = true, ?parent) {
-		super(parent);
-		this.color = color;
-		this.radius = radius;
+	public var color(get,set) : Int;
+	public var radius(get, set) : Float;
+
+	@:allow(h3d.scene.Scene.createSphere)
+	private function new( sRowRef : SphereRowRef, gRowRef : Graphics.GraphicsRowRef, ?depth : Bool = true, ?parent : Object ) {
+		this.sRowRef = sRowRef;
+		this.sRow = this.sRowRef.getRow();
+
+		super(gRowRef, parent);
 		if( !depth ) material.mainPass.depth(true, Always);
 	}
 
+	override function onRemove() {
+		this.sRowRef.deleteRow();
+	}
+
+	inline function get_color():Int return this.sRow.colour;
+	inline function set_color(c):Int return this.sRow.colour = c;
+	inline function get_radius():Float return this.sRow.radius;
 	function set_radius(v: Float) {
-		this.radius = v;
+		this.sRow.radius = v;
 		refresh();
 		return v;
 	}
@@ -47,9 +59,93 @@ class Sphere extends Graphics {
 	override function getLocalCollider() {
 		return null;
 	}
+}
 
-	override function sync(ctx) {
-		super.sync(ctx);
+abstract SphereId(Int) to Int {
+	public inline function new(id:Int) { this = id; }
+}
+
+private abstract InternalSphereId(Int) {
+	public inline function new(id:Int) { this = id; }
+}
+
+class SphereRowRef {
+	final rowId: SphereId;
+	final sceneStorage: h3d.scene.SceneStorage;
+	
+	public function new(rowId: SphereId, sceneStorage: h3d.scene.SceneStorage) {
+		this.rowId = rowId;
+		this.sceneStorage = sceneStorage;
 	}
 
+	public inline function getRow() {
+		return this.sceneStorage.selectSphere(rowId);
+	}
+
+	/**
+		TODO Leaving this here as it's not a general delete
+	**/
+	public inline function deleteRow() {
+		final eid = this.getRow().entityId;
+		this.sceneStorage.sphereStorage.deallocateRow(rowId);
+		this.sceneStorage.graphicsStorage.deallocateRowByEntityId(eid);
+		this.sceneStorage.entityStorage.deallocateRow(eid);
+	}
 }
+
+class SphereRow {
+	public var id: SphereId;
+	public var internalId: InternalSphereId;
+	public var entityId(default,null): h3d.scene.SceneStorage.EntityId;
+
+	public var colour : Int;
+	public var radius : Float;
+
+	public function new(id:SphereId, iid:InternalSphereId, eid:h3d.scene.SceneStorage.EntityId, colour = 0xFFFF0000, radius : Float = 1.0) {
+		this.id = id;
+		this.internalId = iid;
+		this.entityId = eid;
+
+		this.colour = colour;
+		this.radius = radius;
+	}
+}
+
+class SphereStorage {
+	final entityIdToSphereIdIndex = new hds.Map<EntityId, SphereId>();
+	final storage = new hds.Map<InternalSphereId, SphereRow>();
+	var sequence = new SequenceSphere();
+	
+	public function new() {}
+
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId) {
+		final id = sequence.next();
+
+		this.entityIdToSphereIdIndex.set(eid, id);
+		final iid = externalToInternalId(id);
+		this.storage.set(iid, new SphereRow(id, iid, eid));
+
+		return id;
+	}
+
+	public function deallocateRow(id: SphereId) {
+		return this.storage.remove(externalToInternalId(id));
+	}
+
+	public function fetchRow(id: SphereId) {
+		return this.storage.get(externalToInternalId(id));
+	}
+
+	private inline function externalToInternalId(id: SphereId): InternalSphereId {
+        // make these zero based
+		return new InternalSphereId(id--);
+	}
+
+	public function reset() {
+		this.entityIdToSphereIdIndex.clear();
+		this.storage.clear();
+		this.sequence = new SequenceSphere();
+	}
+}
+
+private typedef SequenceSphere = h3d.scene.SceneStorage.Sequence<SphereId>;

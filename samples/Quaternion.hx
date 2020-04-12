@@ -17,32 +17,32 @@ class Quaternion extends hxd.App {
 
 		var axis = h3d.scene.Object.createObject(s3d);
 
-		var ax = h3d.scene.Object.createBox(0xFFFF0000, true, axis);
+		var ax = this.s3d.createBox(0xFFFF0000, true, axis);
 		ax.x = 0.5;
 		ax.scaleY = 0.001;
 		ax.scaleZ = 0.001;
 
-		var ay = h3d.scene.Object.createBox(0xFF00FF00, true, axis);
+		var ay = this.s3d.createBox(0xFF00FF00, true, axis);
 		ay.y = 0.5;
 		ay.scaleX = 0.001;
 		ay.scaleZ = 0.001;
 
-		var az = h3d.scene.Object.createBox(0xFF0000FF, true, axis);
+		var az = this.s3d.createBox(0xFF0000FF, true, axis);
 		az.z = 0.5;
 		az.scaleX = 0.001;
 		az.scaleY = 0.001;
 
-		var ax = h3d.scene.Object.createBox(0xFF800000, true, cube);
+		var ax = this.s3d.createBox(0xFF800000, true, cube);
 		ax.x = 0.5;
 		ax.scaleY = 0.001;
 		ax.scaleZ = 0.001;
 
-		var ay = h3d.scene.Object.createBox(0xFF008000, true, cube);
+		var ay = this.s3d.createBox(0xFF008000, true, cube);
 		ay.y = 0.5;
 		ay.scaleX = 0.001;
 		ay.scaleZ = 0.001;
 
-		var az = h3d.scene.Object.createBox(0xFF000080, true, cube);
+		var az = this.s3d.createBox(0xFF000080, true, cube);
 		az.z = 0.5;
 		az.scaleX = 0.001;
 		az.scaleY = 0.001;

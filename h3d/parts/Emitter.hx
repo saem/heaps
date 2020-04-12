@@ -299,6 +299,7 @@ class EmitterRowRef {
 	public inline function deleteRow() {
 		final eid = this.getRow().entityId;
 		this.sceneStorage.emitterStorage.deallocateRow(rowId);
+		this.sceneStorage.particlesStorage.deallocateRowByEntityId(eid);
 		this.sceneStorage.entityStorage.deallocateRow(eid);
 	}
 }

@@ -227,18 +227,6 @@ class Object implements hxd.impl.Serializable {
 		return new Scene(createRenderer, createLightSystem);
 	}
 
-	public static function createGraphics( ?parent : Object = null ) {
-		return new Graphics(parent);
-	}
-
-	public static function createBox( ?colour = 0xFFFF0000, ?bounds : h3d.col.Bounds = null, ?depth = true, ?parent = null) {
-		return new Box(colour, bounds, depth, parent);
-	}
-
-	public static function createSphere( ?colour = 0xFFFF0000, ?radius : Float = 1.0, ?depth = true, ?parent = null ) {
-		return new Sphere(colour, radius, depth, parent);
-	}
-
 	public static function createMesh( primitive, ?material : h3d.mat.Material = null, ?parent = null ) {
 		return new Mesh(primitive, material == null ? [] : [material], parent);
 	}
@@ -262,10 +250,6 @@ class Object implements hxd.impl.Serializable {
 
 	public static function createFwdPointLight( ?parent = null ) {
 		return new h3d.scene.fwd.PointLight(parent);
-	}
-
-	public static function createPbrDecal( primitive, ?material = null, ?parent = null ) {
-		return new h3d.scene.pbr.Decal(primitive, material, parent);
 	}
 
 	public static function createPbrDirLight( ?dir : h3d.Vector = null, ?parent = null ) {
