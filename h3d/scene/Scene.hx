@@ -471,11 +471,9 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 
         // Crappy On Insert Trigger
 		final ccr:CameraController.CameraControllerRow = this.sceneStorage.selectCameraController(this.cameraControllerId);
-		// There is a side-effect in the controller and onAdd which causes a bug if you don't keep this order.
-		final controller = new h3d.scene.CameraController(ccr);
         CameraController.onAdd(ccr, this, this.camera);
 
-		return controller;
+		return new h3d.scene.CameraController(ccr);
 	}
 
 	public function createSkin( ?skinData:h3d.anim.Skin = null, ?materials : Array<h3d.mat.Material> = null, ?parent : Object = null ) {

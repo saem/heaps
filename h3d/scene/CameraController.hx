@@ -6,7 +6,6 @@ class CameraController {
 	@:allow(h3d.scene.Scene.createCameraController)
 	private function new(row: CameraControllerRow) {
 		this.row = row;
-		toTarget();
 	}
 
 	public static function onAdd( row : CameraControllerRow, scene : h3d.scene.Scene, camera : h3d.Camera) {
@@ -95,17 +94,6 @@ class CameraController {
 		this.row.curOffset.load(this.row.targetOffset);
 	}
 
-	static function syncCamera( row : CameraControllerRow, cam : h3d.Camera ) {
-		cam.target.load(row.curOffset);
-		cam.target.w = 1;
-		cam.pos.set( row.distance * Math.cos(row.theta) * Math.sin(row.phi) + cam.target.x, row.distance * Math.sin(row.theta) * Math.sin(row.phi) + cam.target.y, row.distance * Math.cos(row.phi) + cam.target.z );
-		if( !row.lockZPlanes ) {
-			cam.zNear = row.distance * 0.01;
-			cam.zFar = row.distance * 100;
-		}
-		cam.fovY = row.curOffset.w;
-	}
-
 	public static function sync( row : CameraControllerRow, camera : h3d.Camera, elapsedTime: Float) {
 		final targetPos = row.targetPos;
 		if( row.moveX != 0 ) {
@@ -129,6 +117,17 @@ class CameraController {
 		row.curPos.lerp(row.curPos, targetPos, dt );
 
 		CameraController.syncCamera( row , camera );
+	}
+
+	static function syncCamera( row : CameraControllerRow, cam : h3d.Camera ) {
+		cam.target.load(row.curOffset);
+		cam.target.w = 1;
+		cam.pos.set( row.distance * Math.cos(row.theta) * Math.sin(row.phi) + cam.target.x, row.distance * Math.sin(row.theta) * Math.sin(row.phi) + cam.target.y, row.distance * Math.cos(row.phi) + cam.target.z );
+		if( !row.lockZPlanes ) {
+			cam.zNear = row.distance * 0.01;
+			cam.zFar = row.distance * 100;
+		}
+		cam.fovY = row.curOffset.w;
 	}
 }
 
@@ -298,6 +297,8 @@ class CameraControllerRow {
 		this.id = id;
 		this.targetPos.x = distance;
 		this.eventHandler = rowEventHandler;
+		this.curPos.load(this.targetPos);
+		this.curOffset.load(this.targetOffset);
 	}
 
 	public function onEvent(e:hxd.Event):Void {
