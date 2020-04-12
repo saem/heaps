@@ -4,7 +4,7 @@ using hxd.fmt.fbx.Data;
 class Library extends BaseLibrary {
 
 	public function makeObject( ?textureLoader : String -> FbxNode -> h3d.mat.Material ) : h3d.scene.Object {
-		var scene = h3d.scene.Object.createObject();
+		var scene = h3d.scene.Object.createScene(false, false);
 		var hgeom = new Map();
 		var hskins = new Map();
 
@@ -75,7 +75,7 @@ class Library extends BaseLibrary {
 						break;
 					}
 				if( hasJoint )
-					o.obj = h3d.scene.Object.createSkin(null);
+					o.obj = scene.createSkin(null);
 				else
 					o.obj = h3d.scene.Object.createObject();
 			}

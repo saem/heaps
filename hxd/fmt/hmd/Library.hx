@@ -29,6 +29,7 @@ class Library {
 	var cachedAnimations : Map<String, h3d.anim.Animation>;
 	var cachedSkin : Map<String, h3d.anim.Skin>;
 	var tmp = haxe.io.Bytes.alloc(4);
+	var dummyScene = h3d.scene.Object.createScene(false, false);
 
 	public function new(res,  header) {
 		this.resource = res;
@@ -351,7 +352,7 @@ class Library {
 				if( m.skin != null ) {
 					var skinData = makeSkin(m.skin);
 					skinData.primitive = prim;
-					obj = h3d.scene.Object.createSkin(skinData, [for( mat in m.materials ) makeMaterial(m, mat, loadTexture)]);
+					obj = dummyScene.createSkin(skinData, [for( mat in m.materials ) makeMaterial(m, mat, loadTexture)]);
 				} else if( m.materials.length == 0 ) {
 					final mat = h3d.mat.MaterialSetup.current.createMaterial();
 					mat.props = mat.getDefaultProps();

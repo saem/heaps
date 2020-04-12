@@ -2,19 +2,28 @@ package h3d.scene;
 import hds.Map;
 
 class SceneStorage {
-	public final sceneObject: Scene;
     public final entityStorage: EntityStorage = new EntityStorage();
     public final cameraControllerStorage = new CameraController.CameraControllerStorage();
     public final gpuParticleStorage = new h3d.parts.GpuParticles.GpuParticlesStorage();
     public final emitterStorage = new h3d.parts.Emitter.EmitterStorage();
     public final particlesStorage = new h3d.parts.Particles.ParticlesStorage();
     public final meshBatchStorage = new h3d.scene.MeshBatch.MeshBatchStorage();
+    public final skinStorage = new h3d.scene.Skin.SkinStorage();
 
-	public function new(scene: Scene) { this.sceneObject = scene; }
+	public function new() {}
 	
 	public function insertEntity(): EntityId {
 		return this.entityStorage.allocateRow();
 	}
+    
+    public function insertSkin(eid: EntityId, skinData: h3d.anim.Skin): h3d.scene.Skin.SkinId {
+        return this.skinStorage.allocateRow(eid, skinData);
+	}
+
+    // The return type here isn't the best, return the raw row.
+    public function selectSkin(gid: h3d.scene.Skin.SkinId): h3d.scene.Skin.SkinRow {
+        return this.skinStorage.fetchRow(gid);
+    }
     
     public function insertMeshBatch(eid: EntityId): h3d.scene.MeshBatch.MeshBatchId {
         return this.meshBatchStorage.allocateRow(eid);
@@ -57,25 +66,9 @@ class SceneStorage {
         return this.emitterStorage.fetchRow(id);
     }
 
-	public function insertCameraController( ?distance ): h3d.scene.CameraController.CameraControllerId {
-        final eid = this.entityStorage.allocateRow();
-        final ccid = this.cameraControllerStorage.allocateRow(eid, this.sceneObject, distance);
-
-        // Crappy On Insert Trigger
-        final ccr = cameraControllerStorage.fetchRow(ccid);
-        ccr.onAdd(this.sceneObject, this.sceneObject.camera);
-
-        return ccid;
+	public function insertCameraController(eventHandler: h3d.scene.CameraController.CameraControllerEventHandler, ?distance: Float): h3d.scene.CameraController.CameraControllerId {
+       return this.cameraControllerStorage.allocateRow(eventHandler, distance);
     }
-    
-    public function deleteCameraController(ccid) {
-        // Crappy On Delete Trigger
-        final cc = this.cameraControllerStorage.fetchRow(ccid);
-        if(cc != null) {
-            cc.onRemove(this.sceneObject);
-            this.cameraControllerStorage.deallocateRow(ccid);
-        }
-	}
 
     public inline function selectCameraController(ccid) {
         return this.cameraControllerStorage.fetchRow(ccid);
@@ -85,6 +78,10 @@ class SceneStorage {
 		this.entityStorage.reset();
 		this.cameraControllerStorage.reset();
 		this.gpuParticleStorage.reset();
+		this.particlesStorage.reset();
+		this.emitterStorage.reset();
+		this.skinStorage.reset();
+		this.meshBatchStorage.reset();
 	}
 }
 

@@ -23,6 +23,31 @@ private enum abstract ObjectFlags(Int) {
 	}
 }
 
+enum ObjectType {
+	TScene; // todo, pretty sure this should go soon
+	TObject;
+	TGraphics;
+	TBox;
+	TSphere;
+	TMesh;
+	TMeshBatch;
+	TMeshMaterial;
+	TSkin;
+	TSkinJoint;
+	TParticles;
+	TGpuParticles;
+	TEmitter;
+	TWorld;
+	TFwdDirLight;
+	TFwdPointLight;
+	TPbrDecal;
+	TPbrDirLight;
+	TPbrPointLight;
+	TPbrSpotLight;
+	TCameraController;
+	TInteractive;
+}
+
 enum abstract AnimationResult(Int) {
 	var Removed;
 	var Animated;
@@ -220,10 +245,6 @@ class Object implements hxd.impl.Serializable {
 
 	public static function createMeshWithMaterials( primitive, ?materials = null, ?parent = null ) {
 		return new Mesh(primitive, materials == null ? [] : materials, parent);
-	}
-
-	public static function createSkin( s, ?mat = null, ?parent = null ) {
-		return new Skin(s, mat, parent);
 	}
 
 	@:allow(h3d.scene.Skin.getObjectByName)
