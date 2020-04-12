@@ -43,7 +43,6 @@ class BufferObject extends AnimatedObject {
 		return o;
 	}
 }
-
 class BufferAnimation extends Animation {
 
 	var syncFrame : Float;

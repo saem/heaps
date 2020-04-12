@@ -12,6 +12,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	public var camera : h3d.Camera;
 
 	private var cameraControllerId = CameraController.CameraControllerId.nullRef();
+	private var cameraControllerSystem: CameraController.CameraControllerEventHandlerSystem;
 
 	/**
 		The scene light system. Can be customized.
@@ -54,7 +55,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		if( createRenderer ) renderer = h3d.mat.MaterialSetup.current.createRenderer();
 		if( createLightSystem ) lightSystem = h3d.mat.MaterialSetup.current.createLightSystem();
 
-		this.sceneStorage = new SceneStorage(this);
+		this.sceneStorage = new SceneStorage();
 	}
 
 	function set_renderer(r) {
@@ -65,6 +66,9 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 
 	@:noCompletion @:dox(hide) public function setEvents(events) {
 		this.events = events;
+		this.cameraControllerSystem = (events == null) ?
+			null :
+			new CameraController.CameraControllerEventHandlerSystem(this.events, this.camera);
 	}
 
 	/**
@@ -463,9 +467,25 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	#end
 
 	public function createCameraController( ?distance : Float ) {
-		this.cameraControllerId = this.sceneStorage.insertCameraController(distance);
+		this.cameraControllerId = this.sceneStorage.insertCameraController(this.cameraControllerSystem, distance);
 
-		return this.sceneStorage.selectCameraController(this.cameraControllerId);
+        // Crappy On Insert Trigger
+		final ccr:CameraController.CameraControllerRow = this.sceneStorage.selectCameraController(this.cameraControllerId);
+		// There is a side-effect in the controller and onAdd which causes a bug if you don't keep this order.
+		final controller = new h3d.scene.CameraController(ccr);
+        CameraController.onAdd(ccr, this, this.camera);
+
+		return controller;
+	}
+
+	public function createSkin( ?skinData:h3d.anim.Skin = null, ?materials : Array<h3d.mat.Material> = null, ?parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final id = this.sceneStorage.insertSkin(eid, skinData);
+
+		final rowRef = new h3d.scene.Skin.SkinRowRef(id, this.sceneStorage);
+
+		return new h3d.scene.Skin(rowRef, materials, parent);
 	}
 
 	public function createMeshBatch( primitive : h3d.prim.MeshPrimitive, materials : Array<h3d.mat.Material> = null, parent : Object = null ) {

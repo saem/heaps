@@ -1,48 +1,32 @@
 package h3d.scene;
 
 class CameraController {
+	public final row: CameraControllerRow;
 
-	public var entityId(default, null): h3d.scene.SceneStorage.EntityId;
-	public final id: CameraControllerId = new CameraControllerId(1);
-
-	public var distance(get, never) : Float;
-	public var theta(get, never) : Float;
-	public var phi(get, never) : Float;
-	public var fovY(get, never) : Float;
-	public var target(get, never) : h3d.col.Point;
-
-	public var friction = 0.4;
-	public var rotateSpeed = 1.;
-	public var zoomAmount = 1.15;
-	public var fovZoomAmount = 1.1;
-	public var panSpeed = 1.;
-	public var smooth = 0.6;
-
-	public var lockZPlanes = false;
-
-	var scene : h3d.scene.Scene;
-	var pushing = -1;
-	var pushX = 0.;
-	var pushY = 0.;
-	var moveX = 0.;
-	var moveY = 0.;
-	var curPos = new h3d.Vector();
-	var curOffset = new h3d.Vector();
-	var targetPos = new h3d.Vector(10. / 25., Math.PI / 4, Math.PI * 5 / 13);
-	var targetOffset = new h3d.Vector(0, 0, 0, 0);
-
-	private function new(entityId: h3d.scene.SceneStorage.EntityId, scene:h3d.scene.Scene, ?distance: Float) {
-		this.entityId = entityId;
-		this.scene = scene;
-		set(distance);
+	@:allow(h3d.scene.Scene.createCameraController)
+	private function new(row: CameraControllerRow) {
+		this.row = row;
 		toTarget();
 	}
 
-	inline function get_distance() return curPos.x / curOffset.w;
-	inline function get_theta() return curPos.y;
-	inline function get_phi() return curPos.z;
-	inline function get_fovY() return curOffset.w;
-	inline function get_target() return curOffset.toPoint();
+	public static function onAdd( row : CameraControllerRow, scene : h3d.scene.Scene, camera : h3d.Camera) {
+		scene.addEventListener(row.onEvent);
+
+		final curOffset = row.curOffset;
+		final curPos = row.curPos;
+		if( curOffset.w == 0 )
+			curPos.x *= camera.fovY;
+		curOffset.w = camera.fovY; // load
+		row.targetPos.load(curPos);
+		row.targetOffset.load(curOffset);
+	}
+
+	/**
+		TODO - tie into deletion/removal code, which currently doesn't exist.
+	**/
+	public static function onRemove( row : CameraControllerRow, scene : h3d.scene.Scene ) {
+		scene.removeEventListener(row.onEvent);
+	}
 
 	/**
 		Set the controller parameters.
@@ -51,6 +35,8 @@ class CameraController {
 		Target is the target position
 	**/
 	public function set(?distance:Float, ?theta:Float, ?phi:Float, ?target:h3d.col.Point, ?fovY:Float) {
+		final targetPos = this.row.targetPos;
+		final targetOffset = this.row.targetOffset;
 		if( theta != null )
 			targetPos.y = theta;
 		if( phi != null )
@@ -68,6 +54,8 @@ class CameraController {
 		Call if you want to modify manually the camera.
 	**/
 	public function loadFromCamera( camera : h3d.Camera, animate = false ) {
+		final targetOffset = this.row.targetOffset;
+		final targetPos = this.row.targetPos;
 		targetOffset.load(camera.target);
 		targetOffset.w = camera.fovY;
 
@@ -76,12 +64,12 @@ class CameraController {
 		targetPos.set(r, Math.atan2(pos.y, pos.x), Math.acos(pos.z / r));
 		targetPos.x *= targetOffset.w;
 
-		curOffset.w = camera.fovY;
+		this.row.curOffset.w = camera.fovY;
 
 		if( !animate )
 			toTarget();
 		else
-			syncCamera(camera); // reset camera to current
+			CameraController.syncCamera(this.row, camera); // reset camera to current
 	}
 
 	/**
@@ -103,66 +91,115 @@ class CameraController {
 		Call after set() if you don't want to animate the change
 	**/
 	public function toTarget() {
-		curPos.load(targetPos);
-		curOffset.load(targetOffset);
+		this.row.curPos.load(this.row.targetPos);
+		this.row.curOffset.load(this.row.targetOffset);
 	}
 
-	public function onAdd( scene : h3d.scene.Scene, camera : h3d.Camera) {
-		scene.addEventListener(onEvent);
-		if( curOffset.w == 0 )
-			curPos.x *= camera.fovY;
-		curOffset.w = camera.fovY; // load
-		targetPos.load(curPos);
-		targetOffset.load(curOffset);
+	static function syncCamera( row : CameraControllerRow, cam : h3d.Camera ) {
+		cam.target.load(row.curOffset);
+		cam.target.w = 1;
+		cam.pos.set( row.distance * Math.cos(row.theta) * Math.sin(row.phi) + cam.target.x, row.distance * Math.sin(row.theta) * Math.sin(row.phi) + cam.target.y, row.distance * Math.cos(row.phi) + cam.target.z );
+		if( !row.lockZPlanes ) {
+			cam.zNear = row.distance * 0.01;
+			cam.zFar = row.distance * 100;
+		}
+		cam.fovY = row.curOffset.w;
 	}
 
-	public function onRemove( scene : h3d.scene.Scene ) {
-		scene.removeEventListener(onEvent);
+	public static function sync( row : CameraControllerRow, camera : h3d.Camera, elapsedTime: Float) {
+		final targetPos = row.targetPos;
+		if( row.moveX != 0 ) {
+			targetPos.y += row.moveX * 0.003 * row.rotateSpeed;
+			row.moveX *= 1 - row.friction;
+			if( Math.abs(row.moveX) < 1 ) row.moveX = 0;
+		}
+
+		if( row.moveY != 0 ) {
+			targetPos.z -= row.moveY * 0.003 * row.rotateSpeed;
+			var E = 2e-5;
+			var bound = Math.PI - E;
+			if( targetPos.z < E ) targetPos.z = E;
+			if( targetPos.z > bound ) targetPos.z = bound;
+			row.moveY *= 1 - row.friction;
+			if( Math.abs(row.moveY) < 1 ) row.moveY = 0;
+		}
+
+		var dt = hxd.Math.min(1, 1 - Math.pow(row.smooth, elapsedTime * 60));
+		row.curOffset.lerp(row.curOffset, row.targetOffset, dt);
+		row.curPos.lerp(row.curPos, targetPos, dt );
+
+		CameraController.syncCamera( row , camera );
+	}
+}
+
+abstract CameraControllerEventHandler(CameraControllerEventHandlerSystem) {
+	private inline function new(c:CameraControllerEventHandlerSystem) {
+		this = c;
 	}
 
-	function onEvent( e : hxd.Event ) {
+	public inline function onEvent(row:CameraControllerRow,e:hxd.Event):Void {
+		this.rowEventHandler(row, e);
+	}
 
+	@:from
+	static inline function fromCameraControllerEventHandlerSystem(c:CameraControllerEventHandlerSystem): CameraControllerEventHandler {
+		return cast c;
+	}
+}
+
+class CameraControllerEventHandlerSystem {
+	final camera: h3d.Camera;
+	final sceneEvents: hxd.SceneEvents;
+	
+	public function new(sceneEvents: hxd.SceneEvents, camera: h3d.Camera) {
+		this.sceneEvents = sceneEvents;
+		this.camera = camera;
+	}
+
+	public function rowEventHandler(row: CameraControllerRow, e: hxd.Event): Void {	
 		switch( e.kind ) {
 		case EWheel:
 			if( hxd.Key.isDown(hxd.Key.CTRL) )
-				fov(e.wheelDelta * fovZoomAmount * 2);
+				fov(row, e.wheelDelta * row.fovZoomAmount * 2);
 			else
-				zoom(e.wheelDelta);
+				zoom(row, e.wheelDelta);
 		case EPush:
-			@:privateAccess scene.events.startDrag(onEvent, function() pushing = -1, e);
-			pushing = e.button;
-			pushX = e.relX;
-			pushY = e.relY;
+			sceneEvents.startDrag(row.onEvent, function() row.pushing = -1, e);
+			row.pushing = e.button;
+			push(row, e.relX, e.relY);
 		case ERelease, EReleaseOutside:
-			if( pushing == e.button ) {
-				pushing = -1;
-				@:privateAccess scene.events.stopDrag();
+			if( row.pushing == e.button ) {
+				row.pushing = -1;
+				sceneEvents.stopDrag();
 			}
 		case EMove:
-			switch( pushing ) {
+			switch( row.pushing ) {
 			case 0:
 				if( hxd.Key.isDown(hxd.Key.ALT) )
-					zoom(-((e.relX - pushX) +  (e.relY - pushY)) * 0.03);
+					zoom(row, -((e.relX - row.pushX) +  (e.relY - row.pushY)) * 0.03);
 				else
-					rot(e.relX - pushX, e.relY - pushY);
-				pushX = e.relX;
-				pushY = e.relY;
+					rot(row, e.relX - row.pushX, e.relY - row.pushY);
+				push(row, e.relX, e.relY);
 			case 1:
-				var m = 0.001 * curPos.x * panSpeed / 25;
-				pan(-(e.relX - pushX) * m, (e.relY - pushY) * m);
-				pushX = e.relX;
-				pushY = e.relY;
+				var m = 0.001 * row.curPos.x * row.panSpeed / 25;
+				pan(row, camera, -(e.relX - row.pushX) * m, (e.relY - row.pushY) * m);
+				push(row, e.relX, e.relY);
 			case 2:
-				rot(e.relX - pushX, e.relY - pushY);
-				pushX = e.relX;
-				pushY = e.relY;
+				rot(row, e.relX - row.pushX, e.relY - row.pushY);
+				push(row, e.relX, e.relY);
 			default:
 			}
 		default:
 		}
 	}
 
-	function fov(delta) {
+	static inline function push(row:CameraControllerRow, pushX:Float, pushY:Float) {
+		row.pushX = pushX;
+		row.pushY = pushY;
+	}
+
+	static function fov(row:CameraControllerRow, delta:Float) {
+		final targetOffset = row.targetOffset;
 		targetOffset.w += delta;
 		if( targetOffset.w >= 179 )
 			targetOffset.w = 179;
@@ -170,65 +207,26 @@ class CameraController {
 			targetOffset.w = 1;
 	}
 
-	function zoom(delta) {
-		targetPos.x *= Math.pow(zoomAmount, delta);
+	static function zoom(row:CameraControllerRow, delta:Float) {
+		row.targetPos.x *= Math.pow(row.zoomAmount, delta);
 	}
 
-	function rot(dx, dy) {
-		moveX += dx;
-		moveY += dy;
+	static function rot(row:CameraControllerRow, dx:Float, dy:Float) {
+		row.moveX += dx;
+		row.moveY += dy;
 	}
 
-	function pan(dx, dy) {
+	static function pan(row:CameraControllerRow, camera:h3d.Camera, dx:Float, dy:Float) {
 		var v = new h3d.Vector(dx, dy);
-		scene.camera.update();
-		v.transform3x3(scene.camera.getInverseView());
+		camera.update();
+		v.transform3x3(camera.getInverseView());
 		v.w = 0;
-		targetOffset = targetOffset.add(v);
+		row.targetOffset = row.targetOffset.add(v);
 	}
-
-	function syncCamera( cam : h3d.Camera ) {
-		cam.target.load(curOffset);
-		cam.target.w = 1;
-		cam.pos.set( distance * Math.cos(theta) * Math.sin(phi) + cam.target.x, distance * Math.sin(theta) * Math.sin(phi) + cam.target.y, distance * Math.cos(phi) + cam.target.z );
-		if( !lockZPlanes ) {
-			cam.zNear = distance * 0.01;
-			cam.zFar = distance * 100;
-		}
-		cam.fovY = curOffset.w;
-	}
-
-	public static function sync( controller: h3d.scene.CameraController, camera : h3d.Camera, elapsedTime: Float) {
-
-		final targetPos = controller.targetPos;
-		if( controller.moveX != 0 ) {
-			targetPos.y += controller.moveX * 0.003 * controller.rotateSpeed;
-			controller.moveX *= 1 - controller.friction;
-			if( Math.abs(controller.moveX) < 1 ) controller.moveX = 0;
-		}
-
-		if( controller.moveY != 0 ) {
-			targetPos.z -= controller.moveY * 0.003 * controller.rotateSpeed;
-			var E = 2e-5;
-			var bound = Math.PI - E;
-			if( targetPos.z < E ) targetPos.z = E;
-			if( targetPos.z > bound ) targetPos.z = bound;
-			controller.moveY *= 1 - controller.friction;
-			if( Math.abs(controller.moveY) < 1 ) controller.moveY = 0;
-		}
-
-		var dt = hxd.Math.min(1, 1 - Math.pow(controller.smooth, elapsedTime * 60));
-		controller.curOffset.lerp(controller.curOffset, controller.targetOffset, dt);
-		controller.curPos.lerp(controller.curPos, targetPos, dt );
-
-		controller.syncCamera( camera );
-	}
-
 }
 
-abstract CameraControllerId(Int) to Int {
+abstract CameraControllerId(Int) {
 	public inline function new(i: Int) { this = i; }
-
 	public inline function nullOut() { this *= -1; }
 	public inline function isNull() { return this <= 0; }
 	public inline function isNotNull() { return !isNull(); }
@@ -236,20 +234,92 @@ abstract CameraControllerId(Int) to Int {
 	public static inline function nullRef() { return new CameraControllerId(0); }
 }
 
+private abstract CameraControllerInternalId(Int) to Int from Int {
+	public inline function new(i: Int) { this = i; }
+
+	public inline function increment() {
+		if(this < 0) this *= -1;
+		++this;
+	}
+
+	@:to
+	public inline function toCameraControllerId(): CameraControllerId {
+		return cast this;
+	}
+
+	@:from
+	public static inline function fromCameraControllerId(id: CameraControllerId): CameraControllerInternalId {
+		return cast id;
+	}
+}
+
+typedef CameraEventHandler = (e: hxd.Event) -> Void;
+
+class CameraControllerRow {
+	public var id: CameraControllerId;
+
+	public var distance(get, never) : Float;
+	public var theta(get, never) : Float;
+	public var phi(get, never) : Float;
+	public var fovY(get, never) : Float;
+
+	public var targetFovY(get,set) : Float;
+	inline function get_targetFovY() return targetOffset.w;
+	inline function set_targetFovY(f) return targetOffset.w = Math.min(Math.max(f, 1.), 179);
+
+	public var friction = 0.4;
+	public var rotateSpeed = 1.;
+	public var zoomAmount = 1.15;
+	public var fovZoomAmount = 1.1;
+	public var panSpeed = 1.;
+	public var smooth = 0.6;
+
+	public var lockZPlanes = false;
+
+	public var pushing = -1;
+	public var pushX = 0.;
+	public var pushY = 0.;
+	public var moveX = 0.;
+	public var moveY = 0.;
+	public var curPos = new h3d.Vector();
+	public var curOffset = new h3d.Vector();
+	public var targetPos = new h3d.Vector(10. / 25., Math.PI / 4, Math.PI * 5 / 13);
+	public var targetOffset = new h3d.Vector(0, 0, 0, 0);
+
+	public var eventHandler: CameraControllerEventHandler;
+
+	inline function get_distance() return curPos.x / curOffset.w;
+	inline function get_theta() return curPos.y;
+	inline function get_phi() return curPos.z;
+	inline function get_fovY() return curOffset.w;
+	inline function get_target() return curOffset.toPoint();
+
+	public function new(id:CameraControllerId, rowEventHandler:CameraControllerEventHandler, ?distance: Float) {
+		this.id = id;
+		this.targetPos.x = distance;
+		this.eventHandler = rowEventHandler;
+	}
+
+	public function onEvent(e:hxd.Event):Void {
+		this.eventHandler.onEvent(this, e);
+	}
+}
+
 /**
 	Went overboard with the checks here, especially with the static id
 **/
 class CameraControllerStorage {
-	var row: CameraController = null;
+	var currentId: CameraControllerInternalId = CameraControllerId.nullRef();
+	var row: CameraControllerRow = null;
 
 	public function new() {}
 
-	public function allocateRow(entityId: h3d.scene.SceneStorage.EntityId, scene:h3d.scene.Scene, ?distance: Float) {
+	public function allocateRow(eventHandler: CameraControllerEventHandler, ?distance: Float):CameraControllerId {
 		if( row != null ) {
 			throw "CameraController already allocated, must be singleton";
 		}
-
-		this.row = @:privateAccess new CameraController(entityId, scene, distance);
+		this.currentId.increment();
+		this.row = new CameraControllerRow(this.currentId, eventHandler, distance);
 
 		return this.row.id;
 	}
