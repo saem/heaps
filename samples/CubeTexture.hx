@@ -17,14 +17,14 @@ class CubeTexture extends hxd.App {
 
 		var sky = new h3d.prim.Sphere(30, 128, 128);
 		sky.addNormals();
-		var skyMesh = h3d.scene.Object.createMesh(sky, s3d);
+		var skyMesh = this.s3d.createMesh(sky, s3d);
 		skyMesh.material.mainPass.culling = Front;
 		skyMesh.material.mainPass.addShader(new h3d.shader.CubeMap(skyTexture));
 		skyMesh.material.shadows = false;
 
 		var sp = new h3d.prim.Sphere(0.5, 64, 64);
 		sp.addNormals();
-		var m = h3d.scene.Object.createMesh(sp, null, s3d);
+		var m = this.s3d.createMesh(sp, null, s3d);
 		m.material.mainPass.enableLights = true;
 		m.material.shadows = false;
 		m.material.mainPass.addShader(new h3d.shader.CubeMap(skyTexture, true));

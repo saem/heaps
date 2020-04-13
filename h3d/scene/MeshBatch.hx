@@ -31,17 +31,14 @@ class MeshBatch extends Mesh {
 	inline function set_shadersChanged(s) return this.mbRow.shadersChanged = s;
 
 	@:allow(h3d.scene.Scene.createMeshBatch)
-	private function new( mbRowRef:MeshBatchRowRef, primitive:h3d.prim.MeshPrimitive, material:Array<h3d.mat.Material> = null, parent:h3d.scene.Object ) {
+	private function new( mbRowRef:MeshBatchRowRef, mRowRef: h3d.scene.Mesh.MeshRowRef, parent:h3d.scene.Object ) {
 		this.mbRowRef = mbRowRef;
 		this.mbRow = this.mbRowRef.getRow();
+		
+		super(mRowRef, parent);
 
-		this.mbRow.instanced.setMesh(primitive);
-
-		super(this.mbRow.instanced, material, parent);
 		for( p in this.material.getPasses() )
 			@:privateAccess p.batchMode = true;
-
-		this.mbRow.indexCount = primitive.indexes == null ? primitive.triCount() * 3 : primitive.indexes.count;
 	}
 
 	override function onRemove() {
@@ -328,12 +325,14 @@ class MeshBatchRow {
 	**/
 	public var shadersChanged = true;
 
-	public function new(id:MeshBatchId, iid:InternalMeshBatchId, eid:h3d.scene.SceneStorage.EntityId) {
+	public function new(id:MeshBatchId, iid:InternalMeshBatchId, eid:h3d.scene.SceneStorage.EntityId, meshPrim: h3d.prim.MeshPrimitive) {
 		this.id = id;
 		this.internalId = iid;
 		this.entityId = eid;
 
+		this.instanced.setMesh(meshPrim);
 		this.instanced.commands = new h3d.impl.InstanceBuffer();
+		this.indexCount = meshPrim.indexes == null ? meshPrim.triCount() * 3 : meshPrim.indexes.count;
 	}
 }
 
@@ -344,12 +343,12 @@ class MeshBatchStorage {
 	
 	public function new() {}
 
-	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId) {
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId, meshPrim: h3d.prim.MeshPrimitive) {
 		final id = sequence.next();
 
 		this.entityIdToMeshBatchIdIndex.set(eid, id);
 		final iid = externalToInternalId(id);
-		this.storage.set(iid, new MeshBatchRow(id, iid, eid));
+		this.storage.set(iid, new MeshBatchRow(id, iid, eid, meshPrim));
 
 		return id;
 	}

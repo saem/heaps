@@ -4,6 +4,7 @@ import hds.Map;
 class SceneStorage {
     public final entityStorage: EntityStorage = new EntityStorage();
     public final cameraControllerStorage = new CameraController.CameraControllerStorage();
+    public final meshStorage = new h3d.scene.Mesh.MeshStorage();
     public final gpuParticleStorage = new h3d.parts.GpuParticles.GpuParticlesStorage();
     public final emitterStorage = new h3d.parts.Emitter.EmitterStorage();
     public final particlesStorage = new h3d.parts.Particles.ParticlesStorage();
@@ -19,6 +20,15 @@ class SceneStorage {
 	public function insertEntity(): EntityId {
 		return this.entityStorage.allocateRow();
 	}
+    
+    public function insertMesh(eid: EntityId, primitive: h3d.prim.Primitive, materials: Array<h3d.mat.Material>): h3d.scene.Mesh.MeshId {
+        return this.meshStorage.allocateRow(eid, primitive, materials);
+	}
+
+    // The return type here isn't the best, return the raw row.
+    public function selectMesh(gid: h3d.scene.Mesh.MeshId): h3d.scene.Mesh.MeshRow {
+        return this.meshStorage.fetchRow(gid);
+    }
     
     public function insertSkin(eid: EntityId, skinData: h3d.anim.Skin): h3d.scene.Skin.SkinId {
         return this.skinStorage.allocateRow(eid, skinData);
@@ -38,8 +48,8 @@ class SceneStorage {
         return this.graphicsStorage.fetchRow(gid);
     }
     
-    public function insertBox(eid: EntityId, colour: Int, bounds: h3d.col.Bounds, depth: Bool): h3d.scene.Box.BoxId {
-        return this.boxStorage.allocateRow(eid);
+    public function insertBox(eid: EntityId, colour: UInt, bounds: h3d.col.Bounds): h3d.scene.Box.BoxId {
+        return this.boxStorage.allocateRow(eid, colour, bounds);
 	}
 
     // The return type here isn't the best, return the raw row.
@@ -47,8 +57,8 @@ class SceneStorage {
         return this.boxStorage.fetchRow(gid);
     }
     
-    public function insertSphere(eid: EntityId, colour: Int, radius: Float, depth: Bool): h3d.scene.Sphere.SphereId {
-        return this.sphereStorage.allocateRow(eid);
+    public function insertSphere(eid: EntityId, colour: Int, radius: Float): h3d.scene.Sphere.SphereId {
+        return this.sphereStorage.allocateRow(eid, colour, radius);
 	}
 
     // The return type here isn't the best, return the raw row.
@@ -65,8 +75,8 @@ class SceneStorage {
         return this.decalStorage.fetchRow(gid);
     }
     
-    public function insertMeshBatch(eid: EntityId): h3d.scene.MeshBatch.MeshBatchId {
-        return this.meshBatchStorage.allocateRow(eid);
+    public function insertMeshBatch(eid: EntityId, meshPrim: h3d.prim.MeshPrimitive): h3d.scene.MeshBatch.MeshBatchId {
+        return this.meshBatchStorage.allocateRow(eid, meshPrim);
 	}
 
     // The return type here isn't the best, return the raw row.
@@ -74,8 +84,7 @@ class SceneStorage {
         return this.meshBatchStorage.fetchRow(gid);
     }
     
-    public function insertGpuParticles(): h3d.parts.GpuParticles.GpuParticlesId {
-        final eid = this.entityStorage.allocateRow();
+    public function insertGpuParticles(eid: EntityId): h3d.parts.GpuParticles.GpuParticlesId {
         return this.gpuParticleStorage.allocateRow(eid);
 	}
 
@@ -117,6 +126,7 @@ class SceneStorage {
 	public function reset() {
 		this.entityStorage.reset();
 		this.cameraControllerStorage.reset();
+		this.meshStorage.reset();
 		this.gpuParticleStorage.reset();
 		this.particlesStorage.reset();
 		this.emitterStorage.reset();
@@ -124,6 +134,7 @@ class SceneStorage {
 		this.skinStorage.reset();
 		this.graphicsStorage.reset();
 		this.boxStorage.reset();
+		this.sphereStorage.reset();
 		this.decalStorage.reset();
 	}
 }

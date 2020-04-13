@@ -7,11 +7,12 @@ class Box extends Graphics {
 	private final bRow : BoxRow;
 
 	@:allow(h3d.scene.Scene.createBox)
-	private function new( bRowRef : BoxRowRef, gRowRef : Graphics.GraphicsRowRef, ?depth : Bool = true, ?parent : Object = null) {
+	private function new( bRowRef : BoxRowRef, gRowRef : Graphics.GraphicsRowRef, mRowRef : h3d.scene.Mesh.MeshRowRef, ?depth : Bool = true, ?parent : Object = null) {
 		this.bRowRef = bRowRef;
 		this.bRow = bRowRef.getRow();
+		
+		super(gRowRef, mRowRef, parent);
 
-		super(gRowRef, parent);
 		if( !depth ) material.mainPass.depth(true, Always);
 	}
 
@@ -113,8 +114,8 @@ class BoxRow {
 	public var internalId: InternalBoxId;
 	public var entityId(default,null): h3d.scene.SceneStorage.EntityId;
 
-	public var color : Int;
-	public var bounds : h3d.col.Bounds;
+	public var color : UInt = 0xFFFF0000;
+	public var bounds : h3d.col.Bounds = null;
 	public var thickness = 1.0;
 	public var prevXMin = 1e9;
 	public var prevYMin = 1e9;
@@ -122,11 +123,6 @@ class BoxRow {
 	public var prevXMax = -1e9;
 	public var prevYMax = -1e9;
 	public var prevZMax = -1e9;
-
-	/**
-		Setting is3D to true will switch from a screen space line (constant size whatever the distance) to a world space line
-	**/
-	public var is3D : Bool = true;
 
 	public function new(id:BoxId, iid:InternalBoxId, eid:h3d.scene.SceneStorage.EntityId, ?color = 0xFFFF0000, ?bounds : h3d.col.Bounds = null) {
 		this.id = id;
@@ -145,12 +141,12 @@ class BoxStorage {
 	
 	public function new() {}
 
-	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId) {
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId, colour: UInt, bounds: h3d.col.Bounds = null ) {
 		final id = sequence.next();
 
 		this.entityIdToBoxIdIndex.set(eid, id);
 		final iid = externalToInternalId(id);
-		this.storage.set(iid, new BoxRow(id, iid, eid));
+		this.storage.set(iid, new BoxRow(id, iid, eid, colour, bounds));
 
 		return id;
 	}

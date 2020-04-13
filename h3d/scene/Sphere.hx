@@ -10,11 +10,12 @@ class Sphere extends Graphics {
 	public var radius(get, set) : Float;
 
 	@:allow(h3d.scene.Scene.createSphere)
-	private function new( sRowRef : SphereRowRef, gRowRef : Graphics.GraphicsRowRef, ?depth : Bool = true, ?parent : Object ) {
+	private function new( sRowRef : SphereRowRef, gRowRef : Graphics.GraphicsRowRef, mRowRef : h3d.scene.Mesh.MeshRowRef, ?depth : Bool = true, ?parent : Object ) {
 		this.sRowRef = sRowRef;
 		this.sRow = this.sRowRef.getRow();
 
-		super(gRowRef, parent);
+		super(gRowRef, mRowRef, parent);
+
 		if( !depth ) material.mainPass.depth(true, Always);
 	}
 
@@ -118,12 +119,12 @@ class SphereStorage {
 	
 	public function new() {}
 
-	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId) {
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId, colour: Int, radius: Float) {
 		final id = sequence.next();
 
 		this.entityIdToSphereIdIndex.set(eid, id);
 		final iid = externalToInternalId(id);
-		this.storage.set(iid, new SphereRow(id, iid, eid));
+		this.storage.set(iid, new SphereRow(id, iid, eid, colour, radius));
 
 		return id;
 	}

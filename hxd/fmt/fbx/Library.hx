@@ -59,7 +59,7 @@ class Library extends BaseLibrary {
 					tmats.push(h3d.mat.Material.create(h3d.mat.Texture.fromColor(0xFF00FF)));
 				// create object
 				prim.multiMaterial = tmats.length > 1;
-				o.obj = h3d.scene.Object.createMeshWithMaterials(prim, tmats, scene);
+				o.obj = scene.createMeshWithMaterials(prim, tmats, scene);
 			} else if( o.isJoint ) {
 				var j = new h3d.anim.Skin.Joint();
 				getDefaultMatrixes(o.model); // store for later usage in animation

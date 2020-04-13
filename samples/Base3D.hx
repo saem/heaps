@@ -31,10 +31,10 @@ class Base3D extends SampleApp {
 		var mat = h3d.mat.Material.create(tex);
 
 		// our first cube mesh on the 3D scene with our created material
-		obj1 = h3d.scene.Object.createMesh(prim, mat, s3d);
+		obj1 = s3d.createMesh(prim, mat, s3d);
 
 		// creates another cube, this time with no texture
-		obj2 = h3d.scene.Object.createMesh(prim, s3d);
+		obj2 = s3d.createMesh(prim, s3d);
 
 		// set the second cube color
 		obj2.material.color.setColor(0xFFB280);

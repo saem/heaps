@@ -23,7 +23,7 @@ class Helpers extends hxd.App {
 		prim.addNormals();
 		prim.addUVs();
 
-		cube = h3d.scene.Object.createMesh( prim, s3d );
+		cube = this.s3d.createMesh( prim, s3d );
 		cube.setPosition( 0, 0, 2 );
 		cube.material.shadows = false;
 
@@ -110,7 +110,7 @@ class Helpers extends hxd.App {
 		prim.addNormals();
 		prim.addUVs();
 
-		final m = h3d.scene.Object.createMesh(prim, light);
+		final m = light.getScene().createMesh(prim, light);
 		m.material.color = light.color;
 		m.material.mainPass.wireframe = true;
 

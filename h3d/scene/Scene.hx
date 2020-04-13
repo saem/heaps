@@ -476,98 +476,143 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		return new h3d.scene.CameraController(ccr);
 	}
 
+	public function createMesh( primitive : h3d.prim.Primitive, ?material : h3d.mat.Material = null, ?parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final id = this.sceneStorage.insertMesh(eid, primitive, material == null ? [] : [material]);
+
+		final rowRef = new h3d.scene.Mesh.MeshRowRef(id, this.sceneStorage);
+
+		return new h3d.scene.Mesh(rowRef, parent);
+	}
+
+	public function createMeshWithMaterials( primitive : h3d.prim.Primitive, ?materials : Array<h3d.mat.Material> = null, ?parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final id = this.sceneStorage.insertMesh(eid, primitive, materials == null ? [] : materials);
+
+		final rowRef = new h3d.scene.Mesh.MeshRowRef(id, this.sceneStorage);
+
+		return new h3d.scene.Mesh(rowRef, parent);
+	}
+
 	public function createGraphics( ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.sceneStorage.insertEntity();
 		final id = this.sceneStorage.insertGraphics(eid);
 
 		final rowRef = new h3d.scene.Graphics.GraphicsRowRef(id, this.sceneStorage);
+		
+		// TODO - hacky, but the primitive is setup in the GraphicsRow
+		final mid = this.sceneStorage.insertMesh(eid, rowRef.getRow().bprim, null);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
 
-		return new h3d.scene.Graphics(rowRef, parent);
+		return new h3d.scene.Graphics(rowRef, mRowRef, parent);
 	}
 
 	public function createBox( ?colour = 0xFFFF0000, ?bounds : h3d.col.Bounds = null, ?depth : Bool = true, ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.sceneStorage.insertEntity();
 		final gid = this.sceneStorage.insertGraphics(eid);
-		final id = this.sceneStorage.insertBox(eid, colour, bounds, depth);
-
+		final id = this.sceneStorage.insertBox(eid, colour, bounds);
+		
 		final rowRef = new h3d.scene.Box.BoxRowRef(id, this.sceneStorage);
 		final gRowRef = new h3d.scene.Graphics.GraphicsRowRef(gid, this.sceneStorage);
+		
+		// TODO - hacky, but the primitive is setup in the GraphicsRow
+		final mid = this.sceneStorage.insertMesh(eid, gRowRef.getRow().bprim, null);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
 
-		return new h3d.scene.Box(rowRef, gRowRef, depth, parent);
+		return new h3d.scene.Box(rowRef, gRowRef, mRowRef, depth, parent);
 	}
 
 	public function createSphere( ?colour = 0xFFFF0000, ?radius : Float = 1.0, ?depth : Bool = true, ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.sceneStorage.insertEntity();
 		final gid = this.sceneStorage.insertGraphics(eid);
-		final id = this.sceneStorage.insertSphere(eid, colour, radius, depth);
-
+		final id = this.sceneStorage.insertSphere(eid, colour, radius);
+		
 		final rowRef = new h3d.scene.Sphere.SphereRowRef(id, this.sceneStorage);
 		final gRowRef = new h3d.scene.Graphics.GraphicsRowRef(gid, this.sceneStorage);
+		
+		// TODO - hacky, but the primitive is setup in the GraphicsRow
+		final mid = this.sceneStorage.insertMesh(eid, gRowRef.getRow().bprim, null);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
 
-		return new h3d.scene.Sphere(rowRef, gRowRef, depth, parent);
+		return new h3d.scene.Sphere(rowRef, gRowRef, mRowRef, depth, parent);
 	}
 
 	public function createSkin( ?skinData:h3d.anim.Skin = null, ?materials : Array<h3d.mat.Material> = null, ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.sceneStorage.insertEntity();
+		final mid = this.sceneStorage.insertMesh(eid, null, materials);
 		final id = this.sceneStorage.insertSkin(eid, skinData);
 
 		final rowRef = new h3d.scene.Skin.SkinRowRef(id, this.sceneStorage);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
 
-		return new h3d.scene.Skin(rowRef, materials, parent);
+		return new h3d.scene.Skin(rowRef, mRowRef, parent);
 	}
 
 	public function createMeshBatch( primitive : h3d.prim.MeshPrimitive, materials : Array<h3d.mat.Material> = null, parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.sceneStorage.insertEntity();
-		final id  = this.sceneStorage.insertMeshBatch(eid);
-
+		final id  = this.sceneStorage.insertMeshBatch(eid, primitive);
+		
 		final rowRef = new h3d.scene.MeshBatch.MeshBatchRowRef(id, this.sceneStorage);
+		final mid = this.sceneStorage.insertMesh(eid, rowRef.getRow().instanced, materials);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
 
-		return new h3d.scene.MeshBatch(rowRef, primitive, materials, parent);
+		return new h3d.scene.MeshBatch(rowRef, mRowRef, parent);
 	}
 
 	public function createPbrDecal( primitive : h3d.prim.Primitive, materials : Array<h3d.mat.Material> = null, parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.sceneStorage.insertEntity();
+		final mid = this.sceneStorage.insertMesh(eid, primitive, materials);
 		final id  = this.sceneStorage.insertDecal(eid);
 
 		final rowRef = new h3d.scene.pbr.Decal.DecalRowRef(id, this.sceneStorage);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
 
-		return new h3d.scene.pbr.Decal(rowRef, primitive, materials, parent);
+		return new h3d.scene.pbr.Decal(rowRef, mRowRef, parent);
 	}
 
 	public function createParticles( ?texture : h3d.mat.Texture = null, parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.sceneStorage.insertEntity();
+		final mid = this.sceneStorage.insertMesh(eid, null, null);
 		final id  = this.sceneStorage.insertParticles(eid);
 
 		final rowRef = new h3d.parts.Particles.ParticlesRowRef(id, this.sceneStorage);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
 		
-		return new h3d.parts.Particles(rowRef, texture, parent);
+		return new h3d.parts.Particles(rowRef, mRowRef, texture, parent);
 	}
 
 	public function createEmitter( ?state : h3d.parts.Data.State = null, parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.sceneStorage.insertEntity();
+		final mid = this.sceneStorage.insertMesh(eid, null, null);
 		final pid = this.sceneStorage.insertParticles(eid);
 		final id  = this.sceneStorage.insertEmitter(eid, state);
 
 		final rowRef = new h3d.parts.Emitter.EmitterRowRef(id, this.sceneStorage);
 		final pRowRef = new h3d.parts.Particles.ParticlesRowRef(pid, this.sceneStorage);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
 		
-		return new h3d.parts.Emitter(rowRef, pRowRef, parent);
+		return new h3d.parts.Emitter(rowRef, pRowRef, mRowRef, parent);
 	}
 
 	public function createGpuParticles( parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final gid = this.sceneStorage.insertGpuParticles();
+		final eid = this.sceneStorage.entityStorage.allocateRow();
+		final mid = this.sceneStorage.insertMesh(eid, null, []);
+		final gid = this.sceneStorage.insertGpuParticles(eid);
 
 		final gpuRowRef = new h3d.parts.GpuParticles.GpuParticlesRowRef(gid, this.sceneStorage);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
 
-		return new h3d.parts.GpuParticles(gpuRowRef, parent);
+		return new h3d.parts.GpuParticles(gpuRowRef, mRowRef, parent);
 	}
 }

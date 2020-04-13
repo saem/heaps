@@ -11,7 +11,7 @@ class PointLights extends hxd.App {
 		prim.translate( -0.5, -0.5, -0.5);
 		prim.addNormals();
 		for( i in 0...100 ) {
-			var b = h3d.scene.Object.createMesh(prim, s3d);
+			var b = this.s3d.createMesh(prim, s3d);
 			b.x = Math.srand() * 3;
 			b.y = Math.srand() * 3;
 			b.z = Math.srand() * 2 - 0.5;
@@ -34,7 +34,7 @@ class PointLights extends hxd.App {
 				l.color.setColor(c);
 				l.params.y = 3;
 				lights.push(l);
-				var p = h3d.scene.Object.createMesh(sphere, l);
+				var p = this.s3d.createMesh(sphere, l);
 				p.scale(0.03);
 				p.material.shadows = false;
 				p.material.mainPass.enableLights = false;

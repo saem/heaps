@@ -532,7 +532,7 @@ class World extends h3d.scene.Object {
 		var cube = new h3d.prim.Cube(chunkSize, chunkSize, 0);
 		cube.addNormals();
 		cube.addUVs();
-		var soil = h3d.scene.Object.createMesh(cube, c.root);
+		var soil = this.getScene().createMesh(cube, c.root);
 		soil.x = c.x;
 		soil.y = c.y;
 		soil.material.texture = h3d.mat.Texture.fromColor(soilColor);
@@ -552,7 +552,7 @@ class World extends h3d.scene.Object {
 				if( b == null ) {
 					var bp = new h3d.prim.BigPrimitive(getStride(model), true);
 					bp.hasTangents = enableNormalMaps;
-					b = h3d.scene.Object.createMesh(bp, c.root);
+					b = this.getScene().createMesh(bp, c.root);
 					b.name = g.m.name;
 					c.buffers.set(g.m.bits, b);
 					initMaterial(b, g.m);

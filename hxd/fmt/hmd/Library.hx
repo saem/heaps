@@ -357,9 +357,9 @@ class Library {
 					final mat = h3d.mat.MaterialSetup.current.createMaterial();
 					mat.props = mat.getDefaultProps();
 
-					obj = h3d.scene.Object.createMesh(prim, mat);
+					obj = dummyScene.createMesh(prim, mat);
 				} else {
-					obj = h3d.scene.Object.createMeshWithMaterials(prim, [for( mat in m.materials ) makeMaterial(m, mat, loadTexture)]);
+					obj = dummyScene.createMeshWithMaterials(prim, [for( mat in m.materials ) makeMaterial(m, mat, loadTexture)]);
 				}
 			}
 			obj.name = m.name;
