@@ -1,4 +1,5 @@
 package h3d.scene;
+import h3d.scene.SceneStorage.EntityId;
 
 class WorldElement {
 	public var model : WorldModel;
@@ -192,56 +193,29 @@ class WorldModel {
 }
 
 class World extends h3d.scene.Object {
-	public var worldSize : Int;
-	public var chunkSize : Int;
-	public var originX : Float = 0.;
-	public var originY : Float = 0.;
+	
+	private final wRowRef : WorldRowRef;
+	private final wRow : WorldRow;
 
-	/*
-		For each texture loaded, will call resolveSpecularTexture and have separate spec texture.
-	*/
-	public var enableSpecular = false;
-	/*
-		For each texture loaded, will call resolveNormalMap and have separate normal texture.
-	*/
-	public var enableNormalMaps = false;
-	/*
-		When enableSpecular=true, will store the specular value in the alpha channel instead of a different texture.
-		This will erase alpha value of transparent textures, so should only be used if specular is only on opaque models.
-	*/
-	public var specularInAlpha = false;
-
-	var worldStride : Int;
-	var bigTextureSize = 2048;
-	var defaultDiffuseBG = 0;
-	var defaultNormalBG = 0x8080FF;
-	var defaultSpecularBG = 0;
-
-	var soilColor = 0x408020;
-	var chunks : Array<WorldChunk>;
-	var allChunks : Array<WorldChunk>;
-	var bigTextures : Array<{ diffuse : h3d.mat.BigTexture, spec : h3d.mat.BigTexture, normal : h3d.mat.BigTexture }>;
-	var textures : Map<String, WorldMaterial>;
-	var autoCollect : Bool;
-
-	@:allow(h3d.scene.Object.createWorld)
-	private function new( chunkSize : Int, worldSize : Int, ?parent, ?autoCollect = true ) {
+	@:allow(h3d.scene.Scene.createWorld)
+	private function new(wRowRef: WorldRowRef, parent: h3d.scene.Object) {
+		this.wRowRef = wRowRef;
+		this.wRow = wRowRef.getRow();
+		
 		super(parent);
-		chunks = [];
-		bigTextures = [];
-		allChunks = [];
-		textures = new Map();
-		this.chunkSize = chunkSize;
-		this.worldSize = worldSize;
-		this.worldStride = Math.ceil(worldSize / chunkSize);
-		this.autoCollect = autoCollect;
-		if( autoCollect )
-			h3d.Engine.getCurrent().mem.garbage = garbage;
+		
+		if( this.wRow.autoCollect )
+			h3d.Engine.getCurrent().mem.garbage = this.garbage;
+	}
+
+	override function onRemove() {
+		super.onRemove();
+		this.wRowRef.deleteRow();
 	}
 
 	public function garbage() {
 		var last : WorldChunk = null;
-		for( c in allChunks )
+		for( c in this.wRow.allChunks )
 			if( c.initialized && !c.root.visible && (last == null || c.lastFrame < last.lastFrame) )
 				last = c;
 		if( last != null )
@@ -256,7 +230,7 @@ class World extends h3d.scene.Object {
 			],
 			defaults : [],
 		};
-		if(enableNormalMaps) {
+		if(this.wRow.enableNormalMaps) {
 			r.defaults[r.fmt.length] = new h3d.Vector(1,0,0);
 			r.fmt.push(new hxd.fmt.hmd.Data.GeometryFormat("tangent", DVec3));
 		}
@@ -301,14 +275,14 @@ class World extends h3d.scene.Object {
 
 	function loadMaterialTexture( r : hxd.res.Model, mat : hxd.fmt.hmd.Data.Material, modelName : String ) : WorldMaterial {
 		var texturePath = resolveTexturePath(r, mat);
-		var m = textures.get(texturePath);
+		var m = this.wRow.textures.get(texturePath);
 		if( m != null )
 			return m;
 
 		var rt = hxd.res.Loader.currentInstance.load(texturePath).toImage();
 		var t = null;
 		var btex = null;
-		for( b in bigTextures ) {
+		for( b in this.wRow.bigTextures ) {
 			t = b.diffuse.add(rt);
 			if( t != null ) {
 				btex = b;
@@ -316,9 +290,9 @@ class World extends h3d.scene.Object {
 			}
 		}
 		if( t == null ) {
-			var b = new h3d.mat.BigTexture(bigTextures.length, bigTextureSize, defaultDiffuseBG);
+			var b = new h3d.mat.BigTexture(this.wRow.bigTextures.length, this.wRow.bigTextureSize, this.wRow.defaultDiffuseBG);
 			btex = { diffuse : b, spec : null, normal : null };
-			bigTextures.unshift( btex );
+			this.wRow.bigTextures.unshift( btex );
 			t = b.add(rt);
 			if( t == null ) throw "Texture " + texturePath + " is too big";
 		}
@@ -332,17 +306,17 @@ class World extends h3d.scene.Object {
 		}
 
 		var specTex = null;
-		if( enableSpecular ) {
+		if( this.wRow.enableSpecular ) {
 			var res = resolveSpecularTexture(texturePath, mat);
 			checkSize(res);
-			if( specularInAlpha ) {
+			if( this.wRow.specularInAlpha ) {
 				if( res != null ) {
 					t.setAlpha(res);
 					specTex = t;
 				}
 			} else {
 				if( btex.spec == null )
-					btex.spec = new h3d.mat.BigTexture(-1, bigTextureSize, defaultSpecularBG);
+					btex.spec = new h3d.mat.BigTexture(-1, this.wRow.bigTextureSize, this.wRow.defaultSpecularBG);
 				if( res != null )
 					specTex = btex.spec.add(res);
 				else
@@ -351,11 +325,11 @@ class World extends h3d.scene.Object {
 		}
 
 		var normalMap = null;
-		if( enableNormalMaps ) {
+		if( this.wRow.enableNormalMaps ) {
 			var res = resolveNormalMap(texturePath, mat);
 			checkSize(res);
 			if( btex.normal == null )
-				btex.normal = new h3d.mat.BigTexture(-1, bigTextureSize, defaultNormalBG);
+				btex.normal = new h3d.mat.BigTexture(-1, this.wRow.bigTextureSize, this.wRow.defaultNormalBG);
 			if( res != null )
 				normalMap = btex.normal.add(res);
 			else
@@ -373,12 +347,12 @@ class World extends h3d.scene.Object {
 		m.culling = true;
 		m.stencil = null;
 		m.updateBits();
-		textures.set(texturePath, m);
+		this.wRow.textures.set(texturePath, m);
 		return m;
 	}
 
 	public function done() {
-		for( b in bigTextures ) {
+		for( b in this.wRow.bigTextures ) {
 			b.diffuse.done();
 			if(b.spec != null)
 				b.spec.done();
@@ -432,7 +406,7 @@ class World extends h3d.scene.Object {
 				var vl = data.vertexes;
 				var p = 0;
 				var extra = model.stride - 8;
-				if(enableNormalMaps)
+				if(this.wRow.enableNormalMaps)
 					extra -= 3;
 
 				for( i in 0...m.vertexCount ) {
@@ -443,7 +417,7 @@ class World extends h3d.scene.Object {
 					var ny = vl[p++];
 					var nz = vl[p++];
 					var tx = 1., ty = 0., tz = 0.;
-					if(enableNormalMaps) {
+					if(this.wRow.enableNormalMaps) {
 						tx = vl[p++];
 						ty = vl[p++];
 						tz = vl[p++];
@@ -467,7 +441,7 @@ class World extends h3d.scene.Object {
 					model.buf.push(n.y * len);
 					model.buf.push(n.z * len);
 
-					if( enableNormalMaps ) {
+					if( this.wRow.enableNormalMaps ) {
 						var t = new h3d.Vector(tx, ty, tz);
 						var tlen = t.length();
 						t.transform3x3(pos);
@@ -497,45 +471,45 @@ class World extends h3d.scene.Object {
 	}
 
 	function getChunk( x : Float, y : Float, create = false ) {
-		var ix = Std.int((x - originX) / chunkSize);
-		var iy = Std.int((y - originY) / chunkSize);
+		var ix = Std.int((x - this.wRow.originX) / this.wRow.chunkSize);
+		var iy = Std.int((y - this.wRow.originY) / this.wRow.chunkSize);
 		if( ix < 0 ) ix = 0;
 		if( iy < 0 ) iy = 0;
-		var cid = ix + iy * worldStride;
-		var c = chunks[cid];
+		var cid = ix + iy * this.wRow.worldStride;
+		var c = this.wRow.chunks[cid];
 		if( c == null && create ) {
 			c = new WorldChunk(ix, iy);
-			c.x = ix * chunkSize + originX;
-			c.y = iy * chunkSize + originY;
+			c.x = ix * this.wRow.chunkSize + this.wRow.originX;
+			c.y = iy * this.wRow.chunkSize + this.wRow.originY;
 			addChild(c.root);
-			chunks[cid] = c;
-			allChunks.push(c);
+			this.wRow.chunks[cid] = c;
+			this.wRow.allChunks.push(c);
 		}
 		return c;
 	}
 
 	function initChunksBounds() {
-		var n = Std.int(worldSize / chunkSize);
+		var n = Std.int(this.wRow.worldSize / this.wRow.chunkSize);
 		for(x in 0...n)
 			for(y in 0...n) {
-				var c = getChunk(x * chunkSize + originX, y * chunkSize + originY);
+				var c = getChunk(x * this.wRow.chunkSize + this.wRow.originX, y * this.wRow.chunkSize + this.wRow.originY);
 				if(c == null)
 					continue;
 				c.bounds.addPoint(new h3d.col.Point(c.x, c.y));
-				c.bounds.addPoint(new h3d.col.Point(c.x + chunkSize, c.y));
-				c.bounds.addPoint(new h3d.col.Point(c.x + chunkSize, c.y + chunkSize));
-				c.bounds.addPoint(new h3d.col.Point(c.x, c.y + chunkSize));
+				c.bounds.addPoint(new h3d.col.Point(c.x + this.wRow.chunkSize, c.y));
+				c.bounds.addPoint(new h3d.col.Point(c.x + this.wRow.chunkSize, c.y + this.wRow.chunkSize));
+				c.bounds.addPoint(new h3d.col.Point(c.x, c.y + this.wRow.chunkSize));
 			}
 	}
 
 	function initChunkSoil( c : WorldChunk ) {
-		var cube = new h3d.prim.Cube(chunkSize, chunkSize, 0);
+		var cube = new h3d.prim.Cube(this.wRow.chunkSize, this.wRow.chunkSize, 0);
 		cube.addNormals();
 		cube.addUVs();
 		var soil = this.getScene().createMesh(cube, c.root);
 		soil.x = c.x;
 		soil.y = c.y;
-		soil.material.texture = h3d.mat.Texture.fromColor(soilColor);
+		soil.material.texture = h3d.mat.Texture.fromColor(this.wRow.soilColor);
 		soil.material.shadows = true;
 	}
 
@@ -551,7 +525,7 @@ class World extends h3d.scene.Object {
 				var b = c.buffers.get(g.m.bits);
 				if( b == null ) {
 					var bp = new h3d.prim.BigPrimitive(getStride(model), true);
-					bp.hasTangents = enableNormalMaps;
+					bp.hasTangents = this.wRow.enableNormalMaps;
 					b = this.getScene().createMesh(bp, c.root);
 					b.name = g.m.name;
 					c.buffers.set(g.m.bits, b);
@@ -602,7 +576,7 @@ class World extends h3d.scene.Object {
 		}
 
 		if( mat.spec != null ) {
-			if( specularInAlpha ) {
+			if( this.wRow.specularInAlpha ) {
 				mesh.material.specularTexture = null;
 				mesh.material.textureShader.specularAlpha = true;
 			} else
@@ -610,7 +584,7 @@ class World extends h3d.scene.Object {
 		} else
 			mesh.material.specularAmount = 0;
 
-		if(enableNormalMaps)
+		if(this.wRow.enableNormalMaps)
 			mesh.material.normalMap = mat.normal.t.tex;
 
 	}
@@ -620,27 +594,27 @@ class World extends h3d.scene.Object {
 		Note: Only chunked world objects will be disposed. Any objects added to World object will be disposed when World is removed from scene or scene is disposed.
 	**/
 	public function dispose() {
-		for( c in allChunks )
+		for( c in this.wRow.allChunks )
 			c.dispose();
-		allChunks = [];
-		chunks = [];
-		for(b in bigTextures) {
+		this.wRow.allChunks.resize(0);
+		this.wRow.chunks.resize(0);
+		for(b in this.wRow.bigTextures) {
 			b.diffuse.dispose();
 			if(b.spec != null)
 				b.spec.dispose();
 			if(b.normal != null)
 				b.normal.dispose();
 		}
-		bigTextures = [];
-		textures = new Map();
-		if( autoCollect )
+		this.wRow.bigTextures.resize(0);
+		this.wRow.textures.clear();
+		if( this.wRow.autoCollect )
 			h3d.Engine.getCurrent().mem.garbage = noGarbage;
 	}
 
 	static function noGarbage() {}
 
 	public function onContextLost() {
-		for( c in allChunks )
+		for( c in this.wRow.allChunks )
 			cleanChunk(c);
 	}
 
@@ -668,7 +642,7 @@ class World extends h3d.scene.Object {
 		super.postSyncChildren(ctx);
 
 		// don't do in sync() since animations in our world might affect our chunks
-		for( c in allChunks ) {
+		for( c in this.wRow.allChunks ) {
 			c.root.visible = ctx.computingStatic || c.bounds.inFrustum(ctx.camera.frustum);
 			if( c.root.visible ) {
 				c.lastFrame = ctx.frame;
@@ -688,7 +662,7 @@ class World extends h3d.scene.Object {
 	public function getWorldBounds( ?b : h3d.col.Bounds ) {
 		if( b == null )
 			b = new h3d.col.Bounds();
-		for(c in chunks) {
+		for(c in this.wRow.chunks) {
 			b.add(c.bounds);
 		}
 		return b;
@@ -700,5 +674,124 @@ class World extends h3d.scene.Object {
 		allChunks = [];
 	}
 	#end
-
 }
+
+abstract WorldId(Int) to Int {
+	public inline function new(id:Int) { this = id; }
+}
+
+private abstract InternalWorldId(Int) {
+	public inline function new(id:Int) { this = id; }
+}
+
+class WorldRowRef {
+	final rowId: WorldId;
+	final sceneStorage: h3d.scene.SceneStorage;
+	
+	public function new(rowId: WorldId, sceneStorage: h3d.scene.SceneStorage) {
+		this.rowId = rowId;
+		this.sceneStorage = sceneStorage;
+	}
+
+	public inline function getRow() {
+		return this.sceneStorage.selectWorld(rowId);
+	}
+
+	/**
+		TODO Leaving this here as it's not a general delete
+	**/
+	public inline function deleteRow() {
+		final eid = this.getRow().entityId;
+		this.sceneStorage.worldStorage.deallocateRow(rowId);
+		this.sceneStorage.graphicsStorage.deallocateRowByEntityId(eid);
+		this.sceneStorage.entityStorage.deallocateRow(eid);
+	}
+}
+
+class WorldRow {
+	public var id: WorldId;
+	public var internalId: InternalWorldId;
+	public var entityId(default,null): h3d.scene.SceneStorage.EntityId;
+
+	public var worldSize : Int;
+	public var chunkSize : Int;
+	public var originX : Float = 0.;
+	public var originY : Float = 0.;
+
+	/*
+		For each texture loaded, will call resolveSpecularTexture and have separate spec texture.
+	*/
+	public var enableSpecular = false;
+	/*
+		For each texture loaded, will call resolveNormalMap and have separate normal texture.
+	*/
+	public var enableNormalMaps = false;
+	/*
+		When enableSpecular=true, will store the specular value in the alpha channel instead of a different texture.
+		This will erase alpha value of transparent textures, so should only be used if specular is only on opaque models.
+	*/
+	public var specularInAlpha = false;
+
+	public var worldStride : Int;
+	public var bigTextureSize = 2048;
+	public var defaultDiffuseBG = 0;
+	public var defaultNormalBG = 0x8080FF;
+	public var defaultSpecularBG = 0;
+
+	public var soilColor = 0x408020;
+	public var chunks : Array<WorldChunk> = [];
+	public var allChunks : Array<WorldChunk> = [];
+	public var bigTextures : Array<{ diffuse : h3d.mat.BigTexture, spec : h3d.mat.BigTexture, normal : h3d.mat.BigTexture }> = [];
+	public var textures : Map<String, WorldMaterial> = new Map();
+	public var autoCollect : Bool = true;
+
+	public function new(id:WorldId, iid:InternalWorldId, eid:h3d.scene.SceneStorage.EntityId, chunkSize:Int, worldSize:Int, ?autoCollect:Bool = true) {
+		this.id = id;
+		this.internalId = iid;
+		this.entityId = eid;
+
+		this.chunkSize = chunkSize;
+		this.worldSize = worldSize;
+		this.worldStride = Math.ceil(worldSize / chunkSize);
+		this.autoCollect = autoCollect;
+	}
+}
+
+class WorldStorage {
+	final entityIdToWorldIdIndex = new hds.Map<EntityId, WorldId>();
+	final storage = new hds.Map<InternalWorldId, WorldRow>();
+	var sequence = new SequenceWorld();
+
+	public function new() {}
+
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId, chunkSize: Int, worldSize: Int, ?autoCollect: Bool = true ) {
+		final id = sequence.next();
+
+		this.entityIdToWorldIdIndex.set(eid, id);
+		final iid = externalToInternalId(id);
+		this.storage.set(iid, new WorldRow(id, iid, eid, chunkSize, worldSize, autoCollect));
+
+		return id;
+	}
+
+	public function deallocateRow(id: WorldId) {
+		return this.storage.remove(externalToInternalId(id));
+	}
+
+	public function fetchRow(id: WorldId) {
+		return this.storage.get(externalToInternalId(id));
+	}
+
+	private inline function externalToInternalId(id: WorldId): InternalWorldId {
+        // make these zero based
+		return new InternalWorldId(id--);
+	}
+
+	public function reset() {
+		this.entityIdToWorldIdIndex.clear();
+		this.storage.clear();
+		this.sequence = new SequenceWorld();
+	}
+}
+
+private typedef SequenceWorld = h3d.scene.SceneStorage.Sequence<WorldId>;

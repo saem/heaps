@@ -566,6 +566,16 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		return new h3d.scene.MeshBatch(rowRef, mRowRef, parent);
 	}
 
+	public function createWorld( chunkSize : Int, worldSize : Int, ?autoCollect : Bool = true, ?parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final id  = this.sceneStorage.insertWorld(eid, chunkSize, worldSize, autoCollect);
+		
+		final rowRef = new h3d.scene.World.WorldRowRef(id, this.sceneStorage);
+
+		return new h3d.scene.World(rowRef, parent);
+	}
+
 	public function createPbrDecal( primitive : h3d.prim.Primitive, materials : Array<h3d.mat.Material> = null, parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.sceneStorage.insertEntity();

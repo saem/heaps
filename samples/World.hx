@@ -7,7 +7,7 @@ class World extends hxd.App {
 
 	override function init() {
 
-		world = h3d.scene.Object.createWorld(64, 128, s3d);
+		world = s3d.createWorld(64, 128, s3d);
 		var t = world.loadModel(hxd.Res.tree);
 		var r = world.loadModel(hxd.Res.rock);
 
