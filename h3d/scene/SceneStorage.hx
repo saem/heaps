@@ -14,6 +14,7 @@ class SceneStorage {
     public final boxStorage = new h3d.scene.Box.BoxStorage();
     public final sphereStorage = new h3d.scene.Sphere.SphereStorage();
     public final decalStorage = new h3d.scene.pbr.Decal.DecalStorage();
+    public final worldStorage = new h3d.scene.World.WorldStorage();
 
 	public function new() {}
 	
@@ -84,6 +85,15 @@ class SceneStorage {
         return this.meshBatchStorage.fetchRow(gid);
     }
     
+    public function insertWorld(eid: EntityId, chunkSize: Int, worldSize: Int, ?autoCollect: Bool = true): h3d.scene.World.WorldId {
+        return this.worldStorage.allocateRow(eid, chunkSize, worldSize, autoCollect);
+	}
+
+    // The return type here isn't the best, return the raw row.
+    public function selectWorld(id: h3d.scene.World.WorldId): h3d.scene.World.WorldRow {
+        return this.worldStorage.fetchRow(id);
+    }
+    
     public function insertGpuParticles(eid: EntityId): h3d.parts.GpuParticles.GpuParticlesId {
         return this.gpuParticleStorage.allocateRow(eid);
 	}
@@ -94,9 +104,7 @@ class SceneStorage {
     }
     
     public function insertParticles(eid: EntityId): h3d.parts.Particles.ParticlesId {
-		final row = this.particlesStorage.allocateRow(eid);
-		
-		return row;
+		return this.particlesStorage.allocateRow(eid);
 	}
 
     // The return type here isn't the best, return the raw row.
@@ -105,9 +113,7 @@ class SceneStorage {
     }
     
     public function insertEmitter(eid: EntityId, state:h3d.parts.Data.State = null): h3d.parts.Emitter.EmitterId {
-		final row = this.emitterStorage.allocateRow(eid,state);
-		
-		return row;
+		return this.emitterStorage.allocateRow(eid,state);
 	}
 
     // The return type here isn't the best, return the raw row.
@@ -136,6 +142,7 @@ class SceneStorage {
 		this.boxStorage.reset();
 		this.sphereStorage.reset();
 		this.decalStorage.reset();
+		this.worldStorage.reset();
 	}
 }
 

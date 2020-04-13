@@ -232,10 +232,6 @@ class Object implements hxd.impl.Serializable {
 		return new Skin.Joint(skin, joint);
 	}
 
-	public static function createWorld(chunkSize, worldSize, parent, ?autoCollect = true) {
-		return new World(chunkSize, worldSize, parent, autoCollect);
-	}
-
 	public static function createFwdDirLight( ?dir : h3d.Vector = null, ?parent = null ) {
 		return new h3d.scene.fwd.DirLight(dir, parent);
 	}
