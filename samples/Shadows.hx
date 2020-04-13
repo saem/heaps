@@ -13,7 +13,7 @@ class Shadows extends SampleApp {
 		var floor = new h3d.prim.Cube(10, 10, 0.1);
 		floor.addNormals();
 		floor.translate( -5, -5, 0);
-		var m = h3d.scene.Object.createMesh(floor, s3d);
+		var m = this.s3d.createMesh(floor, s3d);
 		m.material.mainPass.enableLights = true;
 		m.material.shadows = true;
 
@@ -21,7 +21,7 @@ class Shadows extends SampleApp {
 		sphere.addNormals();
 		spheres  = [];
 		for( i in 0...15 ) {
-			var p = h3d.scene.Object.createMesh(sphere, s3d);
+			var p = this.s3d.createMesh(sphere, s3d);
 			p.scale(0.2 + Math.random());
 			p.x = Math.srand(3);
 			p.y = Math.srand(3);

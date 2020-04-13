@@ -36,7 +36,7 @@ class Pbr extends SampleApp {
 		sp.addNormals();
 		sp.addUVs();
 
-		var bg = h3d.scene.Object.createMesh(sp, s3d);
+		var bg = this.s3d.createMesh(sp, s3d);
 		bg.scale(10);
 		bg.material.mainPass.culling = Front;
 		bg.material.mainPass.setPassName("overlay");
@@ -90,7 +90,7 @@ class Pbr extends SampleApp {
 		brightness = 0.2;
 
 		function addSphere(x,y) {
-			var sphere = h3d.scene.Object.createMesh(sp, s3d);
+			var sphere = this.s3d.createMesh(sp, s3d);
 			sphere.x = x;
 			sphere.y = y;
 			return sphere;

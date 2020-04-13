@@ -9,8 +9,8 @@ class Emitter extends Particles implements Randomized {
 	private final eRow: EmitterRow;
 
 	@:allow(h3d.scene.Scene.createEmitter)
-	private function new(eRowRef:EmitterRowRef, pRowRef:ParticlesRowRef, ?parent: h3d.scene.Object = null) {
-		super(pRowRef, null, parent);
+	private function new(eRowRef:EmitterRowRef, pRowRef:ParticlesRowRef, mRowRef:h3d.scene.Mesh.MeshRowRef, ?parent: h3d.scene.Object = null) {
+		super(pRowRef, mRowRef, parent);
 		this.eRowRef = eRowRef;
 		this.eRow = eRowRef.getRow();
 

@@ -81,7 +81,7 @@ class Sao extends SampleApp {
 		var floor = new h3d.prim.Grid(40,40,0.25,0.25);
 		floor.addNormals();
 		floor.translate( -5, -5, 0);
-		var m = h3d.scene.Object.createMesh(floor, s3d);
+		var m = this.s3d.createMesh(floor, s3d);
 		m.material.color.makeColor(0.35, 0.5, 0.5);
 		m.setScale(wscale);
 
@@ -89,7 +89,7 @@ class Sao extends SampleApp {
 			var box : h3d.prim.Polygon = new h3d.prim.Cube(0.3 + r.rand() * 0.5, 0.3 + r.rand() * 0.5, 0.2 + r.rand());
 			box.unindex();
 			box.addNormals();
-			var p = h3d.scene.Object.createMesh(box, s3d);
+			var p = this.s3d.createMesh(box, s3d);
 			p.setScale(wscale);
 			p.x = r.srand(3) * wscale;
 			p.y = r.srand(3) * wscale;

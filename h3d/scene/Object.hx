@@ -227,14 +227,6 @@ class Object implements hxd.impl.Serializable {
 		return new Scene(createRenderer, createLightSystem);
 	}
 
-	public static function createMesh( primitive, ?material : h3d.mat.Material = null, ?parent = null ) {
-		return new Mesh(primitive, material == null ? [] : [material], parent);
-	}
-
-	public static function createMeshWithMaterials( primitive, ?materials = null, ?parent = null ) {
-		return new Mesh(primitive, materials == null ? [] : materials, parent);
-	}
-
 	@:allow(h3d.scene.Skin.getObjectByName)
 	private static function createSkinJoint( skin : h3d.scene.Skin, joint : h3d.anim.Skin.Joint ) {
 		return new Skin.Joint(skin, joint);

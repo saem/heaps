@@ -36,10 +36,11 @@ class Skin extends h3d.scene.Mesh {
 	inline function get_currentRelPose():Array<Matrix> return this.sRow.currentRelPose;
 
 	@:allow(h3d.scene.Scene.createSkin)
-	private function new(sRowRef:SkinRowRef, ?mats:Array<h3d.mat.Material> = null, ?parent:h3d.scene.Object) {
-		super(null, mats, parent);
+	private function new(sRowRef:SkinRowRef, mRowRef: h3d.scene.Mesh.MeshRowRef, ?parent:h3d.scene.Object) {
 		this.sRowRef = sRowRef;
 		this.sRow = this.sRowRef.getRow();
+		
+		super(mRowRef, parent);
 
 		if( sRow.skinData != null )
 			setSkinData(sRow.skinData);

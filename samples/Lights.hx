@@ -35,7 +35,7 @@ class Lights extends SampleApp {
 		prim.addNormals();
 		prim.addUVs();
 
-		var floor = h3d.scene.Object.createMesh(prim, s3d);
+		var floor = this.s3d.createMesh(prim, s3d);
 		floor.material.castShadows = false;
 		floor.x = -50;
 		floor.y = -50;
@@ -44,7 +44,7 @@ class Lights extends SampleApp {
 		box.unindex();
 		box.addNormals();
 		for( i in 0...50 ) {
-			var m = h3d.scene.Object.createMesh(box, s3d);
+			var m = this.s3d.createMesh(box, s3d);
 			m.material.color.set(Math.random(), Math.random(), Math.random());
 			m.material.color.normalize();
 			m.scale(1 + Math.random() * 10);
@@ -63,7 +63,7 @@ class Lights extends SampleApp {
 		var sp = new h3d.prim.Sphere(1,16,16);
 		sp.addNormals();
 		for( i in 0...20 ) {
-			var m = h3d.scene.Object.createMesh(sp, s3d);
+			var m = this.s3d.createMesh(sp, s3d);
 			m.material.color.set(Math.random(), Math.random(), Math.random());
 			m.material.color.normalize();
 			m.scale(0.5 + Math.random() * 4);

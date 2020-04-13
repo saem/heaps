@@ -7,10 +7,11 @@ class Decal extends Mesh {
 	private final dRow : DecalRow;
 
 	@:allow(h3d.scene.Scene.createPbrDecal)
-	private function new( dRowRef: DecalRowRef, primitive : h3d.prim.Primitive, ?material : Array<h3d.mat.Material> = null, ?parent : h3d.scene.Object ) {
+	private function new( dRowRef: DecalRowRef, mRowRef: h3d.scene.Mesh.MeshRowRef, ?parent : h3d.scene.Object ) {
 		this.dRowRef = dRowRef;
 		this.dRow = dRowRef.getRow();
-		super(primitive, material, parent);
+
+		super(mRowRef, parent);
 	}
 
 	override function sync( ctx : RenderContext.SyncContext ) {

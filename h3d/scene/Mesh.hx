@@ -1,4 +1,5 @@
 package h3d.scene;
+import h3d.scene.SceneStorage.EntityId;
 
 /**
 	h3d.scene.Mesh is the base class for all 3D objects displayed on screen.
@@ -6,32 +7,56 @@ package h3d.scene;
 **/
 class Mesh extends h3d.scene.Object {
 
+	private final mRowRef : MeshRowRef;
+	private final mRow : MeshRow;
+
 	/**
 		The primitive of the mesh: the list of vertexes and indices necessary to display the mesh.
 	**/
-	public var primitive(default, set) : h3d.prim.Primitive;
+	public var primitive(get,set): h3d.prim.Primitive;
 
-	public var materials = new Array<h3d.mat.Material>();
+	public var materials(get,set): Array<h3d.mat.Material>;
 
 	/**
 		The material of the mesh: the properties used to display it (texture, color, shaders, etc.)
 	**/
 	public var material(get, set) : h3d.mat.Material;
-	inline function get_material() return this.materials[0];
-	inline function set_material(m) return this.materials[0] = m;
+	
+	inline function get_materials() return this.mRow.materials;
+	inline function set_materials(m) return this.mRow.materials = m;
+	inline function get_primitive() return this.mRow.primitive;
+	function set_primitive( prim : h3d.prim.Primitive ) : h3d.prim.Primitive {
+		if ( prim != this.mRow.primitive && allocated ) {
+			if (this.mRow.primitive != null) this.mRow.primitive.decref();
+			if (prim != null) prim.incref();
+		}
+		return this.mRow.primitive = prim;
+	}
+	inline function get_material() return this.mRow.material;
+	inline function set_material(m) return this.mRow.material = m;
+
 	/**
 		Creates a new mesh with given primitive, materials, and parent object.
 		If material is not specified, a new default material is created for the current renderer.
 	**/
-	@:allow(h3d.scene.Object.createMesh)
-	@:allow(h3d.scene.Object.createMeshWithMaterials)
-	private function new( primitive, ?materials : Array<h3d.mat.Material> = null, ?parent = null ) {
+	@:allow(h3d.scene.Scene.createMesh)
+	@:allow(h3d.scene.Scene.createMeshWithMaterials)
+	private function new( mRowRef : MeshRowRef, ?parent : h3d.scene.Object = null ) {
+		this.mRowRef = mRowRef;
+		this.mRow = mRowRef.getRow();
+
 		super(parent);
-		this.primitive = primitive;
-		this.materials = ( materials == null || materials.length == 0 ) ?
-			[h3d.mat.MaterialSetup.current.createMaterial()] :
-			materials;
-		material.props = material.getDefaultProps();
+	}
+
+	override private function onAdd() {
+		super.onAdd();
+		if ( primitive != null ) primitive.incref();
+	}
+
+	override private function onRemove() {
+		if ( primitive != null ) primitive.decref();
+		super.onRemove();
+		this.mRowRef.deleteRow();
 	}
 
 	/**
@@ -52,7 +77,7 @@ class Mesh extends h3d.scene.Object {
 	}
 
 	override function clone( ?o : Object ) : Object {
-		var m = o == null ? h3d.scene.Object.createMeshWithMaterials(null) : cast o;
+		var m = o == null ? this.getScene().createMeshWithMaterials(primitive, [], null) : cast o;
 		m.materials = [];
 		m.primitive = primitive;
 		for( mat in materials )
@@ -112,25 +137,110 @@ class Mesh extends h3d.scene.Object {
 		materials = [for( i in 0...ctx.getInt() ) ctx.getKnownRef(h3d.mat.Material)];
 	}
 	#end
-
-	override private function onAdd()
-	{
-		super.onAdd();
-		if ( primitive != null ) primitive.incref();
-	}
-
-	override private function onRemove()
-	{
-		if ( primitive != null ) primitive.decref();
-		super.onRemove();
-	}
-
-	function set_primitive( prim : h3d.prim.Primitive ) : h3d.prim.Primitive {
-		if ( prim != this.primitive && allocated ) {
-			if (this.primitive != null) this.primitive.decref();
-			if (prim != null) prim.incref();
-		}
-		return this.primitive = prim;
-	}
-
 }
+
+abstract MeshId(Int) to Int {
+	public inline function new(id:Int) { this = id; }
+}
+
+private abstract InternalMeshId(Int) {
+	public inline function new(id:Int) { this = id; }
+}
+
+class MeshRowRef {
+	final rowId: MeshId;
+	final sceneStorage: h3d.scene.SceneStorage;
+	
+	public function new(rowId: MeshId, sceneStorage: h3d.scene.SceneStorage) {
+		this.rowId = rowId;
+		this.sceneStorage = sceneStorage;
+	}
+
+	public inline function getRow() {
+		return this.sceneStorage.selectMesh(rowId);
+	}
+
+	/**
+		TODO Leaving this here as it's not a general delete
+	**/
+	public inline function deleteRow() {
+		final eid = this.getRow().entityId;
+		this.sceneStorage.meshStorage.deallocateRow(rowId);
+		this.sceneStorage.entityStorage.deallocateRow(eid);
+	}
+}
+
+class MeshRow {
+	public var id: MeshId;
+	public var internalId: InternalMeshId;
+	public var entityId(default,null): h3d.scene.SceneStorage.EntityId;
+
+	/**
+		The primitive of the mesh: the list of vertexes and indices necessary to display the mesh.
+	**/
+	public var primitive : h3d.prim.Primitive = null;
+
+	public var materials = new Array<h3d.mat.Material>();
+
+	/**
+		The material of the mesh: the properties used to display it (texture, color, shaders, etc.)
+	**/
+	public var material(get, set) : h3d.mat.Material;
+	inline function get_material() return this.materials[0];
+	inline function set_material(m) return this.materials[0] = m;
+
+	public function new(id:MeshId, iid:InternalMeshId, eid:h3d.scene.SceneStorage.EntityId, primitive : h3d.prim.Primitive, ?materials : Array<h3d.mat.Material> = null) {
+		this.id = id;
+		this.internalId = iid;
+		this.entityId = eid;
+
+		this.primitive = primitive;
+		this.materials = ( materials == null || materials.length == 0 ) ?
+			[h3d.mat.MaterialSetup.current.createMaterial()] :
+			materials;
+		material.props = material.getDefaultProps();
+	}
+}
+
+class MeshStorage {
+	final entityIdToMeshIdIndex = new hds.Map<EntityId, MeshId>();
+	final storage = new hds.Map<InternalMeshId, MeshRow>();
+	var sequence = new SequenceMesh();
+	
+	public function new() {}
+
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId, primitive : h3d.prim.Primitive, ?materials : Array<h3d.mat.Material> = null) {
+		final id = sequence.next();
+
+		this.entityIdToMeshIdIndex.set(eid, id);
+		final iid = externalToInternalId(id);
+		this.storage.set(iid, new MeshRow(id, iid, eid, primitive, materials));
+
+		return id;
+	}
+
+	public function deallocateRow(id: MeshId) {
+		return this.storage.remove(externalToInternalId(id));
+	}
+
+	public function deallocateRowByEntityId(id: EntityId) {
+		return this.storage.remove(externalToInternalId(this.entityIdToMeshIdIndex[id]));
+	}
+
+	public function fetchRow(id: MeshId) {
+		return this.storage.get(externalToInternalId(id));
+	}
+
+	private inline function externalToInternalId(id: MeshId): InternalMeshId {
+        // make these zero based
+		return new InternalMeshId(id--);
+	}
+
+	public function reset() {
+		this.entityIdToMeshIdIndex.clear();
+		this.storage.clear();
+		this.sequence = new SequenceMesh();
+	}
+}
+
+private typedef SequenceMesh = h3d.scene.SceneStorage.Sequence<MeshId>;

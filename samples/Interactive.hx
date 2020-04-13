@@ -15,7 +15,7 @@ class Interactive extends hxd.App {
 			m.material.color.set(0, 1, 0);
 			var s = new h3d.prim.Sphere(1, 32, 32);
 			s.addNormals();
-			beacon = h3d.scene.Object.createMesh(s, s3d);
+			beacon = this.s3d.createMesh(s, s3d);
 			beacon.material.mainPass.enableLights = true;
 			beacon.material.color.set(1, 0, 0);
 			beacon.scale(0.01);
@@ -49,7 +49,7 @@ class Interactive extends hxd.App {
 			//c.unindex();
 			c.addNormals();
 			c.addUVs();
-			var m = h3d.scene.Object.createMesh(c, s3d);
+			var m = this.s3d.createMesh(c, s3d);
 			m.x = rnd.srand() * 0.9;
 			m.y = rnd.srand() * 0.9;
 			m.scale(0.25 + rnd.rand() * 0.3);
