@@ -2,17 +2,32 @@ package h3d.scene;
 import h3d.scene.SceneStorage.EntityId;
 
 class Joint extends h3d.scene.Object {
-	@:s public var skin : Skin;
-	@:s public var index : Int;
 
-	@:allow(h3d.scene.Object.createSkinJoint)
-	private function new(skin, j : h3d.anim.Skin.Joint ) {
+	private final sjRowRef: SkinJointRowRef;
+	private final sjRow: SkinJointRow;
+
+	@:s public var skin(get,set) : Skin;
+	@:s public var index(get,set) : Int;
+
+	inline function get_skin() return this.sjRow.skin;
+	inline function set_skin(s) return this.sjRow.skin = s;
+	inline function get_index() return this.sjRow.index;
+	inline function set_index(i) return this.sjRow.index = i;
+
+	@:allow(h3d.scene.Scene.createSkinJoint)
+	private function new(sjRowRef: SkinJointRowRef) {
+		this.sjRowRef = sjRowRef;
+		this.sjRow = sjRowRef.getRow();
+
 		super(null);
-		name = j.name;
-		this.skin = skin;
+		name = sjRow.name;
 		// fake parent
-		this.parent = skin;
-		this.index = j.index;
+		this.parent = sjRow.skin;
+	}
+
+	override function onRemove() {
+		super.onRemove();
+		this.sjRowRef.deleteRow();
 	}
 }
 
@@ -93,7 +108,7 @@ class Skin extends h3d.scene.Mesh {
 		if( this.sRow.skinData != null ) {
 			var j = this.sRow.skinData.namedJoints.get(name);
 			if( j != null )
-				return h3d.scene.Object.createSkinJoint(this, j);
+				return this.getScene().createSkinJoint(this, j.name, j.index);
 		}
 		return null;
 	}
@@ -358,3 +373,97 @@ class SkinStorage {
 }
 
 private typedef SequenceSkin = h3d.scene.SceneStorage.Sequence<SkinId>;
+
+abstract SkinJointId(Int) to Int {
+	public inline function new(id:Int) { this = id; }
+}
+
+private abstract InternalSkinJointId(Int) {
+	public inline function new(id:Int) { this = id; }
+}
+
+class SkinJointRowRef {
+	final rowId: SkinJointId;
+	final sceneStorage: h3d.scene.SceneStorage;
+	
+	public function new(rowId: SkinJointId, sceneStorage: h3d.scene.SceneStorage) {
+		this.rowId = rowId;
+		this.sceneStorage = sceneStorage;
+	}
+
+	public inline function getRow() {
+		return this.sceneStorage.selectSkinJoint(rowId);
+	}
+
+	/**
+		TODO Leaving this here as it's not a general delete
+	**/
+	public inline function deleteRow() {
+		final eid = this.getRow().entityId;
+		this.sceneStorage.skinJointStorage.deallocateRow(rowId);
+		this.sceneStorage.entityStorage.deallocateRow(eid);
+	}
+}
+
+class SkinJointRow {
+	public var id: SkinJointId;
+	public var internalId: InternalSkinJointId;
+	public var entityId(default,null): h3d.scene.SceneStorage.EntityId;
+
+	@:s public var skin : Skin;
+	@:s public var index : Int;
+
+	/**
+		TODO - Currently unused as this is part of the named object look-up
+	**/
+	public var name : String;
+
+	public function new(id:SkinJointId, iid:InternalSkinJointId, eid:h3d.scene.SceneStorage.EntityId, skin: h3d.scene.Skin, name: String, index: Int) {
+		this.id = id;
+		this.internalId = iid;
+		this.entityId = eid;
+
+		this.skin = skin;
+		this.index = index;
+		this.name = name;
+	}
+}
+
+class SkinJointStorage {
+	final entityIdToSkinJointIdIndex = new hds.Map<EntityId, SkinJointId>();
+	final storage = new hds.Map<InternalSkinJointId, SkinJointRow>();
+	var sequence = new SequenceSkinJoint();
+	
+	public function new() {}
+
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId, skin: h3d.scene.Skin, name: String, index: Int ) {
+		final id = sequence.next();
+
+		this.entityIdToSkinJointIdIndex.set(eid, id);
+		final iid = externalToInternalId(id);
+		this.storage.set(iid, new SkinJointRow(id, iid, eid, skin, name, index));
+
+		return id;
+	}
+
+	public function deallocateRow(id: SkinJointId) {
+		return this.storage.remove(externalToInternalId(id));
+	}
+
+	public function fetchRow(id: SkinJointId) {
+		return this.storage.get(externalToInternalId(id));
+	}
+
+	private inline function externalToInternalId(id: SkinJointId): InternalSkinJointId {
+        // make these zero based
+		return new InternalSkinJointId(id--);
+	}
+
+	public function reset() {
+		this.entityIdToSkinJointIdIndex.clear();
+		this.storage.clear();
+		this.sequence = new SequenceSkinJoint();
+	}
+}
+
+private typedef SequenceSkinJoint = h3d.scene.SceneStorage.Sequence<SkinJointId>;

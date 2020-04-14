@@ -554,6 +554,16 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		return new h3d.scene.Skin(rowRef, mRowRef, parent);
 	}
 
+	@:allow(h3d.scene.Skin.getObjectByName)
+	public function createSkinJoint( skin : h3d.scene.Skin, name : String, index : Int  ) {
+		final eid = this.sceneStorage.insertEntity();
+		final id = this.sceneStorage.insertSkinJoint(eid, skin, name, index);
+
+		final rowRef = new h3d.scene.Skin.SkinJointRowRef(id, this.sceneStorage);
+
+		return new h3d.scene.Skin.Joint(rowRef);
+	}
+
 	public function createMeshBatch( primitive : h3d.prim.MeshPrimitive, materials : Array<h3d.mat.Material> = null, parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.sceneStorage.insertEntity();

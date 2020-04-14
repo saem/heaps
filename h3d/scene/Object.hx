@@ -227,11 +227,6 @@ class Object implements hxd.impl.Serializable {
 		return new Scene(createRenderer, createLightSystem);
 	}
 
-	@:allow(h3d.scene.Skin.getObjectByName)
-	private static function createSkinJoint( skin : h3d.scene.Skin, joint : h3d.anim.Skin.Joint ) {
-		return new Skin.Joint(skin, joint);
-	}
-
 	public static function createFwdDirLight( ?dir : h3d.Vector = null, ?parent = null ) {
 		return new h3d.scene.fwd.DirLight(dir, parent);
 	}
