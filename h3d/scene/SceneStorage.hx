@@ -10,6 +10,7 @@ class SceneStorage {
     public final particlesStorage = new h3d.parts.Particles.ParticlesStorage();
     public final meshBatchStorage = new h3d.scene.MeshBatch.MeshBatchStorage();
     public final skinStorage = new h3d.scene.Skin.SkinStorage();
+    public final skinJointStorage = new h3d.scene.Skin.SkinJointStorage();
     public final graphicsStorage = new h3d.scene.Graphics.GraphicsStorage();
     public final boxStorage = new h3d.scene.Box.BoxStorage();
     public final sphereStorage = new h3d.scene.Sphere.SphereStorage();
@@ -38,6 +39,15 @@ class SceneStorage {
     // The return type here isn't the best, return the raw row.
     public function selectSkin(gid: h3d.scene.Skin.SkinId): h3d.scene.Skin.SkinRow {
         return this.skinStorage.fetchRow(gid);
+    }
+    
+    public function insertSkinJoint(eid: EntityId, skin: h3d.scene.Skin, name: String, index: Int): h3d.scene.Skin.SkinJointId {
+        return this.skinJointStorage.allocateRow(eid, skin, name, index);
+	}
+
+    // The return type here isn't the best, return the raw row.
+    public function selectSkinJoint(gid: h3d.scene.Skin.SkinJointId): h3d.scene.Skin.SkinJointRow {
+        return this.skinJointStorage.fetchRow(gid);
     }
     
     public function insertGraphics(eid: EntityId): h3d.scene.Graphics.GraphicsId {
@@ -138,6 +148,7 @@ class SceneStorage {
 		this.emitterStorage.reset();
 		this.meshBatchStorage.reset();
 		this.skinStorage.reset();
+		this.skinJointStorage.reset();
 		this.graphicsStorage.reset();
 		this.boxStorage.reset();
 		this.sphereStorage.reset();
