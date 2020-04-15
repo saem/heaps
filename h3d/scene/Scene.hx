@@ -209,9 +209,6 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 					p.transform3x4(o.absPos);
 					p.project(camera.m);
 					i.hitPoint.w = p.z + wfactor;
-
-					trace('p: x:${x},y:${y}');
-					trace('e: x:${event.relX},y:${event.relY}');
 				}
 				hitInteractives.sort(sortHitPointByCameraDistance);
 			}
