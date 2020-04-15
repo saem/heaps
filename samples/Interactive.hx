@@ -59,7 +59,7 @@ class Interactive extends hxd.App {
 			var color = new h3d.Vector(c, c * 0.6, c * 0.6);
 			m.material.color.load(color);
 
-			var interact = h3d.scene.Object.createInteractive(m.getCollider(), s3d);
+			var interact = this.s3d.createInteractive(m.id, m.getCollider());
 			initInteract(interact, m);
 		}
 
@@ -75,7 +75,7 @@ class Interactive extends hxd.App {
 
 		for( o in obj ) {
 			var m = o.toMesh();
-			var i = h3d.scene.Object.createInteractive(m.getCollider(), s3d);
+			var i = this.s3d.createInteractive(m.id, m.getCollider());
 			initInteract(i, m);
 		}
 

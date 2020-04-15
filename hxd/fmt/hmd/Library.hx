@@ -363,7 +363,7 @@ class Library {
 				}
 			}
 			obj.name = m.name;
-			obj.initialTransform = m.position.toMatrix();
+			obj.defaultTransform = m.position.toMatrix();
 			objs.push(obj);
 			var p = objs[m.parent];
 			if( p != null ) p.addChild(obj);

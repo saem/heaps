@@ -114,8 +114,10 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	}
 
 	@:dox(hide) @:noCompletion
-	public function isInteractiveVisible( i : hxd.SceneEvents.Interactive ) {
-		var o : Object = cast i;
+	public function isInteractiveVisible( interactive : hxd.SceneEvents.Interactive ) {
+		final i = Std.downcast(interactive, h3d.scene.Interactive);
+		if( i == null ) return false;
+		var o = Object.ObjectMap.get(i.objectId);
 		while( o != this ) {
 			if( o == null || !o.visible ) return false;
 			o = o.parent;
@@ -143,13 +145,13 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 
 				if( i.priority < priority ) continue;
 
-				var p : h3d.scene.Object = i;
+				final obj : h3d.scene.Object = Object.ObjectMap.get(i.objectId);
+				var p : h3d.scene.Object = obj;
 				while( p != null && p.visible )
 					p = p.parent;
 				if( p != null ) continue;
 
-				var minv = i.getInvPos();
-				r.transform(minv);
+				var minv = obj.getInvPos();
 
 				// check for NaN
 				if( r.lx != r.lx ) {
@@ -184,7 +186,8 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 
 			if( hitInteractives.length > 1 ) {
 				for( i in hitInteractives ) {
-					var m = i.invPos;
+					final o : h3d.scene.Object = Object.ObjectMap.get(i.objectId);
+					var m = o.invPos;
 					var wfactor = 0.;
 
 					// adjust result with better precision
@@ -203,9 +206,12 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 
 					var p = i.hitPoint.clone();
 					p.w = 1;
-					p.transform3x4(i.absPos);
+					p.transform3x4(o.absPos);
 					p.project(camera.m);
 					i.hitPoint.w = p.z + wfactor;
+
+					trace('p: x:${x},y:${y}');
+					trace('e: x:${event.relX},y:${event.relY}');
 				}
 				hitInteractives.sort(sortHitPointByCameraDistance);
 			}
@@ -344,6 +350,59 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		this.syncVisibleFlag = true;
 
 		syncChildren(ctx);
+
+		cleanUpMovedObjects();
+
+		processAddedInteractives();
+		Object.AddedObjectIds.resize(0);
+
+		// Process deleted objects and then clean them up
+		processDeletedInteractives();
+		Object.DeletedObjectIds.resize(0);
+	}
+
+	/**
+		Objects that were moved could trigger an onAdd and onRemove. So let's
+		just ignore them.
+	**/
+	function cleanUpMovedObjects() {
+		var i = 0;
+		while(i < Object.AddedObjectIds.length) {
+			final added = Object.AddedObjectIds[i];
+			if(Object.DeletedObjectIds.remove(added)) {
+				Object.AddedObjectIds.splice(i, 1);
+			} else {
+				i++;
+			}
+		}
+	}
+
+	function processAddedInteractives() {
+		for(id in Object.AddedObjectIds) {
+			var i = 0;
+			while(i < this.interactives.length) {
+				final interactive = this.interactives[i];
+				if(interactive.objectId == id) {
+					if (!interactive.isAdded) interactive.onAdd(this);
+					break;
+				}
+				i++;
+			}
+		}
+	}
+
+	function processDeletedInteractives() {
+		for(id in Object.DeletedObjectIds) {
+			var i = 0;
+			while(i < this.interactives.length) {
+				if(this.interactives[i].objectId == id) {
+					this.interactives[i].onRemove();
+					this.interactives.splice(i,1);
+					break;
+				}
+				i++;
+			}
+		}
 	}
 
 	/**
@@ -465,6 +524,17 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		throw this + " should not be serialized";
 	}
 	#end
+
+	public function createInteractive(objectId: Int, ?shape: h3d.col.Collider = null) {
+		final obj = Object.ObjectMap.get(objectId);
+		final interactive = new h3d.scene.Interactive(objectId, shape);
+
+		if(obj.getScene() != null && Object.AddedObjectIds.indexOf(objectId) < 0) {
+			interactive.onAdd(this);
+		}
+
+		return interactive;
+	}
 
 	public function createCameraController( ?distance : Float ) {
 		this.cameraControllerId = this.sceneStorage.insertCameraController(this.cameraControllerSystem, distance);
