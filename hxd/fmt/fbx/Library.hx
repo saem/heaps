@@ -82,7 +82,7 @@ class Library extends BaseLibrary {
 			o.obj.name = name;
 			var m = getDefaultMatrixes(o.model);
 			if( m.trans != null || m.rotate != null || m.scale != null || m.preRot != null ) {
-				o.obj.initialTransform = m.toMatrix(leftHand);
+				o.obj.defaultTransform = m.toMatrix(leftHand);
 			}
 		}
 		// rebuild scene hierarchy

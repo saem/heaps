@@ -1,9 +1,11 @@
 package h3d.scene;
 
-class Interactive extends h3d.scene.Object implements hxd.SceneEvents.Interactive {
+class Interactive implements hxd.SceneEvents.Interactive {
 
-	@:s public var shape : h3d.col.Collider;
+	public final objectId: Int;
 
+	@:s public var shape(get,never) : h3d.col.Collider;
+	inline function get_shape() return Object.ObjectMap.get(this.objectId).getCollider();
 	/**
 		If several interactive conflicts, the preciseShape (if defined) can be used to distinguish between the two.
 	**/
@@ -32,29 +34,36 @@ class Interactive extends h3d.scene.Object implements hxd.SceneEvents.Interactiv
 
 	var scene : Scene;
 	var mouseDownButton : Int = -1;
+	public var isAdded(get, never): Bool;
+	inline function get_isAdded() return this.scene != null;
 
 	@:allow(h3d.scene.Scene)
 	var hitPoint = new h3d.Vector();
 
-	@:allow(h3d.scene.Object.createInteractive)
-	private function new(shape, ?parent) {
-		super(parent);
-		this.shape = shape;
-		cursor = Button;
+	@:allow(h3d.scene.Scene.createInteractive)
+	private function new(objectId, ?shape : h3d.col.Collider = null) {
+		this.objectId = objectId;
+		// TODO - This is bunk and needs to be reworked as it's not used
+		// this.shape = (shape == null) ? Object.ObjectMap.get(objectId).getCollider() : shape;
+		cursor = Button;	
 	}
 
-	override function onAdd() {
-		this.scene = getScene();
+	/**
+		Called by scene manually when an interactive's object is added.
+	**/
+	public function onAdd(scene:h3d.scene.Scene) {
+		this.scene = scene;
 		if( scene != null ) scene.addEventTarget(this);
-		super.onAdd();
 	}
 
-	override function onRemove() {
+	/**
+		Called by scene manually when an interactive's object is removed.
+	**/
+	public function onRemove() {
 		if( scene != null ) {
 			scene.removeEventTarget(this);
 			scene = null;
 		}
-		super.onRemove();
 	}
 
 	/**

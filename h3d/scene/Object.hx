@@ -8,10 +8,9 @@ private enum abstract ObjectFlags(Int) {
 	public var FAlwaysSync = 0x10;
 	public var FNoSerialize = 0x20;
 	public var FIgnoreBounds = 0x40;
-	public var FInitialTransformDone = 0x80;
-	public var FSyncVisibility = 0x100;
-	public var FSyncContinue = 0x200;
-	public var FSyncChanged = 0x400;
+	public var FSyncVisibility = 0x80;
+	public var FSyncContinue = 0x100;
+	public var FSyncChanged = 0x200;
 	public inline function new(value) {
 		this = value;
 	}
@@ -69,7 +68,9 @@ class Object implements hxd.impl.Serializable {
 
 	// TODO: No deallocation/reuse, so we leaking memory everywhere
 	static var ObjectId: Int = 0;
-	public static final ObjectMap: haxe.ds.Map<Int, Object> = new haxe.ds.IntMap();
+	public static final ObjectMap: hds.Map<Int, Object> = new hds.Map();
+	public static final AddedObjectIds: Array<Int> = [];
+	public static final DeletedObjectIds: Array<Int> = [];
 	public static final RelativePositionComp: ComponentStorage<RelativePosition> = ComponentStorage.newStorage();
 	public static final AbsolutePositionView: ComponentStorage<AbsolutePositionCache> = ComponentStorage.newStorage();
 	public static final AnimationComp: ComponentStorage<Animation> = ComponentStorage.newStorage();
@@ -135,8 +136,6 @@ class Object implements hxd.impl.Serializable {
 		This is an additional optional transformation that is performed before other local transformations.
 		It is used by the animation system.
 	**/
-	public var initialTransformDone(get, set): Bool;
-	public var initialTransform: h3d.Matrix;
 	public var defaultTransform(default, set) : h3d.Matrix;
 	@:s public var currentAnimation(get, never) : h3d.anim.Animation;
 	inline function get_currentAnimation() return anim.currentAnimation;
@@ -247,10 +246,6 @@ class Object implements hxd.impl.Serializable {
 		return new h3d.scene.pbr.SpotLight(parent);
 	}
 
-	public static function createInteractive( shape, ?parent = null) {
-		return new Interactive(shape, parent);
-	}
-
 	/**
 		Create a new empty object, and adds it to the parent object if not null.
 
@@ -302,7 +297,6 @@ class Object implements hxd.impl.Serializable {
 	inline function get_alwaysSync() return flags.has(FAlwaysSync);
 	inline function get_ignoreBounds() return flags.has(FIgnoreBounds);
 	inline function get_allowSerialize() return !flags.has(FNoSerialize);
-	inline function get_initialTransformDone() return flags.has(FInitialTransformDone);
 	inline function set_posChanged(b) return this.relPos.posChanged = (b);
 	inline function set_culled(b) return flags.set(FCulled, b);
 	inline function set_visible(b) return flags.set(FVisible,b);
@@ -314,7 +308,6 @@ class Object implements hxd.impl.Serializable {
 	inline function set_alwaysSync(b) return flags.set(FAlwaysSync, b);
 	inline function set_ignoreBounds(b) return flags.set(FIgnoreBounds, b);
 	inline function set_allowSerialize(b) return !flags.set(FNoSerialize, !b);
-	inline function set_initialTransformDone(b) return flags.set(FInitialTransformDone, b);
 
 	/**
 		Create an animation instance bound to the object, set it as currentAnimation and play it.
@@ -567,6 +560,7 @@ class Object implements hxd.impl.Serializable {
 	// kept for internal init
 	function onAdd() {
 		allocated = true;
+		AddedObjectIds.push(this.id);
 		for( c in children )
 			c.onAdd();
 	}
@@ -575,6 +569,7 @@ class Object implements hxd.impl.Serializable {
 	function onRemove() {
 		allocated = false;
 		ObjectMap.remove(this.id);
+		DeletedObjectIds.push(this.id);
 		for( c in children )
 			c.onRemove();
 	}
@@ -718,10 +713,6 @@ class Object implements hxd.impl.Serializable {
 		absPos._43 = z;
 		if( parent != null )
 			absPos.multiply3x4inline(absPos, parent.absPos);
-		if( !initialTransformDone && initialTransform != null ) {
-			absPos.multiply3x4inline(absPos, initialTransform);
-			initialTransformDone = true;
-		}
 		// animation is applied before every other transform
 		if( defaultTransform != null )
 			absPos.multiply3x4inline(defaultTransform, absPos);
@@ -1245,15 +1236,6 @@ private class AbsolutePositionCache {
 	public final absPos: h3d.Matrix = Matrix.I();
 	public final invPos: h3d.Matrix = Matrix.I();
 
-	// TODO Cruft that needs to go with FBX silliness
-	public var initialTransformRequired(default, null): Bool = false;
-	public var initialTransform(default, set): h3d.Matrix;
-	inline function set_initialTransform(t) {
-		changed = true;
-		initialTransformRequired = true;
-		return initialTransform = t;
-	}
-
 	public var animationTransform(default, set): h3d.Matrix = null;
 	inline function set_animationTransform(m) {
 		changed = true;
@@ -1284,12 +1266,6 @@ private class AbsolutePositionCache {
 			abs.absPos._43 = rel.z;
 			if( parent != null )
 				abs.absPos.multiply3x4inline(abs.absPos, parent.absPos);
-			if( abs.initialTransformRequired ) {
-				if ( abs.initialTransform != null ) {
-					abs.absPos.multiply3x4inline(abs.absPos, abs.initialTransform);
-				}
-				abs.initialTransformRequired = false;
-			}
 			// animation is applied before every other transform
 			if( abs.animationTransform != null )
 				abs.absPos.multiply3x4inline(abs.animationTransform, abs.absPos);
