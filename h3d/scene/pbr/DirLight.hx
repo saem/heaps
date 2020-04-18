@@ -7,14 +7,15 @@ class DirLight extends Light {
 	var dirState(get,never): State;
 	inline function get_dirState() return this._state;
 
-	@:allow(h3d.scene.Object.createPbrDirLight)
-	private function new(?dir: h3d.Vector, ?parent) {
-		super(State.init(this), parent);
+	@:allow(h3d.scene.Scene.createPbrDirLight)
+	private function new(lRowRef: h3d.scene.Light.LightRowRef, ?dir: h3d.Vector, ?parent) {
+		State.init(lRowRef.getRow(), this);
+		super(lRowRef, parent);
 		if( dir != null ) setDirection(dir);
 	}
 
 	public override function clone( ?o : h3d.scene.Object ) : h3d.scene.Object {
-		var dl = o == null ? h3d.scene.Object.createPbrDirLight(null) : cast o;
+		var dl = o == null ? this.getScene().createPbrDirLight(null) : cast o;
 		super.clone(dl);
 		return dl;
 	}
@@ -42,9 +43,7 @@ private abstract State(LightState) to LightState from LightState {
 
 	private function new(s) { this = s; }
 
-	public static inline function init(l: DirLight) {
-		final s = new LightState(h3d.scene.Light.Type.PbrDir, new h3d.shader.pbr.Light.DirLight());
-
+	public static inline function init(s: LightState, l: DirLight) {
 		s.shadows = new h3d.pass.DirShadowMap(l);
 
 		return s;

@@ -226,26 +226,6 @@ class Object implements hxd.impl.Serializable {
 		return new Scene(createRenderer, createLightSystem);
 	}
 
-	public static function createFwdDirLight( ?dir : h3d.Vector = null, ?parent = null ) {
-		return new h3d.scene.fwd.DirLight(dir, parent);
-	}
-
-	public static function createFwdPointLight( ?parent = null ) {
-		return new h3d.scene.fwd.PointLight(parent);
-	}
-
-	public static function createPbrDirLight( ?dir : h3d.Vector = null, ?parent = null ) {
-		return new h3d.scene.pbr.DirLight(dir, parent);
-	}
-
-	public static function createPbrPointLight( ?parent = null ) {
-		return new h3d.scene.pbr.PointLight(parent);
-	}
-
-	public static function createPbrSpotLight( ?parent = null ) {
-		return new h3d.scene.pbr.SpotLight(parent);
-	}
-
 	/**
 		Create a new empty object, and adds it to the parent object if not null.
 

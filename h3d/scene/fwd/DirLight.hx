@@ -7,9 +7,10 @@ class DirLight extends FwdLight {
 	var dirState(get,never): State;
 	inline function get_dirState() { return this._state; }
 
-	@:allow(h3d.scene.Object.createFwdDirLight)
-	private function new(?dir: h3d.Vector, ?parent) {
-		super(State.init(), parent);
+	@:allow(h3d.scene.Scene.createFwdDirLight)
+	private function new(lRowRef: h3d.scene.Light.LightRowRef, ?dir: h3d.Vector, ?parent) {
+		State.init(lRowRef.getRow());
+		super(lRowRef, parent);
 		if( dir != null ) setDirection(dir);
 	}
 
@@ -30,8 +31,7 @@ private abstract State(LightState) from LightState {
 
 	public function new(s) { this = s; }
 
-	public static inline function init() {
-		final s = new LightState(h3d.scene.Light.Type.FwdDir, new h3d.shader.DirLight());
+	public static inline function init(s: LightState) {
 		s.priority = 100;
 		return s;
 	}

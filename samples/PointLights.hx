@@ -27,7 +27,7 @@ class PointLights extends hxd.App {
 		var colors = [0xFFFFFF, 0xFF0000, 0x00FF00, 0x0000FF, 0xFF00FF, 0xFFFF00, 0x00FFFF];
 		for( c in colors ) {
 			for( i in 0...3 ) {
-				var l = h3d.scene.Object.createFwdPointLight(s3d);
+				var l = this.s3d.createFwdPointLight();
 				l.x = Math.srand() * 3;
 				l.y = Math.srand() * 3;
 				l.z = Math.srand() * 2 - 0.5;
@@ -44,7 +44,7 @@ class PointLights extends hxd.App {
 		s3d.camera.zNear = 2;
 
 
-		dir = h3d.scene.Object.createFwdDirLight(new h3d.Vector(0.2, 0.3, -1), s3d);
+		dir = s3d.createFwdDirLight(new h3d.Vector(0.2, 0.3, -1));
 		dir.color.set(0.1, 0.1, 0.1);
 
 		s3d.lightSystem.ambientLight.set(0, 0, 0);

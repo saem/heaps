@@ -25,7 +25,7 @@ class Skin extends SampleApp {
 		obj.playAnimation(animation);
 
 		// add lights and setup materials
-		var dir = h3d.scene.Object.createFwdDirLight(new h3d.Vector( -1, 3, -10), s3d);
+		var dir = this.s3d.createFwdDirLight(new h3d.Vector( -1, 3, -10));
 		for( m in obj.getMaterials() ) {
 			var t = m.mainPass.getShader(h3d.shader.Texture);
 			if( t != null ) t.killAlpha = true;

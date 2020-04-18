@@ -17,7 +17,7 @@ class World extends hxd.App {
 		world.done();
 
 		//
-		h3d.scene.Object.createFwdDirLight(new h3d.Vector( 0.3, -0.4, -0.9), s3d);
+		s3d.createFwdDirLight(new h3d.Vector( 0.3, -0.4, -0.9));
 		s3d.lightSystem.ambientLight.setColor(0x909090);
 
 		s3d.camera.target.set(72, 72, 0);

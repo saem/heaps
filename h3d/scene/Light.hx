@@ -1,6 +1,10 @@
 package h3d.scene;
+import h3d.scene.SceneStorage.EntityId;
 
 class Light extends h3d.scene.Object {
+
+	private final lRowRef : LightRowRef;
+	private final lRow : LightRow;
 
 	final _state: State;
 
@@ -24,9 +28,15 @@ class Light extends h3d.scene.Object {
 	public var color(get, set) : h3d.Vector;
 	public var enableSpecular(get, set) : Bool;
 
-	private function new(state, ?parent) {
-		this._state = state;
+	private function new(lRowRef:LightRowRef, ?parent) {
+		this.lRowRef = lRowRef;
+		this._state = this.lRow = lRowRef.getRow();
 		super(parent);
+	}
+
+	override function onRemove() {
+		super.onRemove();
+		this.lRowRef.deleteRow();
 	}
 
 	// dummy implementation
@@ -72,11 +82,51 @@ class Light extends h3d.scene.Object {
 	#end
 }
 
-class State {
-	public function new(type:Type, shader:hxsl.Shader) {
-		this.type = type;
-		this.shader = shader;
+typedef State = LightRow;
+
+enum abstract Type(Int) {
+	var FwdDir;
+	var FwdPoint;
+	var PbrDir;
+	var PbrPoint;
+	var PbrSpot;
+}
+
+abstract LightId(Int) to Int {
+	public inline function new(id:Int) { this = id; }
+}
+
+private abstract InternalLightId(Int) {
+	public inline function new(id:Int) { this = id; }
+}
+
+class LightRowRef {
+	final rowId: LightId;
+	final sceneStorage: h3d.scene.SceneStorage;
+	
+	public function new(rowId: LightId, sceneStorage: h3d.scene.SceneStorage) {
+		this.rowId = rowId;
+		this.sceneStorage = sceneStorage;
 	}
+
+	public inline function getRow() {
+		return this.sceneStorage.selectLight(rowId);
+	}
+
+	/**
+		TODO Leaving this here as it's not a general delete
+	**/
+	public inline function deleteRow() {
+		final eid = this.getRow().entityId;
+		this.sceneStorage.lightStorage.deallocateRow(rowId);
+		this.sceneStorage.entityStorage.deallocateRow(eid);
+	}
+}
+
+class LightRow {
+	public var id: LightId;
+	public var internalId: InternalLightId;
+	public var entityId(default,null): h3d.scene.SceneStorage.EntityId;
 
 	// Common
 	public final type : Type;
@@ -113,12 +163,52 @@ class State {
 	public var d = new h3d.Vector(); 	 // Spot
 
 	// PBR - DirLight - has no state
+
+	public function new(id:LightId, iid:InternalLightId, eid:h3d.scene.SceneStorage.EntityId, type:Type, shader:hxsl.Shader) {
+		this.id = id;
+		this.internalId = iid;
+		this.entityId = eid;
+
+		this.type = type;
+		this.shader = shader;
+	}
 }
 
-enum abstract Type(Int) {
-	var FwdDir;
-	var FwdPoint;
-	var PbrDir;
-	var PbrPoint;
-	var PbrSpot;
+class LightStorage {
+	final entityIdToLightIdIndex = new hds.Map<EntityId, LightId>();
+	final storage = new hds.Map<InternalLightId, LightRow>();
+	var sequence = new SequenceLight();
+	
+	public function new() {}
+
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId, type:Type, shader:hxsl.Shader ) {
+		final id = sequence.next();
+
+		this.entityIdToLightIdIndex.set(eid, id);
+		final iid = externalToInternalId(id);
+		this.storage.set(iid, new LightRow(id, iid, eid, type, shader));
+
+		return id;
+	}
+
+	public function deallocateRow(id: LightId) {
+		return this.storage.remove(externalToInternalId(id));
+	}
+
+	public function fetchRow(id: LightId) {
+		return this.storage.get(externalToInternalId(id));
+	}
+
+	private inline function externalToInternalId(id: LightId): InternalLightId {
+        // make these zero based
+		return new InternalLightId(id--);
+	}
+
+	public function reset() {
+		this.entityIdToLightIdIndex.clear();
+		this.storage.clear();
+		this.sequence = new SequenceLight();
+	}
 }
+
+private typedef SequenceLight = h3d.scene.SceneStorage.Sequence<LightId>;

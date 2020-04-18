@@ -14,15 +14,16 @@ class SpotLight extends Light {
 	public var cookie(get,set) : h3d.mat.Texture;
 	var lightProj(get,set) : h3d.Camera;
 
-	@:allow(h3d.scene.Object.createPbrSpotLight)
-	private function new(?parent) {
-		super(State.init(this), parent);
+	@:allow(h3d.scene.Scene.createPbrSpotLight)
+	private function new(lRowRef: h3d.scene.Light.LightRowRef, ?parent) {
+		State.init(lRowRef.getRow(), this);
+		super(lRowRef, parent);
 		maxRange = 10;
 		angle = 45;
 	}
 
 	public override function clone( ?o : h3d.scene.Object ) : h3d.scene.Object {
-		var sl = o == null ? h3d.scene.Object.createPbrSpotLight(null) : cast o;
+		var sl = o == null ? this.getScene().createPbrSpotLight(null) : cast o;
 		super.clone(sl);
 		sl.range = range;
 		sl.maxRange = maxRange;
@@ -175,9 +176,7 @@ private abstract State(LightState) to LightState from LightState {
 
 	private function new(s) { this = s; }
 
-	public static inline function init(l: SpotLight): State {
-		final s = new LightState(h3d.scene.Light.Type.PbrSpot, new h3d.shader.pbr.Light.SpotLight());
-
+	public static inline function init(s: LightState, l: SpotLight): State {
 		s.shadows = new h3d.pass.SpotShadowMap(l);
 		s.primitive = SpotLight.spotLightPrim();
 		

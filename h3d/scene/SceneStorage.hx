@@ -11,6 +11,7 @@ class SceneStorage {
     public final meshBatchStorage = new h3d.scene.MeshBatch.MeshBatchStorage();
     public final skinStorage = new h3d.scene.Skin.SkinStorage();
     public final skinJointStorage = new h3d.scene.Skin.SkinJointStorage();
+    public final lightStorage = new h3d.scene.Light.LightStorage();
     public final graphicsStorage = new h3d.scene.Graphics.GraphicsStorage();
     public final boxStorage = new h3d.scene.Box.BoxStorage();
     public final sphereStorage = new h3d.scene.Sphere.SphereStorage();
@@ -48,6 +49,15 @@ class SceneStorage {
     // The return type here isn't the best, return the raw row.
     public function selectSkinJoint(gid: h3d.scene.Skin.SkinJointId): h3d.scene.Skin.SkinJointRow {
         return this.skinJointStorage.fetchRow(gid);
+    }
+    
+    public function insertLight(eid: EntityId, type:h3d.scene.Light.Type, shader:hxsl.Shader): h3d.scene.Light.LightId {
+        return this.lightStorage.allocateRow(eid, type, shader);
+	}
+
+    // The return type here isn't the best, return the raw row.
+    public function selectLight(id: h3d.scene.Light.LightId): h3d.scene.Light.LightRow {
+        return this.lightStorage.fetchRow(id);
     }
     
     public function insertGraphics(eid: EntityId): h3d.scene.Graphics.GraphicsId {

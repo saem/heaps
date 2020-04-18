@@ -99,7 +99,7 @@ class Sao extends SampleApp {
 		s3d.camera.zFar = 150 * wscale;
 
 		s3d.lightSystem.ambientLight.set(0.5, 0.5, 0.5);
-		var dir = h3d.scene.Object.createFwdDirLight(new h3d.Vector( -0.3, -0.2, -1), s3d);
+		var dir = this.s3d.createFwdDirLight(new h3d.Vector( -0.3, -0.2, -1));
 		dir.color.set(0.5, 0.5, 0.5);
 
 		var time = Math.PI * 0.25;

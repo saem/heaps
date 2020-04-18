@@ -29,7 +29,7 @@ class CubeTexture extends hxd.App {
 		m.material.shadows = false;
 		m.material.mainPass.addShader(new h3d.shader.CubeMap(skyTexture, true));
 
-		var pt = h3d.scene.Object.createFwdPointLight(s3d);
+		var pt = s3d.createFwdPointLight();
 		pt.x = 2;
 		pt.y = 1;
 		pt.z = 4;

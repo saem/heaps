@@ -34,7 +34,7 @@ class Shadows extends SampleApp {
 		s3d.camera.zFar = 30;
 		s3d.lightSystem.ambientLight.set(0.5, 0.5, 0.5);
 
-		dir = h3d.scene.Object.createFwdDirLight(new h3d.Vector(-0.3, -0.2, -1), s3d);
+		dir = s3d.createFwdDirLight(new h3d.Vector(-0.3, -0.2, -1));
 		dir.enableSpecular = true;
 
 		shadow = s3d.renderer.getPass(h3d.pass.DefaultShadowMap);

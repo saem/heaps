@@ -77,12 +77,12 @@ class Lights extends SampleApp {
 			movingObjects.push({ m : m, pos : Math.random() * Math.PI * 2, cx : cx, cy : cy, ray : 8 + Math.random() * 50, speed : (0.5 + Math.random()) * 0.2 });
 		}
 
-		var pt = h3d.scene.Object.createPbrPointLight(s3d);
+		var pt = s3d.createPbrPointLight();
 		pt.setPosition(0,0,15);
 		pt.range = 40;
 		pt.color.scale3(20);
 
-		var sp = h3d.scene.Object.createPbrSpotLight(s3d);
+		var sp = s3d.createPbrSpotLight();
 		sp.setPosition(-30,-30,30);
 		sp.setDirection(new h3d.Vector(1,2,-5));
 		sp.range = 70;
@@ -91,7 +91,7 @@ class Lights extends SampleApp {
 		sp.color.scale3(10);
 
 		lights = [
-			h3d.scene.Object.createPbrDirLight(new h3d.Vector(1,2,-5), s3d),
+			s3d.createPbrDirLight(new h3d.Vector(1,2,-5)),
 			pt,
 			sp,
 		];

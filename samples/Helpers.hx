@@ -31,12 +31,12 @@ class Helpers extends hxd.App {
 
 		s3d.lightSystem.ambientLight.set( 0.3, 0.3, 0.3 );
 
-		var dirLight = h3d.scene.Object.createFwdDirLight( new Vector( 0.5, 0.5, -0.5 ), s3d );
+		var dirLight = s3d.createFwdDirLight( new Vector( 0.5, 0.5, -0.5 ) );
 		dirLight.enableSpecular = true;
 
 		var pointLightColors =  [0xEB304D,0x7FC309,0x288DF9];
 		for( i in 0...pointLightColors.length ) {
-			var l = h3d.scene.Object.createFwdPointLight( s3d );
+			var l = s3d.createFwdPointLight();
 			l.enableSpecular = true;
 			l.color.setColor( pointLightColors[i] );
 			pointLights.push( l );

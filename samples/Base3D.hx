@@ -46,7 +46,7 @@ class Base3D extends SampleApp {
 		obj2.scale(0.6);
 
 		// adds a directional light to the scene
-		var light = h3d.scene.Object.createFwdDirLight(new h3d.Vector(0.5, 0.5, -0.5), s3d);
+		var light = s3d.createFwdDirLight(new h3d.Vector(0.5, 0.5, -0.5));
 		light.enableSpecular = true;
 
 		// set the ambient light to 30%

@@ -37,7 +37,7 @@ class Interactive extends hxd.App {
 	}
 
 	override function init() {
-		light = h3d.scene.Object.createFwdDirLight(new h3d.Vector( 0.3, -0.4, -0.9), s3d);
+		light = s3d.createFwdDirLight(new h3d.Vector( 0.3, -0.4, -0.9));
 		light.enableSpecular = true;
 		light.color.set(0.28, 0.28, 0.28);
 
