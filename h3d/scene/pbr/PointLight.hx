@@ -22,7 +22,7 @@ class PointLight extends Light {
 		this.pointState.primitive = h3d.prim.Sphere.defaultUnitSphere();
 	}
 
-	public override function clone( ?o : h3d.scene.Object ) : h3d.scene.Object {
+	public override function clone( ?o : h3d.scene.Cloneable ) : h3d.scene.Cloneable {
 		var pl = o == null ? this.getScene().createPbrPointLight(null) : cast o;
 		super.clone(pl);
 		pl.size = size;

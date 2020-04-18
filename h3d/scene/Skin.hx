@@ -69,7 +69,7 @@ class Skin extends h3d.scene.Mesh {
 		this.sRowRef.deleteRow();
 	}
 
-	override function clone( ?o : Object ) {
+	override function clone( ?o : Cloneable ) {
 		var s = o == null ? this.getScene().createSkin(null,materials.copy()) : cast o;
 		super.clone(s);
 		s.setSkinData(this.sRow.skinData);

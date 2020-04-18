@@ -22,7 +22,7 @@ class SpotLight extends Light {
 		angle = 45;
 	}
 
-	public override function clone( ?o : h3d.scene.Object ) : h3d.scene.Object {
+	public override function clone( ?o : h3d.scene.Cloneable ) : h3d.scene.Cloneable {
 		var sl = o == null ? this.getScene().createPbrSpotLight(null) : cast o;
 		super.clone(sl);
 		sl.range = range;

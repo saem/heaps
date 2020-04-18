@@ -16,7 +16,7 @@ class Box extends Graphics {
 		if( !depth ) material.mainPass.depth(true, Always);
 	}
 
-	public override function clone( ?o : h3d.scene.Object ) : h3d.scene.Object {
+	public override function clone( ?o : h3d.scene.Cloneable ) : h3d.scene.Cloneable {
 		var b = o == null ? this.getScene().createBox(this.bRow.color, this.bRow.bounds.clone(), this.material.mainPass.depthWrite, null) : cast o;
 		super.clone(b);
 		b.bRow.bounds = this.bRow.bounds.clone();

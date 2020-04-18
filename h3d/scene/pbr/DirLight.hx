@@ -14,7 +14,7 @@ class DirLight extends Light {
 		if( dir != null ) setDirection(dir);
 	}
 
-	public override function clone( ?o : h3d.scene.Object ) : h3d.scene.Object {
+	public override function clone( ?o : h3d.scene.Cloneable ) : h3d.scene.Cloneable {
 		var dl = o == null ? this.getScene().createPbrDirLight(null) : cast o;
 		super.clone(dl);
 		return dl;

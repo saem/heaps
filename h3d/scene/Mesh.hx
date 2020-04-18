@@ -76,7 +76,7 @@ class Mesh extends h3d.scene.Object {
 		return b;
 	}
 
-	override function clone( ?o : Object ) : Object {
+	override function clone( ?o : Cloneable ) : Cloneable {
 		var m = o == null ? this.getScene().createMeshWithMaterials(primitive, [], null) : cast o;
 		m.materials = [];
 		m.primitive = primitive;
