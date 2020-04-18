@@ -1,21 +1,10 @@
 package h3d.shader;
 
-class DirLight extends hxsl.Shader {
+class DirLight extends Light {
 
 	static var SRC = {
-		@param var color : Vec3;
-		@param var direction : Vec3;
-		@const var enableSpecular : Bool;
-		@global var camera : {
-			var position : Vec3;
-		};
 
-		var lightColor : Vec3;
-		var lightPixelColor : Vec3;
-		var transformedNormal : Vec3;
-		var transformedPosition : Vec3;
-		var specPower : Float;
-		var specColor : Vec3;
+		@param var direction : Vec3;
 
 		function calcLighting() : Vec3 {
 			var diff = transformedNormal.dot(-direction).max(0.);
@@ -38,7 +27,6 @@ class DirLight extends hxsl.Shader {
 
 	public function new() {
 		super();
-		color.set(1, 1, 1);
 	}
 
 }

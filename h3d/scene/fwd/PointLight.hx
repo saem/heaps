@@ -1,38 +1,20 @@
 package h3d.scene.fwd;
 
-class PointLight extends Light {
+class PointLight extends FwdLight<h3d.shader.PointLight> {
 
-	var pshader : h3d.shader.PointLight;
 	public var params(get, set) : h3d.Vector;
 
 	@:allow(h3d.scene.Object.createFwdPointLight)
 	private function new(?parent) {
-		pshader = new h3d.shader.PointLight();
-		super(pshader, parent);
-	}
-
-	override function get_color() {
-		return pshader.color;
-	}
-
-	override function set_color(v) {
-		return pshader.color = v;
-	}
-
-	override function get_enableSpecular() {
-		return pshader.enableSpecular;
-	}
-
-	override function set_enableSpecular(b) {
-		return pshader.enableSpecular = b;
+		super(new h3d.shader.PointLight(), parent);
 	}
 
 	inline function get_params() {
-		return pshader.params;
+		return _shader.params;
 	}
 
 	inline function set_params(p) {
-		return pshader.params = p;
+		return _shader.params = p;
 	}
 
 	override function emit(ctx) {
@@ -45,7 +27,7 @@ class PointLight extends Light {
 			var delta = p.y * p.y - 4 * p.z * (p.x - lum * 128);
 			cullingDistance = (p.y + Math.sqrt(delta)) / (2 * p.z);
 		}
-		pshader.lightPosition.set(absPos._41, absPos._42, absPos._43);
+		_shader.lightPosition.set(absPos._41, absPos._42, absPos._43);
 		super.emit(ctx);
 	}
 

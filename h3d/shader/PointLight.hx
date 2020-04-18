@@ -1,30 +1,18 @@
 package h3d.shader;
 
-class PointLight extends hxsl.Shader {
+class PointLight extends Light {
 
 	static var SRC = {
 
-		@const var enableSpecular : Bool;
-		@param var color : Vec3;
-		@param var params : Vec3; // [constant, linear, quadratic]
 		@param var lightPosition : Vec3;
-		@global var camera : {
-			var position : Vec3;
-		};
+		@param var params : Vec3; // [constant, linear, quadratic]
 
 		/**
 			Don't use model normal to calculate light amount
 		**/
 		@const var isAmbient : Bool;
 
-		var lightColor : Vec3;
-		var lightPixelColor : Vec3;
-		var transformedPosition : Vec3;
 		var pixelTransformedPosition : Vec3;
-		var transformedNormal : Vec3;
-		var specPower : Float;
-		var specColor : Vec3;
-
 
 		function calcLighting( position : Vec3 ) : Vec3 {
 			var dvec = lightPosition - position;
@@ -51,7 +39,6 @@ class PointLight extends hxsl.Shader {
 
 	public function new() {
 		super();
-		color.set(1, 1, 1);
 		params.set(0, 0, 1);
 	}
 
