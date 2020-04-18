@@ -34,7 +34,7 @@ class MeshBatch extends hxd.App {
 	var instanced : h3d.prim.Instanced;
 
 	override function init() {
-		h3d.scene.Object.createFwdDirLight(new h3d.Vector(-2,-3,-10), s3d);
+		s3d.createFwdDirLight(new h3d.Vector(-2,-3,-10));
 		var cube = new h3d.prim.Cube(1,1,1,true);
 		cube.unindex();
 		cube.addNormals();

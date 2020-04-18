@@ -14,15 +14,16 @@ class PointLight extends Light {
 	**/
 	public var range(get,set) : Float;
 
-	@:allow(h3d.scene.Object.createPbrPointLight)
-	private function new(?parent) {
-		super(State.init(this), parent);
+	@:allow(h3d.scene.Scene.createPbrPointLight)
+	private function new(lRowRef: h3d.scene.Light.LightRowRef, ?parent) {
+		State.init(lRowRef.getRow(), this);
+		super(lRowRef, parent);
 		range = 10;
 		this.pointState.primitive = h3d.prim.Sphere.defaultUnitSphere();
 	}
 
 	public override function clone( ?o : h3d.scene.Object ) : h3d.scene.Object {
-		var pl = o == null ? h3d.scene.Object.createPbrPointLight(null) : cast o;
+		var pl = o == null ? this.getScene().createPbrPointLight(null) : cast o;
 		super.clone(pl);
 		pl.size = size;
 		pl.range = range;
@@ -92,9 +93,7 @@ private abstract State(LightState) to LightState from LightState {
 
 	private function new(s) { this = s; }
 
-	public static inline function init(l: PointLight): State {
-		final s = new LightState(h3d.scene.Light.Type.PbrPoint, new h3d.shader.pbr.Light.PointLight());
-
+	public static inline function init(s: LightState, l: PointLight): State {
 		s.shadows = new h3d.pass.PointShadowMap(l, true);
 
 		return s;

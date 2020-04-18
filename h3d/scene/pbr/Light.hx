@@ -8,7 +8,7 @@ typedef LightState = h3d.scene.Light.State;
 **/
 class Light extends h3d.scene.Light {
 
-	var pbrState(get,never):PbrState;
+	var pbrState(get,never):State;
 	inline function get_pbrState() return this._state;
 
 	@:s public var power(get,set) : Float;
@@ -16,8 +16,9 @@ class Light extends h3d.scene.Light {
 	public var occlusionFactor(get,set) : Float;
 	public var primitive(get,never) : h3d.prim.Primitive;
 
-	private function new(state: LightState, ?parent: h3d.scene.Object = null) {
-		super(PbrState.init(state, this),parent);
+	private function new(lRowRef: h3d.scene.Light.LightRowRef, ?parent: h3d.scene.Object = null) {
+		State.init(lRowRef.getRow(), this);
+		super(lRowRef, parent);
 	}
 
 	inline function get_power() return this.pbrState.power;
@@ -53,7 +54,7 @@ class Light extends h3d.scene.Light {
 }
 
 @:forward(power, color, shadows, occlusionFactor, primitive)
-abstract PbrState(LightState) from LightState to LightState {
+private abstract State(LightState) from LightState to LightState {
 	public inline function new(ls) { this = ls; }
 
 	public static inline function init(s: LightState, l: Light) {

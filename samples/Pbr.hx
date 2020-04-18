@@ -79,7 +79,7 @@ class Pbr extends SampleApp {
 		renderer.env = env;
 
 		var cubeShader = bg.material.mainPass.addShader(new h3d.shader.pbr.CubeLod(env.env));
-		var light = h3d.scene.Object.createPbrPointLight(s3d);
+		var light = this.s3d.createPbrPointLight();
 		light.setPosition(30, 10, 40);
 		light.range = 100;
 		light.power = 2;

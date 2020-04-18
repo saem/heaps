@@ -4,8 +4,8 @@ class FwdLight extends h3d.scene.Light {
     var _shader(get, never): h3d.shader.Light;
     inline function get__shader():h3d.shader.Light return cast this._state.shader;
 
-    private function new(state: h3d.scene.Light.State, parent) {
-        super(state, parent);
+    private function new(lRowRef: h3d.scene.Light.LightRowRef, parent) {
+        super(lRowRef, parent);
     }
 
     override function get_color() {

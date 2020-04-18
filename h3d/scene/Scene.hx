@@ -543,6 +543,56 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		return new h3d.scene.CameraController(ccr);
 	}
 
+	public function createFwdDirLight( ?dir : h3d.Vector = null, ?parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final id = this.sceneStorage.insertLight(eid, h3d.scene.Light.Type.FwdDir, new h3d.shader.DirLight());
+
+		final rowRef = new h3d.scene.Light.LightRowRef(id, this.sceneStorage);
+
+		return new h3d.scene.fwd.DirLight(rowRef, dir, parent);
+	}
+
+	public function createFwdPointLight( ?parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final id = this.sceneStorage.insertLight(eid, h3d.scene.Light.Type.FwdPoint, new h3d.shader.PointLight());
+
+		final rowRef = new h3d.scene.Light.LightRowRef(id, this.sceneStorage);
+
+		return new h3d.scene.fwd.PointLight(rowRef, parent);
+	}
+
+	public function createPbrDirLight( ?dir : h3d.Vector = null, ?parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final id = this.sceneStorage.insertLight(eid, h3d.scene.Light.Type.PbrDir, new h3d.shader.pbr.Light.DirLight());
+
+		final rowRef = new h3d.scene.Light.LightRowRef(id, this.sceneStorage);
+
+		return new h3d.scene.pbr.DirLight(rowRef, dir, parent);
+	}
+
+	public function createPbrPointLight( ?parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final id = this.sceneStorage.insertLight(eid, h3d.scene.Light.Type.PbrPoint, new h3d.shader.pbr.Light.PointLight());
+
+		final rowRef = new h3d.scene.Light.LightRowRef(id, this.sceneStorage);
+
+		return new h3d.scene.pbr.PointLight(rowRef, parent);
+	}
+
+	public function createPbrSpotLight( ?parent : Object = null ) {
+		parent = parent == null ? this : parent;
+		final eid = this.sceneStorage.insertEntity();
+		final id = this.sceneStorage.insertLight(eid, h3d.scene.Light.Type.PbrSpot, new h3d.shader.pbr.Light.SpotLight());
+
+		final rowRef = new h3d.scene.Light.LightRowRef(id, this.sceneStorage);
+
+		return new h3d.scene.pbr.SpotLight(rowRef, parent);
+	}
+
 	public function createMesh( primitive : h3d.prim.Primitive, ?material : h3d.mat.Material = null, ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.sceneStorage.insertEntity();

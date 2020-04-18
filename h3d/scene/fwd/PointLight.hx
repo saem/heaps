@@ -8,9 +8,10 @@ class PointLight extends FwdLight {
 	inline function get_pointState() return this._state;
 	public var params(get, set) : h3d.Vector;
 
-	@:allow(h3d.scene.Object.createFwdPointLight)
-	private function new(?parent) {
-		super(State.init(), parent);
+	@:allow(h3d.scene.Scene.createFwdPointLight)
+	private function new(lRowRef: h3d.scene.Light.LightRowRef, ?parent) {
+		State.init(lRowRef.getRow());
+		super(lRowRef, parent);
 	}
 
 	inline function get_params() {
@@ -44,7 +45,7 @@ private abstract State(LightState) from LightState {
 
 	public function new(s) { this = s; }
 
-	public static inline function init() {
-		return new LightState(h3d.scene.Light.Type.FwdPoint, new h3d.shader.PointLight());
+	public static inline function init(s: LightState) {
+		return s;
 	}
 }
