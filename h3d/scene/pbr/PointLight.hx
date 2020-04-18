@@ -1,6 +1,6 @@
 package h3d.scene.pbr;
 
-class PointLight extends Light<h3d.shader.pbr.Light.PointLight> {
+class PointLight extends Light.PbrLight<h3d.shader.pbr.Light.PointLight> {
 
 	public var size : Float;
 	public var zNear : Float = 0.02;
@@ -11,8 +11,7 @@ class PointLight extends Light<h3d.shader.pbr.Light.PointLight> {
 
 	@:allow(h3d.scene.Object.createPbrPointLight)
 	private function new(?parent) {
-		shadows = new h3d.pass.PointShadowMap(this, true);
-		super(new h3d.shader.pbr.Light.PointLight(),parent);
+		super(new h3d.shader.pbr.Light.PointLight(), new h3d.pass.PointShadowMap(this, true), parent);
 		range = 10;
 		primitive = h3d.prim.Sphere.defaultUnitSphere();
 	}

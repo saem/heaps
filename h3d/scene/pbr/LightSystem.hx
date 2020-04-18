@@ -14,7 +14,7 @@ class LightSystem extends h3d.scene.LightSystem {
 	}
 
 
-	public function drawLight( light : Light<h3d.shader.pbr.Light>, passes : h3d.pass.PassList ) {
+	public function drawLight( light : Light, passes : h3d.pass.PassList ) {
 		light.shadows.setContext(ctx);
 		light.shadows.draw(passes);
 		passes.reset();

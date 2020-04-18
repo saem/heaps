@@ -1,6 +1,6 @@
 package h3d.scene.pbr;
 
-class SpotLight extends Light<h3d.shader.pbr.Light.SpotLight> {
+class SpotLight extends Light.PbrLight<h3d.shader.pbr.Light.SpotLight> {
 
 	public var range : Float;
 	public var maxRange(get,set) : Float;
@@ -11,9 +11,8 @@ class SpotLight extends Light<h3d.shader.pbr.Light.SpotLight> {
 
 	@:allow(h3d.scene.Object.createPbrSpotLight)
 	private function new(?parent) {
-		shadows = new h3d.pass.SpotShadowMap(this);
 		primitive = spotLightPrim();
-		super(new h3d.shader.pbr.Light.SpotLight(),parent);
+		super(new h3d.shader.pbr.Light.SpotLight(), new h3d.pass.SpotShadowMap(this), parent);
 		lightProj = new h3d.Camera();
 		lightProj.screenRatio = 1.0;
 		range = 10;
