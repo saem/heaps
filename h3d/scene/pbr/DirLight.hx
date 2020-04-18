@@ -1,11 +1,10 @@
 package h3d.scene.pbr;
 
-class DirLight extends Light<h3d.shader.pbr.Light.DirLight> {
+class DirLight extends Light.PbrLight<h3d.shader.pbr.Light.DirLight> {
 
 	@:allow(h3d.scene.Object.createPbrDirLight)
 	private function new(?dir: h3d.Vector, ?parent) {
-		shadows = new h3d.pass.DirShadowMap(this);
-		super(new h3d.shader.pbr.Light.DirLight() ,parent);
+		super(new h3d.shader.pbr.Light.DirLight(), new h3d.pass.DirShadowMap(this) ,parent);
 		if( dir != null ) setDirection(dir);
 	}
 
