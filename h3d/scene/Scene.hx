@@ -257,7 +257,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		}
 	}
 
-	override function clone( ?o : Object ) {
+	override function clone( ?o : Cloneable ) {
 		var s = o == null ? h3d.scene.Object.createScene() : cast o;
 		s.camera = camera.clone();
 		super.clone(s);

@@ -64,7 +64,7 @@ enum abstract SyncSelfResult(Int) {
 	It can be used to create a virtual container that does not display anything but can contain other objects
 	so the various transforms are inherited to its children.
 **/
-class Object implements hxd.impl.Serializable {
+class Object implements hxd.impl.Serializable implements Cloneable {
 
 	// TODO: No deallocation/reuse, so we leaking memory everywhere
 	static var ObjectId: Int = 0;
@@ -464,8 +464,8 @@ class Object implements hxd.impl.Serializable {
 	/**
 		Make a copy of the object and all its children.
 	**/
-	public function clone( ?o : Object ) : Object {
-		if( o == null ) o = h3d.scene.Object.createObject();
+	public function clone(?t : Cloneable): Cloneable {
+		final o: Object = (t == null) ? h3d.scene.Object.createObject() : cast t;
 		#if debug
 		if( Type.getClass(o) != Type.getClass(this) ) throw this + " is missing clone()";
 		#end
@@ -481,11 +481,11 @@ class Object implements hxd.impl.Serializable {
 		if( defaultTransform != null )
 			o.defaultTransform = defaultTransform.clone();
 		for( c in children ) {
-			var c = c.clone();
+			var c: Object = cast c.clone();
 			c.parent = o;
 			o.children.push(c);
 		}
-		return o;
+		return cast o;
 	}
 
 	/**
