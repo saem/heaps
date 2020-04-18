@@ -1,7 +1,11 @@
 package h3d.scene.pbr;
 
-class Light extends h3d.scene.Light {
+class Light<S:h3d.shader.pbr.Light> extends h3d.scene.Light {
 
+	var pbr(get,set): S;
+    inline function get_pbr():S return cast this.shader;
+	inline function set_pbr(s: S):S return cast this.shader = cast s;
+	
 	var _color : h3d.Vector;
 	var primitive : h3d.prim.Primitive;
 	@:s public var power : Float = 1.;
