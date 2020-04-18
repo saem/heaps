@@ -1,12 +1,11 @@
 package h3d.scene.fwd;
 
-class FwdLight<S:h3d.shader.Light> extends h3d.scene.Light {
-    var _shader(get,set): S;
-    inline function get__shader():S return cast this.shader;
-    inline function set__shader(s: S):S return cast this.shader = cast s;
+class FwdLight extends h3d.scene.Light {
+    var _shader(get, never): h3d.shader.Light;
+    inline function get__shader():h3d.shader.Light return cast this._state.shader;
 
-    private function new(shader: S, parent) {
-        super(shader, parent);
+    private function new(state: h3d.scene.Light.State, parent) {
+        super(state, parent);
     }
 
     override function get_color() {

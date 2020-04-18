@@ -1,20 +1,24 @@
 package h3d.scene.fwd;
 
-class PointLight extends FwdLight<h3d.shader.PointLight> {
+import h3d.scene.Light.State as LightState;
 
+class PointLight extends FwdLight {
+
+	var pointState(get,never): State;
+	inline function get_pointState() return this._state;
 	public var params(get, set) : h3d.Vector;
 
 	@:allow(h3d.scene.Object.createFwdPointLight)
 	private function new(?parent) {
-		super(new h3d.shader.PointLight(), parent);
+		super(State.init(), parent);
 	}
 
 	inline function get_params() {
-		return _shader.params;
+		return this.pointState.shader.params;
 	}
 
 	inline function set_params(p) {
-		return _shader.params = p;
+		return this.pointState.shader.params = p;
 	}
 
 	override function emit(ctx) {
@@ -27,8 +31,20 @@ class PointLight extends FwdLight<h3d.shader.PointLight> {
 			var delta = p.y * p.y - 4 * p.z * (p.x - lum * 128);
 			cullingDistance = (p.y + Math.sqrt(delta)) / (2 * p.z);
 		}
-		_shader.lightPosition.set(absPos._41, absPos._42, absPos._43);
+		this.pointState.shader.lightPosition.set(absPos._41, absPos._42, absPos._43);
 		super.emit(ctx);
 	}
+}
 
+typedef LightState = h3d.scene.Light.State;
+
+private abstract State(LightState) from LightState {
+	public var shader(get,never): h3d.shader.PointLight;
+	inline function get_shader() return cast this.shader;
+
+	public function new(s) { this = s; }
+
+	public static inline function init() {
+		return new LightState(h3d.scene.Light.Type.FwdPoint, new h3d.shader.PointLight());
+	}
 }

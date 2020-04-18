@@ -1,10 +1,15 @@
 package h3d.scene.pbr;
 
-class DirLight extends Light.PbrLight<h3d.shader.pbr.Light.DirLight> {
+import h3d.scene.Light.State as LightState;
+
+class DirLight extends Light {
+
+	var dirState(get,never): State;
+	inline function get_dirState() return this._state;
 
 	@:allow(h3d.scene.Object.createPbrDirLight)
 	private function new(?dir: h3d.Vector, ?parent) {
-		super(new h3d.shader.pbr.Light.DirLight(), new h3d.pass.DirShadowMap(this) ,parent);
+		super(State.init(this), parent);
 		if( dir != null ) setDirection(dir);
 	}
 
@@ -19,7 +24,8 @@ class DirLight extends Light.PbrLight<h3d.shader.pbr.Light.DirLight> {
 	}
 
 	override function emit(ctx:RenderContext.EmitContext) {
-		pbr.lightColor.load(_color);
+		final pbr = this.dirState.shader;
+		pbr.lightColor.load(this.dirState.color);
 		pbr.lightColor.scale3(power * power);
 		pbr.lightDir.load(absPos.front());
 		pbr.lightDir.scale3(-1);
@@ -27,5 +33,20 @@ class DirLight extends Light.PbrLight<h3d.shader.pbr.Light.DirLight> {
 		pbr.occlusionFactor = occlusionFactor;
 		super.emit(ctx);
 	}
+}
 
+@:forward(shadows,color)
+private abstract State(LightState) to LightState from LightState {
+	public var shader(get,never): h3d.shader.pbr.Light.DirLight;
+	inline function get_shader() return cast this.shader;
+
+	private function new(s) { this = s; }
+
+	public static inline function init(l: DirLight) {
+		final s = new LightState(h3d.scene.Light.Type.PbrDir, new h3d.shader.pbr.Light.DirLight());
+
+		s.shadows = new h3d.pass.DirShadowMap(l);
+
+		return s;
+	}
 }

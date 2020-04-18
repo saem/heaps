@@ -1,22 +1,32 @@
 package h3d.scene.pbr;
 
+typedef LightState = h3d.scene.Light.State;
+
 /**
 	Don't extend this class, instead extend PbrLight, this is here
 	to hide the type parameter and make things happy.
 **/
 class Light extends h3d.scene.Light {
 
-	var _color : h3d.Vector;
-	var primitive : h3d.prim.Primitive;
-	@:s public var power : Float = 1.;
-	public var shadows : h3d.pass.Shadows;
-	public var occlusionFactor : Float;
+	var pbrState(get,never):PbrState;
+	inline function get_pbrState() return this._state;
 
-	private function new(shader,?shadows: h3d.pass.Shadows = null,?parent: h3d.scene.Object = null) {
-		this.shadows = ( shadows == null ) ?new h3d.pass.Shadows(this) : shadows;
-		super(shader,parent);
-		_color = new h3d.Vector(1,1,1,1);
+	@:s public var power(get,set) : Float;
+	public var shadows(get,set) : h3d.pass.Shadows;
+	public var occlusionFactor(get,set) : Float;
+	public var primitive(get,never) : h3d.prim.Primitive;
+
+	private function new(state: LightState, ?parent: h3d.scene.Object = null) {
+		super(PbrState.init(state, this),parent);
 	}
+
+	inline function get_power() return this.pbrState.power;
+	inline function set_power(p) return this.pbrState.power = p;
+	inline function get_shadows() return this.pbrState.shadows;
+	inline function set_shadows(s) return this.pbrState.shadows = s;
+	inline function get_occlusionFactor() return this.pbrState.occlusionFactor;
+	inline function set_occlusionFactor(o) return this.pbrState.occlusionFactor = o;
+	inline function get_primitive() return this.pbrState.primitive;
 
 	override function onRemove() {
 		super.onRemove();
@@ -24,11 +34,11 @@ class Light extends h3d.scene.Light {
 	}
 
 	override function get_color() {
-		return _color;
+		return this.pbrState.color;
 	}
 
 	override function set_color(v:h3d.Vector) {
-		return _color = v;
+		return this.pbrState.color = v;
 	}
 
 	override function get_enableSpecular() {
@@ -42,12 +52,13 @@ class Light extends h3d.scene.Light {
 
 }
 
-class PbrLight<S:h3d.shader.pbr.Light> extends Light {
-	var pbr(get,set): S;
-    inline function get_pbr():S return cast this.shader;
-	inline function set_pbr(s: S):S return cast this.shader = cast s;
+@:forward(power, color, shadows, occlusionFactor, primitive)
+abstract PbrState(LightState) from LightState to LightState {
+	public inline function new(ls) { this = ls; }
 
-	private function new(shader,?shadows: h3d.pass.Shadows = null,?parent: h3d.scene.Object = null) {
-		super(shader, shadows, parent);
+	public static inline function init(s: LightState, l: Light) {
+		if( s.shadows == null ) s.shadows = new h3d.pass.Shadows(l);
+
+		return s;
 	}
 }

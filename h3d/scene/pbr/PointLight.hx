@@ -1,9 +1,14 @@
 package h3d.scene.pbr;
 
-class PointLight extends Light.PbrLight<h3d.shader.pbr.Light.PointLight> {
+import h3d.scene.Light.State as LightState;
 
-	public var size : Float;
-	public var zNear : Float = 0.02;
+class PointLight extends Light {
+
+	var pointState(get,never): State;
+	inline function get_pointState() return cast this._state;
+
+	public var size(get,set) : Float;
+	public var zNear(get,set) : Float;
 	/**
 		Alias for uniform scale.
 	**/
@@ -11,9 +16,9 @@ class PointLight extends Light.PbrLight<h3d.shader.pbr.Light.PointLight> {
 
 	@:allow(h3d.scene.Object.createPbrPointLight)
 	private function new(?parent) {
-		super(new h3d.shader.pbr.Light.PointLight(), new h3d.pass.PointShadowMap(this, true), parent);
+		super(State.init(this), parent);
 		range = 10;
-		primitive = h3d.prim.Sphere.defaultUnitSphere();
+		this.pointState.primitive = h3d.prim.Sphere.defaultUnitSphere();
 	}
 
 	public override function clone( ?o : h3d.scene.Object ) : h3d.scene.Object {
@@ -24,6 +29,11 @@ class PointLight extends Light.PbrLight<h3d.shader.pbr.Light.PointLight> {
 		return pl;
 	}
 
+	inline function get_size() return this.pointState.size;
+	inline function set_size(s) return this.pointState.size = s;
+	inline function get_zNear() return this.pointState.zNear;
+	inline function set_zNear(z) return this.pointState.zNear = z;
+	
 	function get_range() {
 		return cullingDistance;
 	}
@@ -34,16 +44,17 @@ class PointLight extends Light.PbrLight<h3d.shader.pbr.Light.PointLight> {
 	}
 
 	override function draw(ctx:RenderContext.DrawContext) {
-		primitive.render(ctx.engine);
+		this.pointState.primitive.render(ctx.engine);
 	}
 
 	override function sync(ctx) {
 		super.sync(ctx);
 
-		pbr.lightColor.load(_color);
-		var range = hxd.Math.max(range, 1e-10);
-		var size = hxd.Math.min(size, range);
-		var power = power * 10; // base scale
+		final pbr = this.pointState.shader;
+		pbr.lightColor.load(this.pointState.color);
+		final range = hxd.Math.max(range, 1e-10);
+		final size = hxd.Math.min(size, range);
+		final power = power * 10; // base scale
 		pbr.lightColor.scale3(power * power);
 		pbr.lightPos.set(absPos.tx, absPos.ty, absPos.tz);
 		pbr.invLightRange4 = 1 / (range * range * range * range);
@@ -71,5 +82,21 @@ class PointLight extends Light.PbrLight<h3d.shader.pbr.Light.PointLight> {
 
 		super.emit(ctx);
 		ctx.emitPass(ctx.pbrLightPass, this);
+	}
+}
+
+@:forward(size, zNear, s, color, primitive)
+private abstract State(LightState) to LightState from LightState {
+	public var shader(get,never): h3d.shader.pbr.Light.PointLight;
+	inline function get_shader() return cast this.shader;
+
+	private function new(s) { this = s; }
+
+	public static inline function init(l: PointLight): State {
+		final s = new LightState(h3d.scene.Light.Type.PbrPoint, new h3d.shader.pbr.Light.PointLight());
+
+		s.shadows = new h3d.pass.PointShadowMap(l, true);
+
+		return s;
 	}
 }
