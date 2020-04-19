@@ -1,5 +1,6 @@
 package h3d.scene.pbr;
 
+import h3d.scene.SceneStorage.EntityId;
 import h3d.scene.Light.State as LightState;
 
 class SpotLight extends Light {
@@ -15,9 +16,9 @@ class SpotLight extends Light {
 	var lightProj(get,set) : h3d.Camera;
 
 	@:allow(h3d.scene.Scene.createPbrSpotLight)
-	private function new(lRowRef: h3d.scene.Light.LightRowRef, ?parent) {
+	private function new(eid: EntityId, lRowRef: h3d.scene.Light.LightRowRef, ?parent) {
 		State.init(lRowRef.getRow(), this);
-		super(lRowRef, parent);
+		super(eid, lRowRef, parent);
 		maxRange = 10;
 		angle = 45;
 	}

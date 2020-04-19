@@ -1,5 +1,7 @@
 package h3d.scene.pbr;
 
+import h3d.scene.SceneStorage.EntityId;
+
 typedef LightState = h3d.scene.Light.State;
 
 /**
@@ -16,9 +18,9 @@ class Light extends h3d.scene.Light {
 	public var occlusionFactor(get,set) : Float;
 	public var primitive(get,never) : h3d.prim.Primitive;
 
-	private function new(lRowRef: h3d.scene.Light.LightRowRef, ?parent: h3d.scene.Object = null) {
+	private function new(eid: EntityId, lRowRef: h3d.scene.Light.LightRowRef, ?parent: h3d.scene.Object = null) {
 		State.init(lRowRef.getRow(), this);
-		super(lRowRef, parent);
+		super(eid, lRowRef, parent);
 	}
 
 	inline function get_power() return this.pbrState.power;

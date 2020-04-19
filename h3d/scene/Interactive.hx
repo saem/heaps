@@ -1,8 +1,10 @@
 package h3d.scene;
 
+import h3d.scene.SceneStorage.EntityId;
+
 class Interactive implements hxd.SceneEvents.Interactive {
 
-	public final objectId: Int;
+	public final objectId: EntityId;
 
 	@:s public var shape(get,never) : h3d.col.Collider;
 	inline function get_shape() return Object.ObjectMap.get(this.objectId).getCollider();

@@ -6,7 +6,7 @@ class Stencil extends hxd.App {
 	var root : Object;
 
 	override function init() {
-		root = h3d.scene.Object.createObject(s3d);
+		root = this.s3d.createObject(s3d);
 
 		// creates a new unit cube
 		var prim = new h3d.prim.Cube();

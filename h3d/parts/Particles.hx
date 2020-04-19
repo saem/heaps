@@ -23,11 +23,11 @@ class Particles extends h3d.scene.Mesh {
 	private final pRow: ParticlesRow;
 
 	@:allow(h3d.scene.Scene.createParticles)
-	private function new( pRowRef:ParticlesRowRef, mRowRef:h3d.scene.Mesh.MeshRowRef, ?texture:h3d.mat.Texture = null, ?parent:h3d.scene.Object = null) {
+	private function new( eid: EntityId, pRowRef:ParticlesRowRef, mRowRef:h3d.scene.Mesh.MeshRowRef, ?texture:h3d.mat.Texture = null, ?parent:h3d.scene.Object = null) {
 		this.pRowRef = pRowRef;
 		this.pRow = pRowRef.getRow();
 		
-		super(mRowRef, parent);
+		super(eid, mRowRef, parent);
 		
 		material.props = material.getDefaultProps("particles3D");
 		material.mainPass.addShader(this.pRow.pshader);

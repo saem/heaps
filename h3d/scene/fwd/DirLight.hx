@@ -1,5 +1,6 @@
 package h3d.scene.fwd;
 
+import h3d.scene.SceneStorage.EntityId;
 import h3d.scene.Light.State as LightState;
 
 class DirLight extends FwdLight {
@@ -8,9 +9,9 @@ class DirLight extends FwdLight {
 	inline function get_dirState() { return this._state; }
 
 	@:allow(h3d.scene.Scene.createFwdDirLight)
-	private function new(lRowRef: h3d.scene.Light.LightRowRef, ?dir: h3d.Vector, ?parent) {
+	private function new(eid: EntityId, lRowRef: h3d.scene.Light.LightRowRef, ?dir: h3d.Vector, ?parent) {
 		State.init(lRowRef.getRow());
-		super(lRowRef, parent);
+		super(eid, lRowRef, parent);
 		if( dir != null ) setDirection(dir);
 	}
 

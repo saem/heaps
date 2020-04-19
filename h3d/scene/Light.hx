@@ -28,10 +28,10 @@ class Light extends h3d.scene.Object {
 	public var color(get, set) : h3d.Vector;
 	public var enableSpecular(get, set) : Bool;
 
-	private function new(lRowRef:LightRowRef, ?parent) {
+	private function new(eid: EntityId, lRowRef:LightRowRef, ?parent) {
 		this.lRowRef = lRowRef;
 		this._state = this.lRow = lRowRef.getRow();
-		super(parent);
+		super(eid, parent);
 	}
 
 	override function onRemove() {

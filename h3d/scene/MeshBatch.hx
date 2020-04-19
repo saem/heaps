@@ -31,11 +31,11 @@ class MeshBatch extends Mesh {
 	inline function set_shadersChanged(s) return this.mbRow.shadersChanged = s;
 
 	@:allow(h3d.scene.Scene.createMeshBatch)
-	private function new( mbRowRef:MeshBatchRowRef, mRowRef: h3d.scene.Mesh.MeshRowRef, parent:h3d.scene.Object ) {
+	private function new( eid: EntityId, mbRowRef:MeshBatchRowRef, mRowRef: h3d.scene.Mesh.MeshRowRef, parent:h3d.scene.Object ) {
 		this.mbRowRef = mbRowRef;
 		this.mbRow = this.mbRowRef.getRow();
 		
-		super(mRowRef, parent);
+		super(eid, mRowRef, parent);
 
 		for( p in this.material.getPasses() )
 			@:privateAccess p.batchMode = true;

@@ -99,7 +99,7 @@ class Pbr extends SampleApp {
 		sphere = addSphere(0, 0);
 		sphere.material.mainPass.addShader(pbrValues);
 
-		grid = h3d.scene.Object.createObject(s3d);
+		grid = this.s3d.createObject();
 		var max = 8;
 		for( x in 0...max )
 			for( y in 0...max ) {

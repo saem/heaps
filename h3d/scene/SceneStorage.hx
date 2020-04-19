@@ -18,11 +18,30 @@ class SceneStorage {
     public final decalStorage = new h3d.scene.pbr.Decal.DecalStorage();
     public final worldStorage = new h3d.scene.World.WorldStorage();
 
+    public final relativePositionStorage = new h3d.scene.Object.RelativePositionStorage();
+    public final animationStorage = new h3d.scene.Object.AnimationStorage();
+
 	public function new() {}
 	
 	public function insertEntity(): EntityId {
 		return this.entityStorage.allocateRow();
-	}
+    }
+    
+    public function insertRelativePosition(eid: EntityId) {
+        return this.relativePositionStorage.allocateRow(eid);
+    }
+
+    public function selectRelativePosition(id: h3d.scene.Object.RelativePositionId) {
+        return this.relativePositionStorage.fetchRow(id);
+    }
+    
+    public function insertAnimation(eid: EntityId) {
+        return this.animationStorage.allocateRow(eid);
+    }
+
+    public function selectAnimation(id: h3d.scene.Object.AnimationId) {
+        return this.animationStorage.fetchRow(id);
+    }
     
     public function insertMesh(eid: EntityId, primitive: h3d.prim.Primitive, materials: Array<h3d.mat.Material>): h3d.scene.Mesh.MeshId {
         return this.meshStorage.allocateRow(eid, primitive, materials);
@@ -209,7 +228,7 @@ private class EntityStorage {
 	public function allocateRow() {
 		final id = sequence.next();
 		final iid = externalToInternalId(id);
-		this.storage.set(iid, new EntityRow(id, iid));
+        this.storage.set(iid, new EntityRow(id, iid));
 
 		return id;
 	}

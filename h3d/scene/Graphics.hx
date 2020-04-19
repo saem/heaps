@@ -32,11 +32,11 @@ class Graphics extends Mesh {
 	public var is3D(get, set) : Bool;
 
 	@:allow(h3d.scene.Scene.createGraphics)
-	private function new(gRowRef:GraphicsRowRef, mRowRef:h3d.scene.Mesh.MeshRowRef, ?parent:h3d.scene.Object = null) {
+	private function new(eid:EntityId, gRowRef:GraphicsRowRef, mRowRef:h3d.scene.Mesh.MeshRowRef, ?parent:h3d.scene.Object = null) {
 		this.gRowRef = gRowRef;
 		this.gRow = this.gRowRef.getRow();
 
-		super(mRowRef, parent);
+		super(eid, mRowRef, parent);
 
 		material.shadows = false;
 		material.mainPass.enableLights = false;

@@ -1,5 +1,7 @@
 package h3d.scene;
 
+import h3d.scene.SceneStorage.EntityId;
+
 private enum abstract ObjectFlags(Int) {
 	public var FVisible = 0x01;
 	public var FCulled = 0x02;
@@ -67,25 +69,32 @@ enum abstract SyncSelfResult(Int) {
 class Object implements hxd.impl.Serializable implements Cloneable {
 
 	// TODO: No deallocation/reuse, so we leaking memory everywhere
-	static var ObjectId: Int = 0;
-	public static final ObjectMap: hds.Map<Int, Object> = new hds.Map();
-	public static final AddedObjectIds: Array<Int> = [];
-	public static final DeletedObjectIds: Array<Int> = [];
-	public static final RelativePositionComp: ComponentStorage<RelativePosition> = ComponentStorage.newStorage();
-	public static final AbsolutePositionView: ComponentStorage<AbsolutePositionCache> = ComponentStorage.newStorage();
-	public static final AnimationComp: ComponentStorage<Animation> = ComponentStorage.newStorage();
+	public static final ObjectMap: hds.Map<EntityId, Object> = new hds.Map();
+	public static final AddedObjectIds: Array<EntityId> = [];
+	public static final DeletedObjectIds: Array<EntityId> = [];
+
+	/**
+		Temporarily add a SceneStorage reference to factor out the old static
+		storage for Object components.
+
+		This can go once the Scene and Object hierarchy and associated systems
+		are decomposed.
+
+		Should be set via onAdd.
+	**/
+	var sceneStorage(default, set): h3d.scene.SceneStorage;
 
 	/**
 		Numeric ID, will be used to work towards an ECS.
 	**/
-	public final id: Int = ObjectId++;
+	public final id: EntityId;
 
-	var children : Array<Object>;
+	var children : Array<Object> = [];
 
 	/**
 		The parent object in the scene tree.
 	**/
-	public var parent(default, null) : Object;
+	public var parent(default, null) : Object = null;
 
 	/**
 		How many immediate children this object has.
@@ -95,12 +104,12 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	/**
 		The name of the object, can be used to retrieve an object within a tree by using `getObjectByName` (default null)
 	**/
-	@:s public var name : Null<String>;
+	@:s public var name : Null<String> = null;
 
 	/**
 		Various flags, such as whether to render or not.
 	**/
-	@:s var flags : ObjectFlags;
+	@:s var flags : ObjectFlags = new ObjectFlags(0);
 
 	/**
 		The x position of the object relative to its parent.
@@ -201,53 +210,42 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	public var lightCameraCenter(get, set) : Bool;
 
 
-	public var cullingCollider : h3d.col.Collider;
+	public var cullingCollider : h3d.col.Collider = null;
 
-	public var absPos(default, null) : h3d.Matrix;
-	var invPos : h3d.Matrix;
+	public var absPos(default, null) : h3d.Matrix = null;
+	var invPos : h3d.Matrix = null;
 	var qRot(get, set) : h3d.Quat;
 	var posChanged(get,set) : Bool;
 	var allocated(get,set) : Bool;
-	var lastFrame : Int;
+	var lastFrame : Int = 0;
 
 	// Start of transformation to arrays of components
 	var relPos(get, null): RelativePosition;
-	inline function get_relPos() return Object.RelativePositionComp[this.id];
+	inline function get_relPos() return this.sceneStorage.relativePositionStorage.fetchRow(this.id);
 	var anim(get, null): Animation;
-	inline function get_anim() return Object.AnimationComp[this.id];
-
-	// Static factor methods to start indirect new calls
-
-	public static function createObject( ?parent : Object = null ) {
-		return new Object(parent);
-	}
-
-	public static function createScene( ?createRenderer = true, ?createLightSystem = true ) {
-		return new Scene(createRenderer, createLightSystem);
-	}
+	inline function get_anim() return this.sceneStorage.animationStorage.fetchRow(this.id);
 
 	/**
 		Create a new empty object, and adds it to the parent object if not null.
 
 		No longer allow direct creation, use static methods instead.
 	**/
-	private function new( ?parent : Object ) {
+	@:allow(h3d.scene.Scene.createObject)
+	private function new( eid: h3d.scene.SceneStorage.EntityId, ?parent : Object ) {
+		this.id = eid;
+		ObjectMap.set(this.id, this);
+		// More defensive sceneStorage setting hilarity
+		if( parent != null && parent.sceneStorage != null )
+			this.sceneStorage = parent.sceneStorage;
 		flags = new ObjectFlags(0);
 		absPos = new h3d.Matrix();
 		absPos.identity();
 		allowSerialize = true;
-		ObjectMap.set(this.id, this);
-		// Assuming we allocate position every time, so id and index line up
-		Object.RelativePositionComp.add(new RelativePosition(id));
-		Object.AnimationComp.add(new Animation(id));
-		Object.AbsolutePositionView.add(new AbsolutePositionCache(id));
 
-		posChanged = false;
 		visible = true;
 		syncVisibleFlag = true;
 		syncContinueFlag = true;
-		syncChangedFlag = posChanged;
-		children = [];
+		syncChangedFlag = false;
 		if( parent != null )
 			parent.addChild(this);
 	}
@@ -288,6 +286,30 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	inline function set_alwaysSync(b) return flags.set(FAlwaysSync, b);
 	inline function set_ignoreBounds(b) return flags.set(FIgnoreBounds, b);
 	inline function set_allowSerialize(b) return !flags.set(FNoSerialize, !b);
+
+	/**
+		You get a SceneStorage!
+		And you get a SceneStorage!
+		Everybody gets a SceneStorage!!!
+
+		Srsly tho, this is extremely defensive, remove ASAP.
+
+		Possible being:
+		* Object lifetimes can be reasoned about
+	**/
+	function set_sceneStorage(s) {
+		if(s == null) return s;
+
+		if(this.sceneStorage != null && this.sceneStorage != s)
+			throw "Cannot mix objects with different sceneStorage";
+
+		this.sceneStorage = s;
+		for(c in this.children) {
+			c.sceneStorage = s;
+		}
+
+		return s;
+	}
 
 	/**
 		Create an animation instance bound to the object, set it as currentAnimation and play it.
@@ -465,7 +487,7 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 		Make a copy of the object and all its children.
 	**/
 	public function clone(?t : Cloneable): Cloneable {
-		final o: Object = (t == null) ? h3d.scene.Object.createObject() : cast t;
+		final o: Object = (t == null) ? this.getScene().createObject() : cast t;
 		#if debug
 		if( Type.getClass(o) != Type.getClass(this) ) throw this + " is missing clone()";
 		#end
@@ -497,6 +519,8 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 			if( p == o ) throw "Recursive addChild";
 			p = p.parent;
 		}
+		if( o.sceneStorage == null && this.sceneStorage != null)
+			o.sceneStorage = this.sceneStorage;
 		if( o.parent != null ) {
 			// prevent calling onDelete
 			var old = o.allocated;
@@ -813,16 +837,6 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 		if( !visible || (culled && !ctx.computingStatic) )
 			return;
 
-		// TODO - Can likely be removed, bring back if some syncing bugs appear
-		// fallback in case the object was added during a sync() event and we somehow didn't update it
-		// if( posChanged ) {
-		// 	// only sync anim, don't update() (prevent any event from occuring during draw())
-		// 	if( currentAnimation != null ) currentAnimation.sync();
-		// 	posChanged = false;
-		// 	calcAbsPos();
-		// 	for( c in children )
-		// 		c.posChanged = true;
-		// }
 		if( !culled || ctx.computingStatic )
 			emit(ctx);
 
@@ -1067,11 +1081,38 @@ private enum abstract RelativePositionFlags(Int) {
 	}
 }
 
+abstract RelativePositionId(EntityId) from EntityId to EntityId {}
+
+class RelativePositionStorage {
+	final storage = new hds.Map<RelativePositionId, RelativePosition>();
+
+	public function new() {}
+
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId): RelativePositionId {
+		final row = new RelativePosition(eid);
+		this.storage.set(eid, row);
+
+		return eid;
+	}
+
+	public function deallocateRow(id: RelativePositionId) {
+		return this.storage.remove(id);
+	}
+
+	public function fetchRow(id: RelativePositionId) {
+		return this.storage.get(id);
+	}
+
+	public function reset() {
+		this.storage.clear();
+	}
+}
+
 /**
 	Rework into just x, y, z + orientation
 **/
-private class RelativePosition {
-	public final id: Int;
+class RelativePosition {
+	public final id: RelativePositionId;
 
 	private var flags = new RelativePositionFlags();
 	public var posChanged(get, set): Bool;
@@ -1113,8 +1154,9 @@ private class RelativePosition {
 	**/
 	@:s public var scaleZ(default,set) : Float = 1.;
 
-	public function new(id: Int) {
+	public function new(id: RelativePositionId) {
 		this.id = id;
+		this.posChanged = false;
 	}
 
 	inline function set_x(x) {
@@ -1210,87 +1252,39 @@ private class RelativePosition {
 	}
 }
 
-private class AbsolutePositionCache {
-	public final id: Int;
+abstract AnimationId(EntityId) from EntityId to EntityId {}
 
-	public final absPos: h3d.Matrix = Matrix.I();
-	public final invPos: h3d.Matrix = Matrix.I();
+class AnimationStorage {
+	final storage = new hds.Map<AnimationId, Animation>();
 
-	public var animationTransform(default, set): h3d.Matrix = null;
-	inline function set_animationTransform(m) {
-		changed = true;
-		return animationTransform = m;
+	public function new() {}
+
+	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId): AnimationId {
+		final row = new Animation(eid);
+		this.storage.set(eid, row);
+
+		return eid;
 	}
 
-	public var changed(default, null): Bool = true;
-
-	public function new(id) {
-		this.id = id;
+	public function deallocateRow(id: AnimationId) {
+		return this.storage.remove(id);
 	}
 
-	public static function update(abs: AbsolutePositionCache, rel: RelativePosition, ?parent: AbsolutePositionCache) {
-		if (rel.posChanged || abs.changed) {
-			rel.rotationQuat.toMatrix(abs.absPos);
-			// prepend scale
-			abs.absPos._11 *= rel.scaleX;
-			abs.absPos._12 *= rel.scaleX;
-			abs.absPos._13 *= rel.scaleX;
-			abs.absPos._21 *= rel.scaleY;
-			abs.absPos._22 *= rel.scaleY;
-			abs.absPos._23 *= rel.scaleY;
-			abs.absPos._31 *= rel.scaleZ;
-			abs.absPos._32 *= rel.scaleZ;
-			abs.absPos._33 *= rel.scaleZ;
-			abs.absPos._41 = rel.x;
-			abs.absPos._42 = rel.y;
-			abs.absPos._43 = rel.z;
-			if( parent != null )
-				abs.absPos.multiply3x4inline(abs.absPos, parent.absPos);
-			// animation is applied before every other transform
-			if( abs.animationTransform != null )
-				abs.absPos.multiply3x4inline(abs.animationTransform, abs.absPos);
-			if( abs.invPos != null )
-				abs.invPos._44 = 0; // mark as invalid
-
-			abs.changed = false;
-			// NB: not managing the posChanged lifetime here yet.
-		}
+	public function fetchRow(id: AnimationId) {
+		return this.storage.get(id);
 	}
-}
 
-private enum RenderFlags {
-	FCulled;
-	FAllocated;
-	FVisible;
-}
-
-private class Render {
-	public final id: Int;
-	public var culled(get, set): Bool;
-	public var allocated(get, set): Bool;
-	public var visible(get, set): Bool;
-	public var cullingCollider : h3d.col.Collider;
-
-	var flags = new haxe.EnumFlags<RenderFlags>();
-
-	inline function get_culled() return flags.has(FCulled);
-	inline function set_culled(v) { v ? flags.set(FCulled) : flags.unset(FCulled); return v; }
-	inline function get_allocated() return flags.has(FAllocated);
-	inline function set_allocated(v) { v ? flags.set(FAllocated) : flags.unset(FAllocated); return v; }
-	inline function get_visible() return flags.has(FVisible);
-	inline function set_visible(v) { v ? flags.set(FVisible) : flags.unset(FVisible); return v; }
-
-	public function new(id: Int) {
-		this.id = id;
+	public function reset() {
+		this.storage.clear();
 	}
 }
 
 private class Animation {
-	public final id: Int;
+	public final id: AnimationId;
 
-	@:s public var currentAnimation(default, null) : h3d.anim.Animation;
+	@:s public var currentAnimation(default, null) : h3d.anim.Animation = null;
 
-	public function new(id: Int) {
+	public function new(id: AnimationId) {
 		this.id = id;
 	}
 	
@@ -1314,22 +1308,4 @@ private class Animation {
 	public function stopAnimation() {
 		currentAnimation = null;
 	}
-}
-
-/**
-	Creating a layer of indirection for when refactoring will be required,
-	this way the type contract can be easily broken and usages easily found. 
-**/
-abstract ComponentStorage<T>(Array<T>) {
-	public function new(arr) { this = arr; }
-
-	@:arrayAccess public inline function get(i: Int) return this[i];
-	@:arrayAccess public inline function set(i: Int, t: T) {
-		this[i] = t;
-		return t;
-	}
-
-	public inline function add(t: T) this.push(t);
-
-	public inline static function newStorage<T>() return new ComponentStorage(new Array<T>());
 }
