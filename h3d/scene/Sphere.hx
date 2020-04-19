@@ -10,11 +10,11 @@ class Sphere extends Graphics {
 	public var radius(get, set) : Float;
 
 	@:allow(h3d.scene.Scene.createSphere)
-	private function new( sRowRef : SphereRowRef, gRowRef : Graphics.GraphicsRowRef, mRowRef : h3d.scene.Mesh.MeshRowRef, ?depth : Bool = true, ?parent : Object ) {
+	private function new( eid : EntityId, sRowRef : SphereRowRef, gRowRef : Graphics.GraphicsRowRef, mRowRef : h3d.scene.Mesh.MeshRowRef, ?depth : Bool = true, ?parent : Object ) {
 		this.sRowRef = sRowRef;
 		this.sRow = this.sRowRef.getRow();
 
-		super(gRowRef, mRowRef, parent);
+		super(eid, gRowRef, mRowRef, parent);
 
 		if( !depth ) material.mainPass.depth(true, Always);
 	}

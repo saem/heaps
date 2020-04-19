@@ -26,11 +26,11 @@ class WorldChunk {
 	public var lastFrame : Int;
 	public var elements : Array<WorldElement>;
 
-	public function new(cx, cy) {
+	public function new(cx, cy, root) {
 		this.cx = cx;
 		this.cy = cy;
 		elements = [];
-		root = h3d.scene.Object.createObject();
+		this.root = root;
 		buffers = new Map();
 		bounds = new h3d.col.Bounds();
 		root.name = "chunk[" + cx + "-" + cy + "]";
@@ -198,11 +198,11 @@ class World extends h3d.scene.Object {
 	private final wRow : WorldRow;
 
 	@:allow(h3d.scene.Scene.createWorld)
-	private function new(wRowRef: WorldRowRef, parent: h3d.scene.Object) {
+	private function new(eid: EntityId, wRowRef: WorldRowRef, parent: h3d.scene.Object) {
 		this.wRowRef = wRowRef;
 		this.wRow = wRowRef.getRow();
 		
-		super(parent);
+		super(eid, parent);
 		
 		if( this.wRow.autoCollect )
 			h3d.Engine.getCurrent().mem.garbage = this.garbage;
@@ -478,7 +478,7 @@ class World extends h3d.scene.Object {
 		var cid = ix + iy * this.wRow.worldStride;
 		var c = this.wRow.chunks[cid];
 		if( c == null && create ) {
-			c = new WorldChunk(ix, iy);
+			c = new WorldChunk(ix, iy, this.getScene().createObject(this));
 			c.x = ix * this.wRow.chunkSize + this.wRow.originX;
 			c.y = iy * this.wRow.chunkSize + this.wRow.originY;
 			addChild(c.root);

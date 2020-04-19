@@ -132,7 +132,7 @@ class App implements h3d.IDrawable {
 			s2d.checkResize();
 			if( initDone ) onResize();
 		};
-		s3d = h3d.scene.Object.createScene();
+		s3d = h3d.scene.Scene.createScene();
 		s2d = new h2d.Scene();
 		sevents = new hxd.SceneEvents();
 		sevents.addScene(s2d);

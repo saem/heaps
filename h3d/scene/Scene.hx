@@ -1,5 +1,6 @@
 package h3d.scene;
 
+import h3d.scene.SceneStorage.EntityId;
 
 /**
 	h3d.scene.Scene is the root class for a 3D scene. All root objects are added to it before being drawn on screen.
@@ -34,14 +35,16 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	#if debug
 	public var checkPasses = true;
 	#end
-	final sceneStorage : SceneStorage;
+	final storage : SceneStorage;
 
 	/**
 		Create a new scene. A default 3D scene is already available in `hxd.App.s3d`
 	**/
-	@:allow(h3d.scene.Object.createScene)
-	private function new( ?createRenderer = true, ?createLightSystem = true ) {
-		super(null);
+	@:allow(h3d.scene.Scene.createScene)
+	private function new( eid: EntityId, storage: SceneStorage, ?createRenderer = true, ?createLightSystem = true ) {
+		this.sceneStorage = this.storage = storage;
+
+		super(eid, null);
 		window = hxd.Window.getInstance();
 		eventListeners = [];
 		hitInteractives = [];
@@ -54,9 +57,9 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		ctx = new RenderContext();
 		if( createRenderer ) renderer = h3d.mat.MaterialSetup.current.createRenderer();
 		if( createLightSystem ) lightSystem = h3d.mat.MaterialSetup.current.createLightSystem();
-
-		this.sceneStorage = new SceneStorage();
 	}
+
+	override function set_sceneStorage(s) { return this.sceneStorage = this.storage; }
 
 	function set_renderer(r) {
 		renderer = r;
@@ -258,7 +261,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	}
 
 	override function clone( ?o : Cloneable ) {
-		var s = o == null ? h3d.scene.Object.createScene() : cast o;
+		var s = o == null ? h3d.scene.Scene.createScene() : cast o;
 		s.camera = camera.clone();
 		super.clone(s);
 		return s;
@@ -279,7 +282,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 			renderer.dispose();
 			renderer = new Renderer();
 		}
-		sceneStorage.reset();
+		storage.reset();
 	}
 
 	/**
@@ -456,7 +459,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 
 		scene.syncScene(new RenderContext.SyncContext(ctx));
 		if(scene.cameraControllerId.isNotNull())
-			CameraController.sync(scene.sceneStorage.selectCameraController(scene.cameraControllerId), camera, ctx.elapsedTime);
+			CameraController.sync(scene.storage.selectCameraController(scene.cameraControllerId), camera, ctx.elapsedTime);
 		scene.emitRec(new RenderContext.EmitContext(ctx));
 
 		ctx.sortPasses();
@@ -522,7 +525,22 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	}
 	#end
 
-	public function createInteractive(objectId: Int, ?shape: h3d.col.Collider = null) {
+	// TODO - more than one scene means bugs
+	static var cachedScene: Scene = null;
+	public static function createScene( ?createRenderer = true, ?createLightSystem = true ) {
+		if(cachedScene != null) { return cachedScene; }
+
+		final storage = new SceneStorage();
+		final eid = storage.insertEntity();
+		
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		cachedScene = new Scene(eid, storage, createRenderer, createLightSystem);
+		return cachedScene;
+	}
+
+	public function createInteractive(objectId: EntityId, ?shape: h3d.col.Collider = null) {
 		final obj = Object.ObjectMap.get(objectId);
 		final interactive = new h3d.scene.Interactive(objectId, shape);
 
@@ -533,11 +551,23 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		return interactive;
 	}
 
+	public function createObject(?parent : Object = null) {
+		parent = parent == null ? this : parent;
+		final eid = this.storage.insertEntity();
+
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+		
+		final o = new Object(eid, parent);
+
+		return o;
+	}
+
 	public function createCameraController( ?distance : Float ) {
-		this.cameraControllerId = this.sceneStorage.insertCameraController(this.cameraControllerSystem, distance);
+		this.cameraControllerId = this.storage.insertCameraController(this.cameraControllerSystem, distance);
 
         // Crappy On Insert Trigger
-		final ccr:CameraController.CameraControllerRow = this.sceneStorage.selectCameraController(this.cameraControllerId);
+		final ccr:CameraController.CameraControllerRow = this.storage.selectCameraController(this.cameraControllerId);
         CameraController.onAdd(ccr, this, this.camera);
 
 		return new h3d.scene.CameraController(ccr);
@@ -545,211 +575,270 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 
 	public function createFwdDirLight( ?dir : h3d.Vector = null, ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final id = this.sceneStorage.insertLight(eid, h3d.scene.Light.Type.FwdDir, new h3d.shader.DirLight());
+		final eid = this.storage.insertEntity();
+		final id = this.storage.insertLight(eid, h3d.scene.Light.Type.FwdDir, new h3d.shader.DirLight());
 
-		final rowRef = new h3d.scene.Light.LightRowRef(id, this.sceneStorage);
+		final rowRef = new h3d.scene.Light.LightRowRef(id, this.storage);
 
-		return new h3d.scene.fwd.DirLight(rowRef, dir, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.fwd.DirLight(eid, rowRef, dir, parent);
 	}
 
 	public function createFwdPointLight( ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final id = this.sceneStorage.insertLight(eid, h3d.scene.Light.Type.FwdPoint, new h3d.shader.PointLight());
+		final eid = this.storage.insertEntity();
+		final id = this.storage.insertLight(eid, h3d.scene.Light.Type.FwdPoint, new h3d.shader.PointLight());
 
-		final rowRef = new h3d.scene.Light.LightRowRef(id, this.sceneStorage);
+		final rowRef = new h3d.scene.Light.LightRowRef(id, this.storage);
 
-		return new h3d.scene.fwd.PointLight(rowRef, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.fwd.PointLight(eid, rowRef, parent);
 	}
 
 	public function createPbrDirLight( ?dir : h3d.Vector = null, ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final id = this.sceneStorage.insertLight(eid, h3d.scene.Light.Type.PbrDir, new h3d.shader.pbr.Light.DirLight());
+		final eid = this.storage.insertEntity();
+		final id = this.storage.insertLight(eid, h3d.scene.Light.Type.PbrDir, new h3d.shader.pbr.Light.DirLight());
 
-		final rowRef = new h3d.scene.Light.LightRowRef(id, this.sceneStorage);
+		final rowRef = new h3d.scene.Light.LightRowRef(id, this.storage);
 
-		return new h3d.scene.pbr.DirLight(rowRef, dir, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.pbr.DirLight(eid, rowRef, dir, parent);
 	}
 
 	public function createPbrPointLight( ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final id = this.sceneStorage.insertLight(eid, h3d.scene.Light.Type.PbrPoint, new h3d.shader.pbr.Light.PointLight());
+		final eid = this.storage.insertEntity();
+		final id = this.storage.insertLight(eid, h3d.scene.Light.Type.PbrPoint, new h3d.shader.pbr.Light.PointLight());
 
-		final rowRef = new h3d.scene.Light.LightRowRef(id, this.sceneStorage);
+		final rowRef = new h3d.scene.Light.LightRowRef(id, this.storage);
 
-		return new h3d.scene.pbr.PointLight(rowRef, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.pbr.PointLight(eid, rowRef, parent);
 	}
 
 	public function createPbrSpotLight( ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final id = this.sceneStorage.insertLight(eid, h3d.scene.Light.Type.PbrSpot, new h3d.shader.pbr.Light.SpotLight());
+		final eid = this.storage.insertEntity();
+		final id = this.storage.insertLight(eid, h3d.scene.Light.Type.PbrSpot, new h3d.shader.pbr.Light.SpotLight());
 
-		final rowRef = new h3d.scene.Light.LightRowRef(id, this.sceneStorage);
+		final rowRef = new h3d.scene.Light.LightRowRef(id, this.storage);
 
-		return new h3d.scene.pbr.SpotLight(rowRef, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.pbr.SpotLight(eid, rowRef, parent);
 	}
 
 	public function createMesh( primitive : h3d.prim.Primitive, ?material : h3d.mat.Material = null, ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final id = this.sceneStorage.insertMesh(eid, primitive, material == null ? [] : [material]);
+		final eid = this.storage.insertEntity();
+		final id = this.storage.insertMesh(eid, primitive, material == null ? [] : [material]);
 
-		final rowRef = new h3d.scene.Mesh.MeshRowRef(id, this.sceneStorage);
+		final rowRef = new h3d.scene.Mesh.MeshRowRef(id, this.storage);
 
-		return new h3d.scene.Mesh(rowRef, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.Mesh(eid, rowRef, parent);
 	}
 
 	public function createMeshWithMaterials( primitive : h3d.prim.Primitive, ?materials : Array<h3d.mat.Material> = null, ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final id = this.sceneStorage.insertMesh(eid, primitive, materials == null ? [] : materials);
+		final eid = this.storage.insertEntity();
+		final id = this.storage.insertMesh(eid, primitive, materials == null ? [] : materials);
 
-		final rowRef = new h3d.scene.Mesh.MeshRowRef(id, this.sceneStorage);
+		final rowRef = new h3d.scene.Mesh.MeshRowRef(id, this.storage);
 
-		return new h3d.scene.Mesh(rowRef, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.Mesh(eid, rowRef, parent);
 	}
 
 	public function createGraphics( ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final id = this.sceneStorage.insertGraphics(eid);
+		final eid = this.storage.insertEntity();
+		final id = this.storage.insertGraphics(eid);
 
-		final rowRef = new h3d.scene.Graphics.GraphicsRowRef(id, this.sceneStorage);
+		final rowRef = new h3d.scene.Graphics.GraphicsRowRef(id, this.storage);
 		
 		// TODO - hacky, but the primitive is setup in the GraphicsRow
-		final mid = this.sceneStorage.insertMesh(eid, rowRef.getRow().bprim, null);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
+		final mid = this.storage.insertMesh(eid, rowRef.getRow().bprim, null);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
 
-		return new h3d.scene.Graphics(rowRef, mRowRef, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.Graphics(eid, rowRef, mRowRef, parent);
 	}
 
 	public function createBox( ?colour = 0xFFFF0000, ?bounds : h3d.col.Bounds = null, ?depth : Bool = true, ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final gid = this.sceneStorage.insertGraphics(eid);
-		final id = this.sceneStorage.insertBox(eid, colour, bounds);
+		final eid = this.storage.insertEntity();
+		final gid = this.storage.insertGraphics(eid);
+		final id = this.storage.insertBox(eid, colour, bounds);
 		
-		final rowRef = new h3d.scene.Box.BoxRowRef(id, this.sceneStorage);
-		final gRowRef = new h3d.scene.Graphics.GraphicsRowRef(gid, this.sceneStorage);
+		final rowRef = new h3d.scene.Box.BoxRowRef(id, this.storage);
+		final gRowRef = new h3d.scene.Graphics.GraphicsRowRef(gid, this.storage);
 		
 		// TODO - hacky, but the primitive is setup in the GraphicsRow
-		final mid = this.sceneStorage.insertMesh(eid, gRowRef.getRow().bprim, null);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
+		final mid = this.storage.insertMesh(eid, gRowRef.getRow().bprim, null);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
 
-		return new h3d.scene.Box(rowRef, gRowRef, mRowRef, depth, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.Box(eid, rowRef, gRowRef, mRowRef, depth, parent);
 	}
 
 	public function createSphere( ?colour = 0xFFFF0000, ?radius : Float = 1.0, ?depth : Bool = true, ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final gid = this.sceneStorage.insertGraphics(eid);
-		final id = this.sceneStorage.insertSphere(eid, colour, radius);
+		final eid = this.storage.insertEntity();
+		final gid = this.storage.insertGraphics(eid);
+		final id = this.storage.insertSphere(eid, colour, radius);
 		
-		final rowRef = new h3d.scene.Sphere.SphereRowRef(id, this.sceneStorage);
-		final gRowRef = new h3d.scene.Graphics.GraphicsRowRef(gid, this.sceneStorage);
+		final rowRef = new h3d.scene.Sphere.SphereRowRef(id, this.storage);
+		final gRowRef = new h3d.scene.Graphics.GraphicsRowRef(gid, this.storage);
 		
 		// TODO - hacky, but the primitive is setup in the GraphicsRow
-		final mid = this.sceneStorage.insertMesh(eid, gRowRef.getRow().bprim, null);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
+		final mid = this.storage.insertMesh(eid, gRowRef.getRow().bprim, null);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
 
-		return new h3d.scene.Sphere(rowRef, gRowRef, mRowRef, depth, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.Sphere(eid, rowRef, gRowRef, mRowRef, depth, parent);
 	}
 
 	public function createSkin( ?skinData:h3d.anim.Skin = null, ?materials : Array<h3d.mat.Material> = null, ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final mid = this.sceneStorage.insertMesh(eid, null, materials);
-		final id = this.sceneStorage.insertSkin(eid, skinData);
+		final eid = this.storage.insertEntity();
+		final mid = this.storage.insertMesh(eid, null, materials);
+		final id = this.storage.insertSkin(eid, skinData);
 
-		final rowRef = new h3d.scene.Skin.SkinRowRef(id, this.sceneStorage);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
+		final rowRef = new h3d.scene.Skin.SkinRowRef(id, this.storage);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
 
-		return new h3d.scene.Skin(rowRef, mRowRef, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.Skin(eid, rowRef, mRowRef, parent);
 	}
 
 	@:allow(h3d.scene.Skin.getObjectByName)
 	public function createSkinJoint( skin : h3d.scene.Skin, name : String, index : Int  ) {
-		final eid = this.sceneStorage.insertEntity();
-		final id = this.sceneStorage.insertSkinJoint(eid, skin, name, index);
+		final eid = this.storage.insertEntity();
+		final id = this.storage.insertSkinJoint(eid, skin, name, index);
 
-		final rowRef = new h3d.scene.Skin.SkinJointRowRef(id, this.sceneStorage);
+		final rowRef = new h3d.scene.Skin.SkinJointRowRef(id, this.storage);
 
-		return new h3d.scene.Skin.Joint(rowRef);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.Skin.Joint(eid, rowRef);
 	}
 
 	public function createMeshBatch( primitive : h3d.prim.MeshPrimitive, materials : Array<h3d.mat.Material> = null, parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final id  = this.sceneStorage.insertMeshBatch(eid, primitive);
+		final eid = this.storage.insertEntity();
+		final id  = this.storage.insertMeshBatch(eid, primitive);
 		
-		final rowRef = new h3d.scene.MeshBatch.MeshBatchRowRef(id, this.sceneStorage);
-		final mid = this.sceneStorage.insertMesh(eid, rowRef.getRow().instanced, materials);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
+		final rowRef = new h3d.scene.MeshBatch.MeshBatchRowRef(id, this.storage);
+		final mid = this.storage.insertMesh(eid, rowRef.getRow().instanced, materials);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
 
-		return new h3d.scene.MeshBatch(rowRef, mRowRef, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.MeshBatch(eid, rowRef, mRowRef, parent);
 	}
 
 	public function createWorld( chunkSize : Int, worldSize : Int, ?autoCollect : Bool = true, ?parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final id  = this.sceneStorage.insertWorld(eid, chunkSize, worldSize, autoCollect);
+		final eid = this.storage.insertEntity();
+		final id  = this.storage.insertWorld(eid, chunkSize, worldSize, autoCollect);
 		
-		final rowRef = new h3d.scene.World.WorldRowRef(id, this.sceneStorage);
+		final rowRef = new h3d.scene.World.WorldRowRef(id, this.storage);
 
-		return new h3d.scene.World(rowRef, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.World(eid, rowRef, parent);
 	}
 
 	public function createPbrDecal( primitive : h3d.prim.Primitive, materials : Array<h3d.mat.Material> = null, parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final mid = this.sceneStorage.insertMesh(eid, primitive, materials);
-		final id  = this.sceneStorage.insertDecal(eid);
+		final eid = this.storage.insertEntity();
+		final mid = this.storage.insertMesh(eid, primitive, materials);
+		final id  = this.storage.insertDecal(eid);
 
-		final rowRef = new h3d.scene.pbr.Decal.DecalRowRef(id, this.sceneStorage);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
+		final rowRef = new h3d.scene.pbr.Decal.DecalRowRef(id, this.storage);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
 
-		return new h3d.scene.pbr.Decal(rowRef, mRowRef, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.scene.pbr.Decal(eid, rowRef, mRowRef, parent);
 	}
 
 	public function createParticles( ?texture : h3d.mat.Texture = null, parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final mid = this.sceneStorage.insertMesh(eid, null, null);
-		final id  = this.sceneStorage.insertParticles(eid);
+		final eid = this.storage.insertEntity();
+		final mid = this.storage.insertMesh(eid, null, null);
+		final id  = this.storage.insertParticles(eid);
 
-		final rowRef = new h3d.parts.Particles.ParticlesRowRef(id, this.sceneStorage);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
+		final rowRef = new h3d.parts.Particles.ParticlesRowRef(id, this.storage);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
+
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
 		
-		return new h3d.parts.Particles(rowRef, mRowRef, texture, parent);
+		return new h3d.parts.Particles(eid, rowRef, mRowRef, texture, parent);
 	}
 
 	public function createEmitter( ?state : h3d.parts.Data.State = null, parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.insertEntity();
-		final mid = this.sceneStorage.insertMesh(eid, null, null);
-		final pid = this.sceneStorage.insertParticles(eid);
-		final id  = this.sceneStorage.insertEmitter(eid, state);
+		final eid = this.storage.insertEntity();
+		final mid = this.storage.insertMesh(eid, null, null);
+		final pid = this.storage.insertParticles(eid);
+		final id  = this.storage.insertEmitter(eid, state);
 
-		final rowRef = new h3d.parts.Emitter.EmitterRowRef(id, this.sceneStorage);
-		final pRowRef = new h3d.parts.Particles.ParticlesRowRef(pid, this.sceneStorage);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
+		final rowRef = new h3d.parts.Emitter.EmitterRowRef(id, this.storage);
+		final pRowRef = new h3d.parts.Particles.ParticlesRowRef(pid, this.storage);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
+
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
 		
-		return new h3d.parts.Emitter(rowRef, pRowRef, mRowRef, parent);
+		return new h3d.parts.Emitter(eid, rowRef, pRowRef, mRowRef, parent);
 	}
 
 	public function createGpuParticles( parent : Object = null ) {
 		parent = parent == null ? this : parent;
-		final eid = this.sceneStorage.entityStorage.allocateRow();
-		final mid = this.sceneStorage.insertMesh(eid, null, []);
-		final gid = this.sceneStorage.insertGpuParticles(eid);
+		final eid = this.storage.entityStorage.allocateRow();
+		final mid = this.storage.insertMesh(eid, null, []);
+		final gid = this.storage.insertGpuParticles(eid);
 
-		final gpuRowRef = new h3d.parts.GpuParticles.GpuParticlesRowRef(gid, this.sceneStorage);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.sceneStorage);
+		final gpuRowRef = new h3d.parts.GpuParticles.GpuParticlesRowRef(gid, this.storage);
+		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
 
-		return new h3d.parts.GpuParticles(gpuRowRef, mRowRef, parent);
+		// allocate the components first so they're ready for the constructor
+		Scene.createObjectComponents(storage, eid);
+
+		return new h3d.parts.GpuParticles(eid, gpuRowRef, mRowRef, parent);
+	}
+
+	private inline static function createObjectComponents(storage: SceneStorage, eid: EntityId) {
+		storage.insertRelativePosition(eid);
+		storage.insertAnimation(eid);
 	}
 }

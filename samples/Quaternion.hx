@@ -15,7 +15,7 @@ class Quaternion extends hxd.App {
 		cube = this.s3d.createMesh(p, s3d);
 		cube.material.texture = h2d.Tile.fromColor(0x808080).getTexture();
 
-		var axis = h3d.scene.Object.createObject(s3d);
+		var axis = this.s3d.createObject(s3d);
 
 		var ax = this.s3d.createBox(0xFFFF0000, true, axis);
 		ax.x = 0.5;

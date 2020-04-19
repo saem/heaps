@@ -465,11 +465,11 @@ class GpuParticles extends h3d.scene.Mesh {
 	inline function get_uploadedCount() return this.row.uploadedCount;
 
 	@:allow(h3d.scene.Scene.createGpuParticles)
-	private function new(rowRef:GpuParticlesRowRef, mRowRef:h3d.scene.Mesh.MeshRowRef, parent:h3d.scene.Object) {
+	private function new(eid: EntityId, rowRef:GpuParticlesRowRef, mRowRef:h3d.scene.Mesh.MeshRowRef, parent:h3d.scene.Object) {
 		this.row = rowRef.getRow(); // cache this for now
 		this.rowRef = rowRef;
 
-		super(mRowRef, parent);
+		super(eid, mRowRef, parent);
 		
 		this.materials = []; //reset to empty so it is in sync with groups
 	}

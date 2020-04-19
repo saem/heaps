@@ -29,7 +29,7 @@ class Library {
 	var cachedAnimations : Map<String, h3d.anim.Animation>;
 	var cachedSkin : Map<String, h3d.anim.Skin>;
 	var tmp = haxe.io.Bytes.alloc(4);
-	var dummyScene = h3d.scene.Object.createScene(false, false);
+	var dummyScene = h3d.scene.Scene.createScene(false, false);
 
 	public function new(res,  header) {
 		this.resource = res;
@@ -346,7 +346,7 @@ class Library {
 		for( m in header.models ) {
 			var obj : h3d.scene.Object;
 			if( m.geometry < 0 ) {
-				obj = h3d.scene.Object.createObject();
+				obj = dummyScene.createObject();
 			} else {
 				var prim = makePrimitive(m.geometry);
 				if( m.skin != null ) {

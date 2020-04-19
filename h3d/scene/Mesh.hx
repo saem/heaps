@@ -41,11 +41,15 @@ class Mesh extends h3d.scene.Object {
 	**/
 	@:allow(h3d.scene.Scene.createMesh)
 	@:allow(h3d.scene.Scene.createMeshWithMaterials)
-	private function new( mRowRef : MeshRowRef, ?parent : h3d.scene.Object = null ) {
+	private function new( eid: EntityId, mRowRef : MeshRowRef, ?parent : h3d.scene.Object = null ) {
 		this.mRowRef = mRowRef;
 		this.mRow = mRowRef.getRow();
 
-		super(parent);
+		if(eid != mRow.entityId) {
+			throw "Shit";
+		}
+
+		super(eid, parent);
 	}
 
 	override private function onAdd() {
