@@ -45,10 +45,6 @@ class Mesh extends h3d.scene.Object {
 		this.mRowRef = mRowRef;
 		this.mRow = mRowRef.getRow();
 
-		if(eid != mRow.entityId) {
-			throw "Shit";
-		}
-
 		super(eid, parent);
 	}
 
