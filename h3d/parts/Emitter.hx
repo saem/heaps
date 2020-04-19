@@ -258,7 +258,6 @@ class Emitter extends Particles implements Randomized {
 	}
 
 	override function sync( ctx : h3d.scene.RenderContext.SyncContext ) {
-		super.sync(ctx);
 		update(ctx.elapsedTime * this.eRow.speed);
 	}
 
