@@ -132,8 +132,8 @@ class SceneStorage {
         return this.gpuParticleStorage.fetchRow(gid);
     }
     
-    public function insertParticles(eid: EntityId): h3d.parts.Particles.ParticlesId {
-		return this.particlesStorage.allocateRow(eid);
+    public function insertParticles(eid: EntityId, ?texture: h3d.mat.Texture = null): h3d.parts.Particles.ParticlesId {
+		return this.particlesStorage.allocateRow(eid, texture);
 	}
 
     // The return type here isn't the best, return the raw row.
