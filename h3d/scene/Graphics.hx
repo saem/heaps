@@ -21,10 +21,21 @@ private class GPoint {
 	}
 }
 
-class Graphics extends Mesh {
+class Graphics extends Object implements Materialable {
 
 	private final gRowRef : GraphicsRowRef;
 	private final gRow : GraphicsRow;
+
+	public var materials(get,set): Array<h3d.mat.Material>;
+	inline function get_materials() return [this.gRow.material];
+	inline function set_materials(m) return [this.gRow.material = m[0]];
+
+	/**
+		The material of the mesh: the properties used to display it (texture, color, shaders, etc.)
+	**/
+	public var material(get, set) : h3d.mat.Material;
+	inline function get_material() return this.gRow.material;
+	inline function set_material(m) return this.gRow.material = m;
 
 	/**
 		Setting is3D to true will switch from a screen space line (constant size whatever the distance) to a world space line
@@ -32,19 +43,11 @@ class Graphics extends Mesh {
 	public var is3D(get, set) : Bool;
 
 	@:allow(h3d.scene.Scene.createGraphics)
-	private function new(eid:EntityId, gRowRef:GraphicsRowRef, mRowRef:h3d.scene.Mesh.MeshRowRef, ?parent:h3d.scene.Object = null) {
+	private function new(eid:EntityId, gRowRef:GraphicsRowRef, ?parent:h3d.scene.Object = null) {
 		this.gRowRef = gRowRef;
 		this.gRow = this.gRowRef.getRow();
 
-		super(eid, mRowRef, parent);
-
-		material.shadows = false;
-		material.mainPass.enableLights = false;
-		material.mainPass.addShader(this.gRow.lineShader);
-		final vcolor = new h3d.shader.VertexColorAlpha();
-		vcolor.setPriority(-100);
-		material.mainPass.addShader(vcolor);
-		material.mainPass.culling = None;
+		super(eid, parent);
 	}
 
 	inline function get_is3D() : Bool return this.gRow.is3D;
@@ -65,6 +68,44 @@ class Graphics extends Mesh {
 		super.onRemove();
 		this.gRow.bprim.clear();
 		this.gRowRef.deleteRow();
+	}
+
+	override function sync(ctx:RenderContext.SyncContext) {
+		super.sync(ctx);
+		flush();
+		this.gRow.bprim.flush();
+	}
+
+	override function emit( ctx : RenderContext.EmitContext ) {
+		if( this.material != null )
+			ctx.emit(this.material, this);
+	}
+
+	override function draw( ctx : RenderContext.DrawContext ) {
+		flush();
+		this.gRow.bprim.flush();
+		this.gRow.bprim.render(ctx.engine);
+		super.draw(ctx);
+	}
+
+	public function clear() {
+		flush();
+		this.gRow.bprim.clear();
+	}
+
+	override function getMaterialByName( name : String ) : h3d.mat.Material {
+		if( this.material != null && this.material.name == name )
+			return this.material;
+		return super.getMaterialByName(name);
+	}
+
+	override function getMaterials( ?a : Array<h3d.mat.Material> ) {
+		if( a == null ) a = [];
+		if( this.material != null && a.indexOf(this.material) < 0 )
+			a.push(this.material);
+		for( o in children )
+			o.getMaterials(a);
+		return super.getMaterials(a);
 	}
 
 	function flushLine() {
@@ -183,23 +224,6 @@ class Graphics extends Mesh {
 			flushLine();
 			this.gRow.tmpPoints.resize(0);
 		}
-	}
-
-	override function sync(ctx:RenderContext.SyncContext) {
-		super.sync(ctx);
-		flush();
-		this.gRow.bprim.flush();
-	}
-
-	override function draw( ctx : RenderContext.DrawContext ) {
-		flush();
-		this.gRow.bprim.flush();
-		super.draw(ctx);
-	}
-
-	public function clear() {
-		flush();
-		this.gRow.bprim.clear();
 	}
 
 	public function lineStyle( size = 0., color = 0, alpha = 1. ) {
@@ -337,6 +361,7 @@ class GraphicsRow {
 	public var internalId: InternalGraphicsId;
 	public var entityId(default,null): h3d.scene.SceneStorage.EntityId;
 
+	public var material: h3d.mat.Material = null;
 	public var bprim = new h3d.prim.BigPrimitive(12);
 	public var curX : Float = 0.;
 	public var curY : Float = 0.;
@@ -359,9 +384,19 @@ class GraphicsRow {
 		this.internalId = iid;
 		this.entityId = eid;
 
-		bprim.isStatic = false;
+		this.material = h3d.mat.MaterialSetup.current.createMaterial();
+		this.material.props = this.material.getDefaultProps();
+		this.material.shadows = false;
+		this.material.mainPass.enableLights = false;
+		this.material.mainPass.addShader(this.lineShader);
+		final vcolor = new h3d.shader.VertexColorAlpha();
+		vcolor.setPriority(-100);
+		this.material.mainPass.addShader(vcolor);
+		this.material.mainPass.culling = None;
 
-		lineShader.setPriority(-100);
+		this.bprim.isStatic = false;
+
+		this.lineShader.setPriority(-100);
 	}
 }
 

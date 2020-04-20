@@ -8,7 +8,6 @@ class SceneStorage {
     public final gpuParticleStorage = new h3d.parts.GpuParticles.GpuParticlesStorage();
     public final emitterStorage = new h3d.parts.Emitter.EmitterStorage();
     public final particlesStorage = new h3d.parts.Particles.ParticlesStorage();
-    public final meshBatchStorage = new h3d.scene.MeshBatch.MeshBatchStorage();
     public final skinStorage = new h3d.scene.Skin.SkinStorage();
     public final skinJointStorage = new h3d.scene.Skin.SkinJointStorage();
     public final lightStorage = new h3d.scene.Light.LightStorage();
@@ -114,16 +113,7 @@ class SceneStorage {
     public function selectDecal(gid: h3d.scene.pbr.Decal.DecalId): h3d.scene.pbr.Decal.DecalRow {
         return this.decalStorage.fetchRow(gid);
     }
-    
-    public function insertMeshBatch(eid: EntityId, meshPrim: h3d.prim.MeshPrimitive): h3d.scene.MeshBatch.MeshBatchId {
-        return this.meshBatchStorage.allocateRow(eid, meshPrim);
-	}
 
-    // The return type here isn't the best, return the raw row.
-    public function selectMeshBatch(gid: h3d.scene.MeshBatch.MeshBatchId): h3d.scene.MeshBatch.MeshBatchRow {
-        return this.meshBatchStorage.fetchRow(gid);
-    }
-    
     public function insertWorld(eid: EntityId, chunkSize: Int, worldSize: Int, ?autoCollect: Bool = true): h3d.scene.World.WorldId {
         return this.worldStorage.allocateRow(eid, chunkSize, worldSize, autoCollect);
 	}
@@ -175,7 +165,6 @@ class SceneStorage {
 		this.gpuParticleStorage.reset();
 		this.particlesStorage.reset();
 		this.emitterStorage.reset();
-		this.meshBatchStorage.reset();
 		this.skinStorage.reset();
 		this.skinJointStorage.reset();
 		this.graphicsStorage.reset();

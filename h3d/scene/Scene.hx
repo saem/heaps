@@ -540,6 +540,15 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		return cachedScene;
 	}
 
+	/**
+		This is here for supporting new object types
+
+		Should go away.
+	**/
+	public function createEntity() {
+		return this.storage.insertEntity();
+	}
+
 	public function createInteractive(objectId: EntityId, ?shape: h3d.col.Collider = null) {
 		final obj = Object.ObjectMap.get(objectId);
 		final interactive = new h3d.scene.Interactive(objectId, shape);
@@ -673,12 +682,11 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		
 		// TODO - hacky, but the primitive is setup in the GraphicsRow
 		final mid = this.storage.insertMesh(eid, rowRef.getRow().bprim, null);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
 
 		// allocate the components first so they're ready for the constructor
 		Scene.createObjectComponents(storage, eid);
 
-		return new h3d.scene.Graphics(eid, rowRef, mRowRef, parent);
+		return new h3d.scene.Graphics(eid, rowRef, parent);
 	}
 
 	public function createBox( ?colour = 0xFFFF0000, ?bounds : h3d.col.Bounds = null, ?depth : Bool = true, ?parent : Object = null ) {
@@ -689,15 +697,11 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		
 		final rowRef = new h3d.scene.Box.BoxRowRef(id, this.storage);
 		final gRowRef = new h3d.scene.Graphics.GraphicsRowRef(gid, this.storage);
-		
-		// TODO - hacky, but the primitive is setup in the GraphicsRow
-		final mid = this.storage.insertMesh(eid, gRowRef.getRow().bprim, null);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
 
 		// allocate the components first so they're ready for the constructor
 		Scene.createObjectComponents(storage, eid);
 
-		return new h3d.scene.Box(eid, rowRef, gRowRef, mRowRef, depth, parent);
+		return new h3d.scene.Box(eid, rowRef, gRowRef, depth, parent);
 	}
 
 	public function createSphere( ?colour = 0xFFFF0000, ?radius : Float = 1.0, ?depth : Bool = true, ?parent : Object = null ) {
@@ -709,14 +713,10 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		final rowRef = new h3d.scene.Sphere.SphereRowRef(id, this.storage);
 		final gRowRef = new h3d.scene.Graphics.GraphicsRowRef(gid, this.storage);
 		
-		// TODO - hacky, but the primitive is setup in the GraphicsRow
-		final mid = this.storage.insertMesh(eid, gRowRef.getRow().bprim, null);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
-
 		// allocate the components first so they're ready for the constructor
 		Scene.createObjectComponents(storage, eid);
 
-		return new h3d.scene.Sphere(eid, rowRef, gRowRef, mRowRef, depth, parent);
+		return new h3d.scene.Sphere(eid, rowRef, gRowRef, depth, parent);
 	}
 
 	public function createSkin( ?skinData:h3d.anim.Skin = null, ?materials : Array<h3d.mat.Material> = null, ?parent : Object = null ) {
@@ -745,21 +745,6 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		Scene.createObjectComponents(storage, eid);
 
 		return new h3d.scene.Skin.Joint(eid, rowRef);
-	}
-
-	public function createMeshBatch( primitive : h3d.prim.MeshPrimitive, materials : Array<h3d.mat.Material> = null, parent : Object = null ) {
-		parent = parent == null ? this : parent;
-		final eid = this.storage.insertEntity();
-		final id  = this.storage.insertMeshBatch(eid, primitive);
-		
-		final rowRef = new h3d.scene.MeshBatch.MeshBatchRowRef(id, this.storage);
-		final mid = this.storage.insertMesh(eid, rowRef.getRow().instanced, materials);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
-
-		// allocate the components first so they're ready for the constructor
-		Scene.createObjectComponents(storage, eid);
-
-		return new h3d.scene.MeshBatch(eid, rowRef, mRowRef, parent);
 	}
 
 	public function createWorld( chunkSize : Int, worldSize : Int, ?autoCollect : Bool = true, ?parent : Object = null ) {

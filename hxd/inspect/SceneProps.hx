@@ -268,8 +268,8 @@ class SceneProps {
 		props.push(PFloats("scale", function() return [o.scaleX, o.scaleY, o.scaleZ], function(v) { o.scaleX = v[0]; o.scaleY = v[1]; o.scaleZ = v[2]; }));
 		props.push(PBool("visible", function() return o.visible, function(v) o.visible = v));
 
-		if( o.isMesh() ) {
-			for( m in o.toMesh().materials )
+		if( o.isMaterialable() ) {
+			for( m in o.toMaterialable().materials )
 				props.push(getMaterialProps(m));
 		} else {
 			var l = hxd.impl.Api.downcast(o, h3d.scene.Light);

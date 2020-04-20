@@ -158,13 +158,13 @@ class LinearAnimation extends Animation {
 			if( o.targetObject == null && o.targetSkin == null ) continue;
 
 			if( o.alphas != null ) {
-				var mat = o.targetObject.toMesh().material;
+				var mat = o.targetObject.toMaterialable().material;
 				if( mat.blendMode == None ) mat.blendMode = Alpha;
 				mat.color.w = o.alphas[frame1] * k1 + o.alphas[frame2] * k2;
 				continue;
 			}
 			if( o.uvs != null ) {
-				var mat = o.targetObject.toMesh().material;
+				var mat = o.targetObject.toMaterialable().material;
 				var s = mat.mainPass.getShader(h3d.shader.UVDelta);
 				if( s == null ) {
 					s = mat.mainPass.addShader(new h3d.shader.UVDelta());
