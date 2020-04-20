@@ -286,6 +286,11 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	inline function set_alwaysSync(b) return flags.set(FAlwaysSync, b);
 	inline function set_ignoreBounds(b) return flags.set(FIgnoreBounds, b);
 	inline function set_allowSerialize(b) return !flags.set(FNoSerialize, !b);
+	inline function set_defaultTransform(v) {
+		defaultTransform = v;
+		posChanged = true;
+		return v;
+	}
 
 	/**
 		You get a SceneStorage!
@@ -484,33 +489,6 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	}
 
 	/**
-		Make a copy of the object and all its children.
-	**/
-	public function clone(?t : Cloneable): Cloneable {
-		final o: Object = (t == null) ? this.getScene().createObject() : cast t;
-		#if debug
-		if( Type.getClass(o) != Type.getClass(this) ) throw this + " is missing clone()";
-		#end
-		o.x = x;
-		o.y = y;
-		o.z = z;
-		o.scaleX = scaleX;
-		o.scaleY = scaleY;
-		o.scaleZ = scaleZ;
-		o.qRot.load(qRot);
-		o.name = name;
-		o.visible = visible;
-		if( defaultTransform != null )
-			o.defaultTransform = defaultTransform.clone();
-		for( c in children ) {
-			var c: Object = cast c.clone();
-			c.parent = o;
-			o.children.push(c);
-		}
-		return cast o;
-	}
-
-	/**
 		Add a child object at the end of the children list.
 	**/
 	public final function addChild( o : Object ) {
@@ -637,6 +615,31 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 		if( m != null )
 			return m;
 		throw this + " is not a Mesh";
+	}
+
+	public inline function isGraphics() {
+		return hxd.impl.Api.downcast(this, Graphics) != null;
+	}
+
+	/**
+		If the object is a Mesh, return the corresponding Mesh. If not, throw an exception.
+	**/
+	public function toGraphics() : Graphics {
+		var m = hxd.impl.Api.downcast(this, Graphics);
+		if( m != null )
+			return m;
+		throw this + " is not a Graphics";
+	}
+
+	public inline function isMaterialable(): Bool {
+		return this.isMesh() || this.isGraphics();
+	}
+
+	public function toMaterialable() : Materialable {
+		final m: Materialable = this.isMaterialable() ? cast this : null;
+		if( m != null )
+			return m;
+		throw this + " is not a Materialable";
 	}
 
 	/**
@@ -769,12 +772,60 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 			this.syncVisibleFlag = this.syncVisibleFlag && visible && !culled;
 
 			return AnimationResult.Animated;
-	}
+		}
 
 		return AnimationResult.NoAnimation;
 	}
 
 	function sync( ctx : RenderContext.SyncContext ) {
+/**
+Documented overrides and usages of sync
+
+h3d.parts.Emitter
+	extends:    h3d.parts.Particles -> h3d.scene.Mesh
+	super of:   nothing
+	super.sync: does NOT call super.sync
+	Notes:      - updates internally based on ctx.dt
+
+h3d.parts.GpuParticles
+	extends:    h3d.scene.Mesh
+	super of:   nothing
+	super.sync: calls it before anything else <-- sync as precondition?
+	Notes:		- updates internally based on ctx.dt, camera, ...
+
+h3d.scene.pbr.Decal
+	extends:    h3d.scene.Mesh
+	super of:   nothing
+	super.sync: calls it before anything else <-- sync as precondition?
+	Notes:		- updates internally based on material and absPos
+
+h3d.scene.pbr.PointLight
+	extends:    h3d.scene.pbr.Light -> h3d.scene.Light -> h3d.scene.Object
+	super of:   nothing
+	super.sync: calls it before anything else <-- sync as precondition?
+	Notes:		- updates internally based on absPos
+
+h3d.scene.pbr.SpotLight
+	extends:    h3d.scene.pbr.Light -> h3d.scene.Light -> h3d.scene.Object
+	super of:   nothing
+	super.sync: calls it before anything else <-- sync as precondition?
+	Notes:		- updates internally based on absPos
+
+h3d.scene.Graphics
+	extends:    h3d.scene.Mesh
+	super of:   h3d.scene.Box & h3d.scene.Sphere
+	super.sync: calls it before anything else <-- sync as precondition?
+	Notes:		- flushes itself and the BigPrimitive
+
+h3d.scene.Box
+	extends:    h3d.scene.Graphics
+	super of:   nothing
+	super.sync: lots of actual drawing code prior to <-- sync as postcondition?
+	Notes:		- updates internal data
+				- clears and writes out latest graphics
+				- calls sync
+				- h3d.scene.Sphere's sytle doesn't need this
+**/
 	}
 
 	final function syncChildren( ctx : RenderContext.SyncContext ) : Void {
@@ -820,7 +871,7 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 		}
 	}
 
-	function syncPos() {
+	final function syncPos() {
 		if( parent != null ) parent.syncPos();
 		if( posChanged ) {
 			posChanged = false;
@@ -844,39 +895,18 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 			c.emitRec(ctx);
 	}
 
-	inline function set_defaultTransform(v) {
-		defaultTransform = v;
-		posChanged = true;
-		return v;
-	}
-
 	/**
 		Set the position of the object relative to its parent.
 	**/
 	public inline function setPosition( x : Float, y : Float, z : Float ) {
-		this.x = x;
-		this.y = y;
-		this.z = z;
-		posChanged = true;
+		this.relPos.setPosition(x,y,z);
 	}
 
 	/**
 		Set the position, scale and rotation of the object relative to its parent based on the specified transform matrix.
 	**/
-	static var tmpMat = new h3d.Matrix();
-	static var tmpVec = new h3d.Vector();
-	public function setTransform( mat : h3d.Matrix ) {
-		var s = mat.getScale(tmpVec);
-		this.x = mat.tx;
-		this.y = mat.ty;
-		this.z = mat.tz;
-		this.scaleX = s.x;
-		this.scaleY = s.y;
-		this.scaleZ = s.z;
-		tmpMat.load(mat);
-		tmpMat.prependScale(1.0 / s.x, 1.0 / s.y, 1.0 / s.z);
-		qRot.initRotateMatrix(tmpMat);
-		posChanged = true;
+	public inline function setTransform( mat : h3d.Matrix ) {
+		this.relPos.setTransform(mat);
 	}
 
 	/**
@@ -1049,6 +1079,33 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	}
 	#end
 
+	/**
+		Make a copy of the object and all its children.
+	**/
+	public function clone(?t : Cloneable): Cloneable {
+		final o: Object = (t == null) ? this.getScene().createObject() : cast t;
+		#if debug
+		if( Type.getClass(o) != Type.getClass(this) ) throw this + " is missing clone()";
+		#end
+		o.x = x;
+		o.y = y;
+		o.z = z;
+		o.scaleX = scaleX;
+		o.scaleY = scaleY;
+		o.scaleZ = scaleZ;
+		o.qRot.load(qRot);
+		o.name = name;
+		o.visible = visible;
+		if( defaultTransform != null )
+			o.defaultTransform = defaultTransform.clone();
+		for( c in children ) {
+			var c: Object = cast c.clone();
+			c.parent = o;
+			o.children.push(c);
+		}
+		return cast o;
+	}
+
 	@:allow(h3d.pass.Default) private static function drawObject(obj: h3d.pass.DrawObject, ctx: RenderContext.DrawContext) {
 		final o = Object.ObjectMap.get(obj.id);
 		if (o != null)
@@ -1160,22 +1217,22 @@ class RelativePosition {
 	}
 
 	inline function set_x(x) {
-		posChanged = true;
+		this.posChanged = true;
 		return this.x = x;
 	}
 
 	inline function set_y(y) {
-		posChanged = true;
+		this.posChanged = true;
 		return this.y = y;
 	}
 
 	inline function set_z(z) {
-		posChanged = true;
+		this.posChanged = true;
 		return this.z = z;
 	}
 
 	inline function set_rotationQuat(q: h3d.Quat) {
-		posChanged = true;
+		this.posChanged = true;
 		return this.rotationQuat = q;
 	}
 
@@ -1183,10 +1240,10 @@ class RelativePosition {
 		Rotate around the current rotation axis by the specified angles (in radian).
 	**/
 	public function rotate( rx : Float, ry : Float, rz : Float ) {
-		var qTmp = new h3d.Quat();
+		final qTmp = new h3d.Quat();
 		qTmp.initRotation(rx, ry, rz);
 		this.rotationQuat.multiply(qTmp,this.rotationQuat);
-		posChanged = true;
+		this.posChanged = true;
 	}
 
 	/**
@@ -1194,7 +1251,7 @@ class RelativePosition {
 	**/
 	public function setRotation( rx : Float, ry : Float, rz : Float ) {
 		this.rotationQuat.initRotation(rx, ry, rz);
-		posChanged = true;
+		this.posChanged = true;
 	}
 
 	/**
@@ -1202,7 +1259,7 @@ class RelativePosition {
 	**/
 	public function setRotationAxis( ax : Float, ay : Float, az : Float, angle : Float ) {
 		this.rotationQuat.initRotateAxis(ax, ay, az, angle);
-		posChanged = true;
+		this.posChanged = true;
 	}
 
 	/**
@@ -1210,45 +1267,71 @@ class RelativePosition {
 	**/
 	public function setDirection( v : h3d.Vector ) {
 		this.rotationQuat.initDirection(v);
-		posChanged = true;
+		this.posChanged = true;
 	}
 
 	inline function set_scaleX(v) {
-		scaleX = v;
-		posChanged = true;
-		return v;
+		this.posChanged = true;
+		return this.scaleX = v;
 	}
 
 	inline function set_scaleY(v) {
-		scaleY = v;
-		posChanged = true;
-		return v;
+		this.posChanged = true;
+		return this.scaleY = v;
 	}
 
 	inline function set_scaleZ(v) {
-		scaleZ = v;
-		posChanged = true;
-		return v;
+		this.posChanged = true;
+		return this.scaleZ = v;
 	}
 
 	/**
 		Scale uniformly the object by the given factor.
 	**/
 	public inline function scale(v: Float) {
-		scaleX *= v;
-		scaleY *= v;
-		scaleZ *= v;
-		posChanged = true;
+		this.scaleX *= v;
+		this.scaleY *= v;
+		this.scaleZ *= v;
+		this.posChanged = true;
 	}
 
 	/**
 		Set the uniform scale for the object.
 	**/
 	public inline function setScale(v : Float) {
-		scaleX = v;
-		scaleY = v;
-		scaleZ = v;
-		posChanged = true;
+		this.scaleX = v;
+		this.scaleY = v;
+		this.scaleZ = v;
+		this.posChanged = true;
+	}
+
+	/**
+		Set the position of the object relative to its parent.
+	**/
+	public inline function setPosition( x : Float, y : Float, z : Float ) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.posChanged = true;
+	}
+
+	/**
+		Set the position, scale and rotation of the object relative to its parent based on the specified transform matrix.
+	**/
+	static var tmpMat = new h3d.Matrix();
+	static var tmpVec = new h3d.Vector();
+	public function setTransform( mat : h3d.Matrix ) {
+		var s = mat.getScale(tmpVec);
+		this.x = mat.tx;
+		this.y = mat.ty;
+		this.z = mat.tz;
+		this.scaleX = s.x;
+		this.scaleY = s.y;
+		this.scaleZ = s.z;
+		tmpMat.load(mat);
+		tmpMat.prependScale(1.0 / s.x, 1.0 / s.y, 1.0 / s.z);
+		this.rotationQuat.initRotateMatrix(tmpMat);
+		this.posChanged = true;
 	}
 }
 

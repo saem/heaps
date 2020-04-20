@@ -5,7 +5,7 @@ import h3d.scene.SceneStorage.EntityId;
 	h3d.scene.Mesh is the base class for all 3D objects displayed on screen.
 	Unlike Object base class, all properties of Mesh only apply to the current object and are not inherited by its children.
 **/
-class Mesh extends h3d.scene.Object {
+class Mesh extends h3d.scene.Object implements Materialable {
 
 	private final mRowRef : MeshRowRef;
 	private final mRow : MeshRow;

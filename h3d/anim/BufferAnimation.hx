@@ -274,7 +274,7 @@ class BufferAnimation extends Animation {
 			}
 
 			if( layout.has(UV) ) {
-				var mat = o.targetObject.toMesh().material;
+				var mat = o.targetObject.toMaterialable().material;
 				var s = mat.mainPass.getShader(h3d.shader.UVDelta);
 				if( s == null ) {
 					s = mat.mainPass.addShader(new h3d.shader.UVDelta());
@@ -284,7 +284,7 @@ class BufferAnimation extends Animation {
 				s.uvDelta.y = uvLerp(data[offset1++],data[offset2++],k2);
 			}
 			if( layout.has(Alpha) ) {
-				var mat = o.targetObject.toMesh().material;
+				var mat = o.targetObject.toMaterialable().material;
 				if( mat.blendMode == None ) mat.blendMode = Alpha;
 				mat.color.w = lerpValue();
 			}
