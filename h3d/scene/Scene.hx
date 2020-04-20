@@ -778,33 +778,29 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	public function createParticles( ?texture : h3d.mat.Texture = null, parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.storage.insertEntity();
-		final mid = this.storage.insertMesh(eid, null, null);
-		final id  = this.storage.insertParticles(eid);
+		final id  = this.storage.insertParticles(eid, texture);
 
 		final rowRef = new h3d.parts.Particles.ParticlesRowRef(id, this.storage);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
 
 		// allocate the components first so they're ready for the constructor
 		Scene.createObjectComponents(storage, eid);
 		
-		return new h3d.parts.Particles(eid, rowRef, mRowRef, texture, parent);
+		return new h3d.parts.Particles(eid, rowRef, parent);
 	}
 
 	public function createEmitter( ?state : h3d.parts.Data.State = null, parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.storage.insertEntity();
-		final mid = this.storage.insertMesh(eid, null, null);
 		final pid = this.storage.insertParticles(eid);
 		final id  = this.storage.insertEmitter(eid, state);
 
 		final rowRef = new h3d.parts.Emitter.EmitterRowRef(id, this.storage);
 		final pRowRef = new h3d.parts.Particles.ParticlesRowRef(pid, this.storage);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
 
 		// allocate the components first so they're ready for the constructor
 		Scene.createObjectComponents(storage, eid);
 		
-		return new h3d.parts.Emitter(eid, rowRef, pRowRef, mRowRef, parent);
+		return new h3d.parts.Emitter(eid, rowRef, pRowRef, parent);
 	}
 
 	public function createGpuParticles( parent : Object = null ) {

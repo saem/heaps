@@ -617,22 +617,16 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 		throw this + " is not a Mesh";
 	}
 
+	public inline function isParticles(): Bool {
+		return hxd.impl.Api.downcast(this, h3d.parts.Particles) != null;
+	}
+
 	public inline function isGraphics() {
 		return hxd.impl.Api.downcast(this, Graphics) != null;
 	}
 
-	/**
-		If the object is a Mesh, return the corresponding Mesh. If not, throw an exception.
-	**/
-	public function toGraphics() : Graphics {
-		var m = hxd.impl.Api.downcast(this, Graphics);
-		if( m != null )
-			return m;
-		throw this + " is not a Graphics";
-	}
-
 	public inline function isMaterialable(): Bool {
-		return this.isMesh() || this.isGraphics();
+		return this.isMesh() || this.isGraphics() || this.isParticles();
 	}
 
 	public function toMaterialable() : Materialable {
