@@ -379,6 +379,23 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 	public inline function getParticles() {
 		return new ParticleIterator(this.pRow.head);
 	}
+
+	override function getMaterialByName( name : String ) : h3d.mat.Material {
+		for( m in materials )
+			if( m != null && m.name == name )
+				return m;
+		return super.getMaterialByName(name);
+	}
+
+	override function getMaterials( ?a : Array<h3d.mat.Material> ) {
+		if( a == null ) a = [];
+		for( m in materials )
+			if( m != null && a.indexOf(m) < 0 )
+				a.push(m);
+		for( o in children )
+			o.getMaterials(a);
+		return super.getMaterials(a);
+	}
 }
 
 abstract ParticlesId(Int) to Int {
