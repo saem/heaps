@@ -442,13 +442,24 @@ class GpuPartGroup {
 
 }
 
-class GpuParticles extends h3d.scene.Mesh {
+class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 
 	static inline var VERSION = 2;
 	static inline var STRIDE = 14;
 
 	private final row: GpuParticlesRow;
 	private final rowRef: GpuParticlesRowRef;
+
+	public var materials(get,set): Array<h3d.mat.Material>;
+	inline function get_materials() return this.row.materials;
+	inline function set_materials(m) return this.row.materials = m;
+
+	/**
+		The material of the particles: the properties used to display it (texture, color, shaders, etc.)
+	**/
+	public var material(get, set) : h3d.mat.Material;
+	inline function get_material() return this.row.materials[0];
+	inline function set_material(m) return this.row.materials[0] = m;
 
 	public var amount(get,set): Float;
 	inline function get_amount() return this.row.amount;
@@ -465,13 +476,11 @@ class GpuParticles extends h3d.scene.Mesh {
 	inline function get_uploadedCount() return this.row.uploadedCount;
 
 	@:allow(h3d.scene.Scene.createGpuParticles)
-	private function new(eid: EntityId, rowRef:GpuParticlesRowRef, mRowRef:h3d.scene.Mesh.MeshRowRef, parent:h3d.scene.Object) {
+	private function new(eid: EntityId, rowRef:GpuParticlesRowRef, parent:h3d.scene.Object) {
 		this.row = rowRef.getRow(); // cache this for now
 		this.rowRef = rowRef;
 
-		super(eid, mRowRef, parent);
-		
-		this.materials = []; //reset to empty so it is in sync with groups
+		super(eid, parent);
 	}
 
 	override function onRemove() {
@@ -846,17 +855,8 @@ class GpuParticles extends h3d.scene.Mesh {
 		}
 		if( firstPart <= lastPart ) {
 			row.uploadedCount += lastPart - firstPart + 1;
-			var primitive = row.primitives[row.groups.indexOf(g)];
+			final primitive = row.primitives[row.groups.indexOf(g)];
 			primitive.buffer.uploadVector(vbuf, (firstPart) * 4 * STRIDE, (lastPart - firstPart + 1) * 4, (firstPart) * 4);
-		}
-	}
-
-	override function emit( ctx : h3d.scene.RenderContext.EmitContext ) {
-		for( i in 0...materials.length ) {
-			var m = materials[i];
-			var g = row.groups[i];
-			if( m != null && g.enable && g.currentParts > 0 )
-				ctx.emit(m, this, i);
 		}
 	}
 
@@ -944,13 +944,24 @@ class GpuParticles extends h3d.scene.Mesh {
 			onEnd();
 	}
 
+	override function emit( ctx : h3d.scene.RenderContext.EmitContext ) {
+		for( i in 0...materials.length ) {
+			final m = materials[i];
+			final g = row.groups[i];
+			if( m != null && g.enable && g.currentParts > 0 )
+				ctx.emit(m, this, i);
+		}
+	}
+
 	override function draw( ctx : h3d.scene.RenderContext.DrawContext ) {
-		var primitive = row.primitives[ctx.drawPass.index];
+		final primitive = row.primitives[ctx.drawPass.index];
 		if( primitive == null || primitive.buffer.isDisposed() )
 			return; // wait next sync()
-		var g = row.groups[ctx.drawPass.index];
+		final g = row.groups[ctx.drawPass.index];
 		if( !primitive.isBufferAllocated() ) primitive.alloc(ctx.engine);
 		ctx.engine.renderQuadBuffer(primitive.buffer,0,g.currentParts*2);
+
+		super.draw(ctx);
 	}
 
 	function loadTexture( path : String ) {
@@ -959,6 +970,23 @@ class GpuParticles extends h3d.scene.Mesh {
 		} catch( e : hxd.res.NotFound ) {
 			return h3d.mat.Texture.fromColor(0xFF00FF);
 		}
+	}
+
+	override function getMaterialByName( name : String ) : h3d.mat.Material {
+		for( m in materials )
+			if( m != null && m.name == name )
+				return m;
+		return super.getMaterialByName(name);
+	}
+
+	override function getMaterials( ?a : Array<h3d.mat.Material> ) {
+		if( a == null ) a = [];
+		for( m in materials )
+			if( m != null && a.indexOf(m) < 0 )
+				a.push(m);
+		for( o in children )
+			o.getMaterials(a);
+		return super.getMaterials(a);
 	}
 
 	#if (hxbit && !macro && heaps_enable_serialize)
@@ -1031,6 +1059,7 @@ class GpuParticlesRow {
 	public var groups = new Array<GpuPartGroup>();
 	public var primitiveBuffers = new Array<hxd.FloatBuffer>();
 	public var primitives = new Array<h3d.prim.Primitive>();
+	public var materials = new Array<h3d.mat.Material>();
 	public var resourcePath : String;
 	public var partAlloc : GpuPart;
 	public var rnd = new hxd.Rand(0);

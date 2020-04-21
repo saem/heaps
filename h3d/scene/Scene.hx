@@ -806,16 +806,14 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	public function createGpuParticles( parent : Object = null ) {
 		parent = parent == null ? this : parent;
 		final eid = this.storage.entityStorage.allocateRow();
-		final mid = this.storage.insertMesh(eid, null, []);
 		final gid = this.storage.insertGpuParticles(eid);
 
 		final gpuRowRef = new h3d.parts.GpuParticles.GpuParticlesRowRef(gid, this.storage);
-		final mRowRef = new h3d.scene.Mesh.MeshRowRef(mid, this.storage);
 
 		// allocate the components first so they're ready for the constructor
 		Scene.createObjectComponents(storage, eid);
 
-		return new h3d.parts.GpuParticles(eid, gpuRowRef, mRowRef, parent);
+		return new h3d.parts.GpuParticles(eid, gpuRowRef, parent);
 	}
 
 	private inline static function createObjectComponents(storage: SceneStorage, eid: EntityId) {
