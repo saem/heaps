@@ -737,7 +737,7 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	}
 
 	/**
-		Used to keep various flags for sync/syncRec up to date.
+		Used to keep various flags for sync/syncChildren up to date.
 	**/
 	final inline function updateSyncStateSelf() {
 		this.syncContinueFlag = true;
@@ -820,38 +820,6 @@ h3d.scene.Box
 				- calls sync
 				- h3d.scene.Sphere's sytle doesn't need this
 **/
-	}
-
-	final function syncChildren( ctx : RenderContext.SyncContext ) : Void {
-		// First sync only the immediate children.
-		var p = 0;
-		while( p < children.length ) {
-			final c = children[p];
-			if( c == null ) {
-				continue;
-			}
-			if( c.lastFrame != ctx.frame ) {
-				c.syncSelf(ctx);
-			}
-			// if the object was removed, let's restart again.
-			// our lastFrame ensures that no object will get synched twice
-			if( children[p] != c ) {
-				p = 0;
-			} else
-				p++;
-		}
-
-		// Now recurse per child
-		p = 0;
-		while( p < children.length ) {
-			final c = children[p];
-			if( c.syncContinueFlag ) {
-				c.syncChildren(ctx);
-			}
-			p++;
-		}
-
-		postSyncChildren(ctx);
 	}
 	
 	function postSyncChildren( ctx : RenderContext.SyncContext ) : Void {

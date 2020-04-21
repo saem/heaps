@@ -349,7 +349,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		this.syncContinueFlag = true;
 		this.syncVisibleFlag = true;
 
-		syncChildren(ctx);
+		syncChildren(this.children, ctx);
 
 		cleanUpMovedObjects();
 
@@ -359,6 +359,37 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		// Process deleted objects and then clean them up
 		processDeletedInteractives();
 		Object.DeletedObjectIds.resize(0);
+	}
+
+	static function syncChildren(children: Array<Object>, ctx: RenderContext.SyncContext): Void {
+		// First sync only the immediate children.
+		var p = 0;
+		while( p < children.length ) {
+			final c = children[p];
+			if( c == null ) {
+				continue;
+			}
+			if( c.lastFrame != ctx.frame ) {
+				c.syncSelf(ctx);
+			}
+			// if the object was removed, let's restart again.
+			// our lastFrame ensures that no object will get synched twice
+			if( children[p] != c ) {
+				p = 0;
+			} else
+				p++;
+		}
+
+		// Now recurse per child
+		p = 0;
+		while( p < children.length ) {
+			final c = children[p];
+			if( c.syncContinueFlag ) {
+				syncChildren(c.children, ctx);
+			}
+			c.postSyncChildren(ctx);
+			p++;
+		}
 	}
 
 	/**
