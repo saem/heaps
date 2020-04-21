@@ -11,17 +11,15 @@ class Light extends h3d.scene.Object {
 	public var shader(get,never) : hxsl.Shader;
 	inline function get_shader() return this._state.shader;
 
-	var objectDistance : Float; // used internaly
+	var objectDistance(get,set) : Float; // used internaly
 	inline function get_objectDistance() return this._state.objectDistance;
 	inline function set_objectDistance(o) return this._state.objectDistance = o;
-	@:noCompletion public var next : Light; // used internaly (public to allow sorting)
-	inline function get_next() return this._state.next;
-	inline function set_next(n) return this._state.next = n;
+	@:noCompletion public var next : Light = null; // used internaly (public to allow sorting)
 
-	@:s var cullingDistance : Float = -1;
+	@:s var cullingDistance(get,set) : Float;
 	inline function get_cullingDistance() return this._state.cullingDistance;
 	inline function set_cullingDistance(n) return this._state.cullingDistance = n;
-	@:s public var priority : Int = 0;
+	@:s public var priority(get,set) : Int;
 	inline function get_priority() return this._state.priority;
 	inline function set_priority(n) return this._state.priority = n;
 
@@ -32,6 +30,9 @@ class Light extends h3d.scene.Object {
 		this.lRowRef = lRowRef;
 		this._state = this.lRow = lRowRef.getRow();
 		super(eid, parent);
+
+		this.cullingDistance = -1;
+		this.priority = 0;
 	}
 
 	override function onRemove() {
@@ -136,7 +137,6 @@ class LightRow {
 
 	// Common - Internal Usage
 	public var objectDistance : Float; // used internaly
-	@:noCompletion public var next : Light; // used internaly (public to allow sorting)
 
 	// FWD - Lights have no specific state
 
