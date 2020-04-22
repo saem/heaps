@@ -12,6 +12,7 @@ class Box extends Graphics {
 		this.bRow = bRowRef.getRow();
 		
 		super(eid, gRowRef, parent);
+		this.objectType = Object.ObjectType.TBox;
 
 		if( !depth ) material.mainPass.depth(true, Always);
 	}

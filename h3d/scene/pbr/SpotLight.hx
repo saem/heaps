@@ -19,6 +19,7 @@ class SpotLight extends Light {
 	private function new(eid: EntityId, lRowRef: h3d.scene.Light.LightRowRef, ?parent) {
 		State.init(lRowRef.getRow(), this);
 		super(eid, lRowRef, parent);
+		this.objectType = h3d.scene.Object.ObjectType.TPbrSpotLight;
 		maxRange = 10;
 		angle = 45;
 	}
@@ -102,9 +103,9 @@ class SpotLight extends Light {
 		return p;
 	}
 
-	function generateLightProj(){
+	static inline function generateLightProj(lightProj: h3d.Camera, absPos: h3d.Matrix){
 		lightProj.pos.set(absPos.tx, absPos.ty, absPos.tz);
-		var ldir = absPos.front();
+		final ldir = absPos.front();
 		lightProj.target.set(absPos.tx + ldir.x, absPos.ty + ldir.y, absPos.tz + ldir.z);
 		lightProj.update();
 	}
@@ -120,24 +121,31 @@ class SpotLight extends Light {
 	override function sync(ctx) {
 		super.sync(ctx);
 
-		final pbr = this.spotState.shader;
-		pbr.lightColor.load(this.spotState.color);
-		var power = power;
+		syncShader(this.spotState, this.absPos);
+	}
+
+	static inline function syncShader(state: State, absPos: h3d.Matrix): Void {
+		final pbr = state.shader;
+		final power = state.power;
+		final angle = state.angle;
+		final maxRange = state.cullingDistance;
+
+		pbr.lightColor.load(state.color);
 		pbr.lightColor.scale3(power * power);
 		pbr.lightPos.set(absPos.tx, absPos.ty, absPos.tz);
 		pbr.spotDir.load(absPos.front());
 		pbr.angle = hxd.Math.cos(hxd.Math.degToRad(angle/2.0));
-		pbr.fallOff = hxd.Math.cos(hxd.Math.degToRad(hxd.Math.min(angle/2.0, fallOff)));
-		pbr.range = hxd.Math.min(range, maxRange);
+		pbr.fallOff = hxd.Math.cos(hxd.Math.degToRad(hxd.Math.min(angle/2.0, state.fallOff)));
+		pbr.range = hxd.Math.min(state.range, maxRange);
 		pbr.invLightRange4 = 1 / (maxRange * maxRange * maxRange * maxRange);
-		pbr.occlusionFactor = occlusionFactor;
+		pbr.occlusionFactor = state.occlusionFactor;
 
-		if(cookie != null){
+		if( state.cookie != null ) {
 			pbr.useCookie = true;
-			pbr.cookieTex = cookie;
-			generateLightProj();
-			pbr.lightProj.load(lightProj.m);
-		}else{
+			pbr.cookieTex = state.cookie;
+			generateLightProj(state.lightProj, absPos);
+			pbr.lightProj.load(state.lightProj.m);
+		} else {
 			pbr.useCookie = false;
 		}
 	}
@@ -170,7 +178,7 @@ class SpotLight extends Light {
 	}
 }
 
-@:forward(range, angle, fallOff, cookie, lightProj, s, d, primitive, color)
+@:forward(range, angle, fallOff, cookie, lightProj, s, d, primitive, color, power, cullingDistance, occlusionFactor)
 private abstract State(LightState) to LightState from LightState {
 	public var shader(get,never): h3d.shader.pbr.Light.SpotLight;
 	inline function get_shader() return cast this.shader;

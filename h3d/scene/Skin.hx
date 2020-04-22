@@ -20,6 +20,7 @@ class Joint extends h3d.scene.Object {
 		this.sjRow = sjRowRef.getRow();
 
 		super(eid, null);
+		this.objectType = Object.ObjectType.TSkinJoint;
 		name = sjRow.name;
 		// fake parent
 		this.parent = sjRow.skin;
@@ -56,6 +57,7 @@ class Skin extends h3d.scene.Mesh {
 		this.sRow = this.sRowRef.getRow();
 		
 		super(eid, mRowRef, parent);
+		this.objectType = Object.ObjectType.TSkin;
 
 		if( sRow.skinData != null )
 			setSkinData(sRow.skinData);

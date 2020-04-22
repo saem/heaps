@@ -481,6 +481,7 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 		this.rowRef = rowRef;
 
 		super(eid, parent);
+		this.objectType = h3d.scene.Object.ObjectType.TGpuParticles;
 	}
 
 	override function onRemove() {

@@ -39,6 +39,7 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 		this.pRow = pRowRef.getRow();
 		
 		super(eid, parent);
+		this.objectType = h3d.scene.Object.ObjectType.TParticles;
 	}
 
 	function set_hasColor(b) {

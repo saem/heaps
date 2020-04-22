@@ -1,6 +1,7 @@
 package h3d.scene;
 
 import h3d.scene.SceneStorage.EntityId;
+import h3d.scene.Object.ObjectType;
 
 /**
 	h3d.scene.Scene is the root class for a 3D scene. All root objects are added to it before being drawn on screen.
@@ -374,6 +375,26 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 				animate(c, new RenderContext.AnimationContext(ctx));
 				transform(c);
 				syncObject(c, ctx);
+
+				// TODO handle named phases extracted out of various.
+				switch(c.objectType) {
+					case TObject: 0;
+					case TGraphics: 0;
+					case TBox: 0;
+					case TMesh: 0;
+					case TSkin: 0;
+					case TSkinJoint: 0;
+					case TParticles: 0;
+					case TGpuParticles: 0;
+					case TEmitter: 0;
+					case TWorld: 0;
+					case TFwdDirLight: 0;
+					case TFwdPointLight: 0;
+					case TPbrDirLight: 0;
+					case TPbrPointLight: 0;
+					case TPbrSpotLight: 0;
+					case TPbrDecal: 0;
+				}
 			}
 			// if the object was removed, let's restart again.
 			// our lastFrame ensures that no object will get synched twice
