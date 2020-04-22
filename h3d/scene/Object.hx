@@ -49,12 +49,6 @@ enum ObjectType {
 	TInteractive;
 }
 
-enum abstract AnimationResult(Int) {
-	var Removed;
-	var Animated;
-	var NoAnimation;
-}
-
 enum abstract SyncSelfResult(Int) {
 	var AbortSync;
 	var Unchanged;
@@ -721,56 +715,6 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 			invPos._44 = 0; // mark as invalid
 	}
 
-	final function syncSelf( ctx : RenderContext.SyncContext ) : Void {
-		updateSyncStateSelf();
-
-		this.syncChangedFlag = (switch(animateSelf(new RenderContext.AnimationContext(ctx))) {
-			case Removed: this.syncContinueFlag = false; return;
-			default: posChanged || this.syncChangedFlag;
-		});
-
-		if( this.syncChangedFlag ) calcAbsPos();
-
-		sync(ctx);
-		this.posChanged = false;
-		this.lastFrame = ctx.frame;
-	}
-
-	/**
-		Used to keep various flags for sync/syncChildren up to date.
-	**/
-	final inline function updateSyncStateSelf() {
-		this.syncContinueFlag = true;
-		if( this.parent != null ) {
-			this.syncChangedFlag = parent.syncChangedFlag;
-			this.syncVisibleFlag = parent.syncVisibleFlag;
-		} else {
-			this.syncChangedFlag = posChanged;
-			this.syncVisibleFlag = visible && !culled;
-		}
-	}
-
-	final inline function animateSelf( ctx : RenderContext.AnimationContext ) : AnimationResult {
-		if( currentAnimation != null ) {
-			var old = parent;
-			var dt = ctx.elapsedTime;
-			while( dt > 0 && currentAnimation != null )
-				dt = currentAnimation.update(dt);
-
-			if( currentAnimation != null && ((syncVisibleFlag && visible && !culled) || alwaysSync)  )
-				currentAnimation.sync();
-			if( parent == null && old != null )
-				return AnimationResult.Removed; // if we were removed by an animation event
-
-			// Handle animations making a visible object invisible or culled(?)
-			this.syncVisibleFlag = this.syncVisibleFlag && visible && !culled;
-
-			return AnimationResult.Animated;
-		}
-
-		return AnimationResult.NoAnimation;
-	}
-
 	function sync( ctx : RenderContext.SyncContext ) {
 /**
 Documented overrides and usages of sync
@@ -824,13 +768,6 @@ h3d.scene.Box
 	
 	function postSyncChildren( ctx : RenderContext.SyncContext ) : Void {
 		// this is mostly a hack for h3d.scene.World's need to override syncRec
-	}
-
-	final function updateAbsPosChildren( changed: Bool ) {
-		if( !changed ) return;
-		for( c in this.children ) {
-			c.calcAbsPos();
-		}
 	}
 
 	final function syncPos() {
