@@ -370,7 +370,10 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 				continue;
 			}
 			if( c.lastFrame != ctx.frame ) {
-				c.syncSelf(ctx);
+				setFlags(c);
+				animate(c, new RenderContext.AnimationContext(ctx));
+				transform(c);
+				syncObject(c, ctx);
 			}
 			// if the object was removed, let's restart again.
 			// our lastFrame ensures that no object will get synched twice
@@ -390,6 +393,59 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 			c.postSyncChildren(ctx);
 			p++;
 		}
+	}
+
+	/**
+		Used to keep various flags for sync/syncChildren up to date.
+	**/
+	static function setFlags(object: Object): Void {
+		object.syncContinueFlag = true;
+		final parent = object.parent;
+		if( parent != null ) {
+			object.syncChangedFlag = parent.syncChangedFlag;
+			object.syncVisibleFlag = parent.syncVisibleFlag;
+		} else {
+			object.syncChangedFlag = object.posChanged;
+			object.syncVisibleFlag = object.visible && !object.culled;
+		}
+	}
+
+	static function animate(object: Object, ctx: RenderContext.AnimationContext): Void {
+		object.syncChangedFlag = (switch(tryAnimation(object, ctx)) {
+			case AnimationResult.Removed: object.syncContinueFlag = false; return;
+			default: object.posChanged || object.syncChangedFlag;
+		});
+	}
+
+	static function tryAnimation(object: Object, ctx: RenderContext.AnimationContext): AnimationResult {
+		if( object.currentAnimation == null ) {
+			return AnimationResult.NoAnimation;
+		}
+
+		final old = object.parent;
+		var dt = ctx.elapsedTime;
+		while( dt > 0 && object.currentAnimation != null )
+			dt = object.currentAnimation.update(dt);
+
+		if( object.currentAnimation != null && ((object.syncVisibleFlag && object.visible && !object.culled) || object.alwaysSync)  )
+			object.currentAnimation.sync();
+		if( object.parent == null && old != null )
+			return AnimationResult.Removed; // if we were removed by an animation event
+
+		// Handle animations making a visible object invisible or culled(?)
+		object.syncVisibleFlag = object.syncVisibleFlag && object.visible && !object.culled;
+
+		return AnimationResult.Animated;
+	}
+
+	static inline function transform(object: Object) {
+		if( object.syncChangedFlag ) object.calcAbsPos();
+	}
+
+	static function syncObject(object: Object, ctx : RenderContext.SyncContext): Void {
+		object.sync(ctx);
+		object.posChanged = false;
+		object.lastFrame = ctx.frame;
 	}
 
 	/**
@@ -851,4 +907,10 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		storage.insertRelativePosition(eid);
 		storage.insertAnimation(eid);
 	}
+}
+
+enum abstract AnimationResult(Int) {
+	var Removed;
+	var Animated;
+	var NoAnimation;
 }
