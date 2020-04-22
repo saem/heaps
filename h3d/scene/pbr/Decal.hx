@@ -12,6 +12,7 @@ class Decal extends Mesh {
 		this.dRow = dRowRef.getRow();
 
 		super(eid, mRowRef, parent);
+		this.objectType = h3d.scene.Object.ObjectType.TPbrDecal;
 	}
 
 	override function sync( ctx : RenderContext.SyncContext ) {

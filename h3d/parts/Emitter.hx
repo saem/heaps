@@ -15,6 +15,7 @@ class Emitter extends Particles implements Randomized {
 		this.eRow = eRowRef.getRow();
 
 		setState(this.eRow.state);
+		this.objectType = h3d.scene.Object.ObjectType.TEmitter;
 	}
 
 	override function onRemove() {

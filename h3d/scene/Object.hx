@@ -24,29 +24,25 @@ private enum abstract ObjectFlags(Int) {
 	}
 }
 
-enum ObjectType {
-	TScene; // todo, pretty sure this should go soon
-	TObject;
-	TGraphics;
-	TBox;
-	TSphere;
-	TMesh;
-	TMeshBatch;
-	TMeshMaterial;
-	TSkin;
-	TSkinJoint;
-	TParticles;
-	TGpuParticles;
-	TEmitter;
-	TWorld;
-	TFwdDirLight;
-	TFwdPointLight;
-	TPbrDecal;
-	TPbrDirLight;
-	TPbrPointLight;
-	TPbrSpotLight;
-	TCameraController;
-	TInteractive;
+enum abstract ObjectType(Int) {
+	// var TScene;  pretty sure this should go soon
+	var TObject;
+	var TGraphics;
+	var TBox;
+	var TMesh;
+	var TSkin;
+	var TSkinJoint;
+	var TParticles;
+	var TGpuParticles;
+	var TEmitter;
+	var TWorld;
+	var TFwdDirLight;
+	var TFwdPointLight;
+	var TPbrDecal;
+	var TPbrDirLight;
+	var TPbrPointLight;
+	var TPbrSpotLight;
+	// var TInteractive; reintroduce once components bit flags are a thing
 }
 
 enum abstract SyncSelfResult(Int) {
@@ -66,6 +62,11 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	public static final ObjectMap: hds.Map<EntityId, Object> = new hds.Map();
 	public static final AddedObjectIds: Array<EntityId> = [];
 	public static final DeletedObjectIds: Array<EntityId> = [];
+
+	/**
+		TODO convert to bit flag for various components instead
+	**/
+	var objectType: ObjectType = TObject;
 
 	/**
 		Temporarily add a SceneStorage reference to factor out the old static

@@ -12,6 +12,7 @@ class DirLight extends Light {
 	private function new(eid: EntityId, lRowRef: h3d.scene.Light.LightRowRef, ?dir: h3d.Vector, ?parent) {
 		State.init(lRowRef.getRow(), this);
 		super(eid, lRowRef, parent);
+		this.objectType = h3d.scene.Object.ObjectType.TPbrDirLight;
 		if( dir != null ) setDirection(dir);
 	}
 

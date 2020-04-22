@@ -13,6 +13,7 @@ class PointLight extends FwdLight {
 	private function new(eid: EntityId, lRowRef: h3d.scene.Light.LightRowRef, ?parent) {
 		State.init(lRowRef.getRow());
 		super(eid, lRowRef, parent);
+		this.objectType = h3d.scene.Object.ObjectType.TFwdPointLight;
 	}
 
 	inline function get_params() {

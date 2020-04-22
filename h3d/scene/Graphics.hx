@@ -48,6 +48,7 @@ class Graphics extends Object implements Materialable {
 		this.gRow = this.gRowRef.getRow();
 
 		super(eid, parent);
+		this.objectType = Object.ObjectType.TGraphics;
 	}
 
 	inline function get_is3D() : Bool return this.gRow.is3D;

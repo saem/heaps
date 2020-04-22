@@ -12,6 +12,7 @@ class DirLight extends FwdLight {
 	private function new(eid: EntityId, lRowRef: h3d.scene.Light.LightRowRef, ?dir: h3d.Vector, ?parent) {
 		State.init(lRowRef.getRow());
 		super(eid, lRowRef, parent);
+		this.objectType = h3d.scene.Object.ObjectType.TFwdDirLight;
 		if( dir != null ) setDirection(dir);
 	}
 

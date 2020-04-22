@@ -46,6 +46,7 @@ class Mesh extends h3d.scene.Object implements Materialable {
 		this.mRow = mRowRef.getRow();
 
 		super(eid, parent);
+		this.objectType = Object.ObjectType.TMesh;
 	}
 
 	override private function onAdd() {

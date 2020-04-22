@@ -203,6 +203,7 @@ class World extends h3d.scene.Object {
 		this.wRow = wRowRef.getRow();
 		
 		super(eid, parent);
+		this.objectType = Object.ObjectType.TWorld;
 		
 		if( this.wRow.autoCollect )
 			h3d.Engine.getCurrent().mem.garbage = this.garbage;
