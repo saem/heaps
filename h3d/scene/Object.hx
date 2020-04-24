@@ -649,6 +649,13 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	}
 
 	/**
+		If the object is a Emitter, return the corresponding Emitter. If not, throw an exception.
+	**/
+	public inline function toEmitterUnsafe() : h3d.parts.Emitter {
+		return cast this;
+	}
+
+	/**
 		Build and return the global absolute recursive collider for the object.
 		Returns null if no collider was found.
 	**/
@@ -719,18 +726,6 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	function sync( ctx : RenderContext.SyncContext ) {
 /**
 Documented overrides and usages of sync
-
-h3d.scene.Skin
-	extends: 	h3d.scene.Mesh
-	super of:	nothing
-	super.sync: does NOT call super.sync
-	Notes:		- 
-
-h3d.parts.Emitter
-	extends:    h3d.parts.Particles -> h3d.scene.Mesh
-	super of:   nothing
-	super.sync: does NOT call super.sync
-	Notes:      - updates internally based on ctx.dt
 
 h3d.parts.GpuParticles
 	extends:    h3d.scene.Mesh

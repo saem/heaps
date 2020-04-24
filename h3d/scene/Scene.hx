@@ -388,7 +388,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 						Skin.syncJoints(cast c);
 						Skin.syncShowJoints(cast c);
 					case TGpuParticles: c.sync(ctx);
-					case TEmitter: c.sync(ctx);
+					case TEmitter: c.toEmitterUnsafe().update(ctx.elapsedTime);
 					case TPbrPointLight: c.sync(ctx);
 					case TPbrSpotLight: c.sync(ctx);
 					case TPbrDecal: c.sync(ctx);
