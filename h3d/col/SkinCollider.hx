@@ -41,7 +41,7 @@ class SkinCollider implements hxd.impl.Serializable implements Collider {
 	function applyTransform() {
 		if( !obj.jointsUpdated && lastFrame == obj.lastFrame ) return;
 		lastFrame = obj.lastFrame;
-		obj.syncJoints();
+		h3d.scene.Skin.syncJoints(obj);
 		var j = 0, v = 0;
 		var nbones = obj.skinData.bonesPerVertex;
 		for( i in 0...obj.skinData.vertexCount ) {

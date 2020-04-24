@@ -350,7 +350,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		this.syncContinueFlag = true;
 		this.syncVisibleFlag = true;
 
-		syncChildren(this.children, ctx);
+		syncChildren(this.children, ctx, this.storage);
 
 		cleanUpMovedObjects();
 
@@ -362,7 +362,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		Object.DeletedObjectIds.resize(0);
 	}
 
-	static function syncChildren(children: Array<Object>, ctx: RenderContext.SyncContext): Void {
+	static function syncChildren(children: Array<Object>, ctx: RenderContext.SyncContext, storage: SceneStorage): Void {
 		// First sync only the immediate children.
 		var p = 0;
 		while( p < children.length ) {
@@ -373,28 +373,32 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 			if( c.lastFrame != ctx.frame ) {
 				setFlags(c);
 				animate(c, new RenderContext.AnimationContext(ctx));
-				transform(c);
-				syncObject(c, ctx);
-
-				// TODO handle named phases extracted out of various.
-				switch(c.objectType) {
-					case TObject: 0;
-					case TGraphics: 0;
-					case TBox: 0;
-					case TMesh: 0;
-					case TSkin: 0;
-					case TSkinJoint: 0;
-					case TParticles: 0;
-					case TGpuParticles: 0;
-					case TEmitter: 0;
-					case TWorld: 0;
-					case TFwdDirLight: 0;
-					case TFwdPointLight: 0;
-					case TPbrDirLight: 0;
-					case TPbrPointLight: 0;
-					case TPbrSpotLight: 0;
-					case TPbrDecal: 0;
+				if(!c.syncContinueFlag) {
+					p++;
+					continue;
+					// animation removed this most likely
 				}
+				transform(c);
+
+				// TODO handle named phases extracted out of various syncs.
+				switch(c.objectType) {
+					case TGraphics: c.sync(ctx);
+					case TBox: c.sync(ctx);
+					case TSkin if(c.syncVisibleFlag || c.alwaysSync):
+						Skin.syncJoints(cast c);
+						Skin.syncShowJoints(cast c);
+					case TGpuParticles: c.sync(ctx);
+					case TEmitter: c.sync(ctx);
+					case TPbrPointLight: c.sync(ctx);
+					case TPbrSpotLight: c.sync(ctx);
+					case TPbrDecal: c.sync(ctx);
+					case _:
+						// No override: TObject,TMesh,TSkinJoint,TParticles,TWorld,TFwdDirLight,TFwdPointLight,TPbrDirLight
+						c.sync(ctx);
+				}
+
+				c.posChanged = false;
+				c.lastFrame = ctx.frame;
 			}
 			// if the object was removed, let's restart again.
 			// our lastFrame ensures that no object will get synched twice
@@ -409,10 +413,33 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		while( p < children.length ) {
 			final c = children[p];
 			if( c.syncContinueFlag ) {
-				syncChildren(c.children, ctx);
+				syncChildren(c.children, ctx, storage);
 			}
 			c.postSyncChildren(ctx);
 			p++;
+		}
+	}
+
+	function emitScene( ctx : RenderContext.EmitContext ) {
+		emitChildren(this.children, ctx, this.storage);
+	}
+
+	static function emitChildren(children: Array<Object>, ctx: RenderContext.EmitContext, storage: SceneStorage) {
+		var p = 0;
+		while( p < children.length ) {
+			final c = children[p];
+			p++;
+
+			if( !c.visible || (c.culled && !ctx.computingStatic))
+				continue;	// this and children aren't to be emitted
+
+			if( !c.culled || ctx.computingStatic ) {
+				c.emit(ctx);
+			}
+
+			if( c.children.length > 0 ) {
+				emitChildren(c.children, ctx, storage);
+			}
 		}
 	}
 
@@ -433,7 +460,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 
 	static function animate(object: Object, ctx: RenderContext.AnimationContext): Void {
 		object.syncChangedFlag = (switch(tryAnimation(object, ctx)) {
-			case AnimationResult.Removed: object.syncContinueFlag = false; return;
+			case AnimationResult.Removed: object.syncContinueFlag = false;
 			default: object.posChanged || object.syncChangedFlag;
 		});
 	}
@@ -461,12 +488,6 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 
 	static inline function transform(object: Object) {
 		if( object.syncChangedFlag ) object.calcAbsPos();
-	}
-
-	static function syncObject(object: Object, ctx : RenderContext.SyncContext): Void {
-		object.sync(ctx);
-		object.posChanged = false;
-		object.lastFrame = ctx.frame;
 	}
 
 	/**
@@ -568,7 +589,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		scene.syncScene(new RenderContext.SyncContext(ctx));
 		if(scene.cameraControllerId.isNotNull())
 			CameraController.sync(scene.storage.selectCameraController(scene.cameraControllerId), camera, ctx.elapsedTime);
-		scene.emitRec(new RenderContext.EmitContext(ctx));
+		scene.emitScene(new RenderContext.EmitContext(ctx));
 
 		ctx.sortPasses();
 

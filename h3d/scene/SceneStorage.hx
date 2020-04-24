@@ -59,6 +59,11 @@ class SceneStorage {
     public function selectSkin(gid: h3d.scene.Skin.SkinId): h3d.scene.Skin.SkinRow {
         return this.skinStorage.fetchRow(gid);
     }
+
+    // The return type here isn't the best, return the raw row.
+    public function selectSkinByEntityId(eid: EntityId): h3d.scene.Skin.SkinRow {
+        return this.skinStorage.fetchRowByEntityId(eid);
+    }
     
     public function insertSkinJoint(eid: EntityId, skin: h3d.scene.Skin, name: String, index: Int): h3d.scene.Skin.SkinJointId {
         return this.skinJointStorage.allocateRow(eid, skin, name, index);
@@ -85,6 +90,10 @@ class SceneStorage {
     // The return type here isn't the best, return the raw row.
     public function selectGraphics(gid: h3d.scene.Graphics.GraphicsId): h3d.scene.Graphics.GraphicsRow {
         return this.graphicsStorage.fetchRow(gid);
+    }
+
+    public function selectGraphicsByEntityId(eid: EntityId): h3d.scene.Graphics.GraphicsRow {
+        return this.graphicsStorage.fetchRowByEntityId(eid);
     }
     
     public function insertBox(eid: EntityId, colour: UInt, bounds: h3d.col.Bounds): h3d.scene.Box.BoxId {

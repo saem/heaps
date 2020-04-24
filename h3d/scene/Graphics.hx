@@ -24,14 +24,14 @@ private class GPoint {
 class Graphics extends Object implements Materialable {
 
 	private final gRowRef : GraphicsRowRef;
-	private final gRow : GraphicsRow;
+	private final gRow : GraphicsModule;
 
 	public var materials(get,set): Array<h3d.mat.Material>;
 	inline function get_materials() return [this.gRow.material];
 	inline function set_materials(m) return [this.gRow.material = m[0]];
 
 	/**
-		The material of the mesh: the properties used to display it (texture, color, shaders, etc.)
+		The material of the Graphics: the properties used to display it (texture, color, shaders, etc.)
 	**/
 	public var material(get, set) : h3d.mat.Material;
 	inline function get_material() return this.gRow.material;
@@ -52,18 +52,7 @@ class Graphics extends Object implements Materialable {
 	}
 
 	inline function get_is3D() : Bool return this.gRow.is3D;
-	function set_is3D(v) {
-		if( this.gRow.is3D == v )
-			return v;
-		if( v ) {
-			material.mainPass.removeShader(this.gRow.lineShader);
-		} else {
-			material.mainPass.addShader(this.gRow.lineShader);
-		}
-		this.gRow.bprim.clear();
-		this.gRow.tmpPoints.resize(0);
-		return this.gRow.is3D = v;
-	}
+	function set_is3D(v) : Bool return this.gRow.is3D = v;
 
 	override function onRemove() {
 		super.onRemove();
@@ -89,11 +78,6 @@ class Graphics extends Object implements Materialable {
 		super.draw(ctx);
 	}
 
-	public function clear() {
-		flush();
-		this.gRow.bprim.clear();
-	}
-
 	override function getMaterialByName( name : String ) : h3d.mat.Material {
 		if( this.material != null && this.material.name == name )
 			return this.material;
@@ -109,211 +93,32 @@ class Graphics extends Object implements Materialable {
 		return super.getMaterials(a);
 	}
 
-	function flushLine() {
-		var pts = this.gRow.tmpPoints;
-
-		var last = pts.length - 1;
-		var prev = pts[last];
-		var p = pts[0];
-
-		var closed = p.x == prev.x && p.y == prev.y && p.z == prev.z;
-		var count = pts.length;
-		if( !closed ) {
-			var prevLast = pts[last - 1];
-			if( prevLast == null ) prevLast = p;
-			pts.push(new GPoint(prev.x * 2 - prevLast.x, prev.y * 2 - prevLast.y, prev.z * 2 - prevLast.z, 0, 0, 0, 0));
-			var pNext = pts[1];
-			if( pNext == null ) pNext = p;
-			prev = new GPoint(p.x * 2 - pNext.x, p.y * 2 - pNext.y, p.z * 2 - pNext.z, 0, 0, 0, 0);
-		} else if( p != prev ) {
-			count--;
-			last--;
-			prev = pts[last];
-		}
-
-		var start = this.gRow.bprim.vertexCount();
-		var pindex = start;
-		var v = 0.;
-		for( i in 0...count ) {
-			var next = pts[(i + 1) % pts.length];
-
-			// ATM we only tesselate in the XY plane using a Z up normal !
-
-			var nx1 = prev.y - p.y;
-			var ny1 = p.x - prev.x;
-			var ns1 = Math.invSqrt(nx1 * nx1 + ny1 * ny1);
-
-			var nx2 = p.y - next.y;
-			var ny2 = next.x - p.x;
-			var ns2 = Math.invSqrt(nx2 * nx2 + ny2 * ny2);
-
-			var nx = nx1 * ns1 + nx2 * ns2;
-			var ny = ny1 * ns1 + ny2 * ns2;
-			var ns = Math.invSqrt(nx * nx + ny * ny);
-
-			nx *= ns;
-			ny *= ns;
-
-			var size = nx * nx1 * ns1 + ny * ny1 * ns1; // N.N1
-			var d = this.gRow.lineSize * 0.5 / size;
-			nx *= d;
-			ny *= d;
-
-			inline function add(v:Float) {
-				this.gRow.bprim.addVertexValue(v);
-			}
-
-			var hasIndex = i < count - 1 || closed;
-			this.gRow.bprim.begin(2, hasIndex ? 6 : 0);
-
-			add(p.x + nx);
-			add(p.y + ny);
-			add(p.z);
-
-			add(0);
-			add(0);
-			add(1);
-
-			add(0);
-			add(v);
-
-			add(p.r);
-			add(p.g);
-			add(p.b);
-			add(p.a);
-
-			add(p.x - nx);
-			add(p.y - ny);
-			add(p.z);
-
-			add(0);
-			add(0);
-			add(1);
-
-			add(1);
-			add(v);
-
-			add(p.r);
-			add(p.g);
-			add(p.b);
-			add(p.a);
-
-			v = 1 - v;
-
-			if( hasIndex ) {
-				var pnext = i == last ? start - pindex : 2;
-				this.gRow.bprim.addIndex(0);
-				this.gRow.bprim.addIndex(1);
-				this.gRow.bprim.addIndex(pnext);
-
-				this.gRow.bprim.addIndex(pnext);
-				this.gRow.bprim.addIndex(1);
-				this.gRow.bprim.addIndex(pnext + 1);
-			}
-
-			pindex += 2;
-
-			prev = p;
-			p = next;
-		}
+	public function clear() {
+		this.gRow.clear();
 	}
 
 	function flush() {
-		if( this.gRow.tmpPoints.length == 0 )
-			return;
-		if( is3D ) {
-			flushLine();
-			this.gRow.tmpPoints.resize(0);
-		}
+		this.gRow.flush();
 	}
 
 	public function lineStyle( size = 0., color = 0, alpha = 1. ) {
-		flush();
-		if( size > 0 && this.gRow.lineSize != size ) {
-			this.gRow.lineSize = size;
-			if( !is3D ) this.gRow.lineShader.width = this.gRow.lineSize;
-		}
-		setColor(color, alpha);
+		this.gRow.lineStyle(size, color, alpha);
 	}
 
 	public function setColor( color : Int, alpha = 1. ) {
-		this.gRow.curA = alpha;
-		this.gRow.curR = ((color >> 16) & 0xFF) / 255.;
-		this.gRow.curG = ((color >> 8) & 0xFF) / 255.;
-		this.gRow.curB = (color & 0xFF) / 255.;
+		this.gRow.setColor(color, alpha);
 	}
 
 	public inline function drawLine( p1 : h3d.col.Point, p2 : h3d.col.Point ) {
-		moveTo(p1.x, p1.y, p1.z);
-		lineTo(p2.x, p2.y, p2.z);
+		this.gRow.drawLine(p1, p2);
 	}
 
 	public function moveTo( x : Float, y : Float, z : Float ) {
-		if( is3D ) {
-			flush();
-			lineTo(x, y, z);
-		} else {
-			this.gRow.curX = x;
-			this.gRow.curY = y;
-			this.gRow.curZ = z;
-		}
-	}
-
-	inline function addVertex( x, y, z, r, g, b, a ) {
-		this.gRow.tmpPoints.push(new GPoint(x, y, z, r, g, b, a));
+		this.gRow.moveTo(x, y, z);
 	}
 
 	public function lineTo( x : Float, y : Float, z : Float ) {
-		if( is3D ) {
-			addVertex(x, y, z, this.gRow.curR, this.gRow.curG, this.gRow.curB, this.gRow.curA);
-			return;
-		}
-
-		this.gRow.bprim.begin(4,6);
-		var nx = x - this.gRow.curX;
-		var ny = y - this.gRow.curY;
-		var nz = z - this.gRow.curZ;
-
-		this.gRow.bprim.addBounds(this.gRow.curX, this.gRow.curY, this.gRow.curZ);
-		this.gRow.bprim.addBounds(x, y, z);
-
-		inline function push(v) {
-			this.gRow.bprim.addVertexValue(v);
-		}
-
-		inline function add(u, v) {
-			push(this.gRow.curX);
-			push(this.gRow.curY);
-			push(this.gRow.curZ);
-
-			push(nx);
-			push(ny);
-			push(nz);
-
-			push(u);
-			push(v);
-
-			push(this.gRow.curR);
-			push(this.gRow.curG);
-			push(this.gRow.curB);
-			push(this.gRow.curA);
-		}
-
-		add(0, 0);
-		add(0, 1);
-		add(1, 0);
-		add(1, 1);
-
-		this.gRow.bprim.addIndex(0);
-		this.gRow.bprim.addIndex(1);
-		this.gRow.bprim.addIndex(2);
-		this.gRow.bprim.addIndex(2);
-		this.gRow.bprim.addIndex(3);
-		this.gRow.bprim.addIndex(1);
-
-		this.gRow.curX = x;
-		this.gRow.curY = y;
-		this.gRow.curZ = z;
+		this.gRow.lineTo(x,y,z);
 	}
 
 	#if (hxbit && !macro && heaps_enable_serialize)
@@ -354,6 +159,244 @@ class GraphicsRowRef {
 		final eid = this.getRow().entityId;
 		this.sceneStorage.graphicsStorage.deallocateRow(rowId);
 		this.sceneStorage.entityStorage.deallocateRow(eid);
+	}
+}
+
+@:forward(bprim, material)
+abstract GraphicsModule(GraphicsRow) to GraphicsRow from GraphicsRow {
+	public var is3D(get,set): Bool;
+
+	/**
+		The material of the Graphics: the properties used to display it (texture, color, shaders, etc.)
+	**/
+	public var material(get, set) : h3d.mat.Material;
+	inline function get_material() return this.material;
+	inline function set_material(m) return this.material = m;
+
+	inline function get_is3D() : Bool return this.is3D;
+	function set_is3D(v) {
+		if( this.is3D == v )
+			return v;
+		if( v ) {
+			this.material.mainPass.removeShader(this.lineShader);
+		} else {
+			this.material.mainPass.addShader(this.lineShader);
+		}
+		this.bprim.clear();
+		this.tmpPoints.resize(0);
+		return this.is3D = v;
+	}
+
+	public inline function lineStyle( size = 0., color = 0, alpha = 1. ) {
+		flush();
+		if( size > 0 && this.lineSize != size ) {
+			this.lineSize = size;
+			if( !is3D ) this.lineShader.width = this.lineSize;
+		}
+		setColor(color, alpha);
+	}
+
+	public inline function setColor( color : Int, alpha = 1. ) {
+		this.curA = alpha;
+		this.curR = ((color >> 16) & 0xFF) / 255.;
+		this.curG = ((color >> 8) & 0xFF) / 255.;
+		this.curB = (color & 0xFF) / 255.;
+	}
+
+	public inline function drawLine( p1 : h3d.col.Point, p2 : h3d.col.Point ) {
+		moveTo(p1.x, p1.y, p1.z);
+		lineTo(p2.x, p2.y, p2.z);
+	}
+
+	public inline function moveTo( x : Float, y : Float, z : Float ) {
+		if( is3D ) {
+			flush();
+			lineTo(x, y, z);
+		} else {
+			this.curX = x;
+			this.curY = y;
+			this.curZ = z;
+		}
+	}
+
+	public inline function lineTo( x : Float, y : Float, z : Float ) {
+		if( is3D ) {
+			addVertex(x, y, z, this.curR, this.curG, this.curB, this.curA);
+			return;
+		}
+
+		this.bprim.begin(4,6);
+		var nx = x - this.curX;
+		var ny = y - this.curY;
+		var nz = z - this.curZ;
+
+		this.bprim.addBounds(this.curX, this.curY, this.curZ);
+		this.bprim.addBounds(x, y, z);
+
+		inline function push(v) {
+			this.bprim.addVertexValue(v);
+		}
+
+		inline function add(u, v) {
+			push(this.curX);
+			push(this.curY);
+			push(this.curZ);
+
+			push(nx);
+			push(ny);
+			push(nz);
+
+			push(u);
+			push(v);
+
+			push(this.curR);
+			push(this.curG);
+			push(this.curB);
+			push(this.curA);
+		}
+
+		add(0, 0);
+		add(0, 1);
+		add(1, 0);
+		add(1, 1);
+
+		this.bprim.addIndex(0);
+		this.bprim.addIndex(1);
+		this.bprim.addIndex(2);
+		this.bprim.addIndex(2);
+		this.bprim.addIndex(3);
+		this.bprim.addIndex(1);
+
+		this.curX = x;
+		this.curY = y;
+		this.curZ = z;
+	}
+
+	public inline function clear() {
+		flush();
+		this.bprim.clear();
+	}
+
+	inline function addVertex( x, y, z, r, g, b, a ) {
+		this.tmpPoints.push(new GPoint(x, y, z, r, g, b, a));
+	}
+
+	public function flush() {
+		if( this.tmpPoints.length == 0 )
+			return;
+		if( is3D ) {
+			flushLine();
+			this.tmpPoints.resize(0);
+		}
+	}
+
+	function flushLine() {
+		var pts = this.tmpPoints;
+
+		var last = pts.length - 1;
+		var prev = pts[last];
+		var p = pts[0];
+
+		var closed = p.x == prev.x && p.y == prev.y && p.z == prev.z;
+		var count = pts.length;
+		if( !closed ) {
+			var prevLast = pts[last - 1];
+			if( prevLast == null ) prevLast = p;
+			pts.push(new GPoint(prev.x * 2 - prevLast.x, prev.y * 2 - prevLast.y, prev.z * 2 - prevLast.z, 0, 0, 0, 0));
+			var pNext = pts[1];
+			if( pNext == null ) pNext = p;
+			prev = new GPoint(p.x * 2 - pNext.x, p.y * 2 - pNext.y, p.z * 2 - pNext.z, 0, 0, 0, 0);
+		} else if( p != prev ) {
+			count--;
+			last--;
+			prev = pts[last];
+		}
+
+		var start = this.bprim.vertexCount();
+		var pindex = start;
+		var v = 0.;
+		for( i in 0...count ) {
+			var next = pts[(i + 1) % pts.length];
+
+			// ATM we only tesselate in the XY plane using a Z up normal !
+
+			var nx1 = prev.y - p.y;
+			var ny1 = p.x - prev.x;
+			var ns1 = Math.invSqrt(nx1 * nx1 + ny1 * ny1);
+
+			var nx2 = p.y - next.y;
+			var ny2 = next.x - p.x;
+			var ns2 = Math.invSqrt(nx2 * nx2 + ny2 * ny2);
+
+			var nx = nx1 * ns1 + nx2 * ns2;
+			var ny = ny1 * ns1 + ny2 * ns2;
+			var ns = Math.invSqrt(nx * nx + ny * ny);
+
+			nx *= ns;
+			ny *= ns;
+
+			var size = nx * nx1 * ns1 + ny * ny1 * ns1; // N.N1
+			var d = this.lineSize * 0.5 / size;
+			nx *= d;
+			ny *= d;
+
+			inline function add(v:Float) {
+				this.bprim.addVertexValue(v);
+			}
+
+			var hasIndex = i < count - 1 || closed;
+			this.bprim.begin(2, hasIndex ? 6 : 0);
+
+			add(p.x + nx);
+			add(p.y + ny);
+			add(p.z);
+
+			add(0);
+			add(0);
+			add(1);
+
+			add(0);
+			add(v);
+
+			add(p.r);
+			add(p.g);
+			add(p.b);
+			add(p.a);
+
+			add(p.x - nx);
+			add(p.y - ny);
+			add(p.z);
+
+			add(0);
+			add(0);
+			add(1);
+
+			add(1);
+			add(v);
+
+			add(p.r);
+			add(p.g);
+			add(p.b);
+			add(p.a);
+
+			v = 1 - v;
+
+			if( hasIndex ) {
+				var pnext = i == last ? start - pindex : 2;
+				this.bprim.addIndex(0);
+				this.bprim.addIndex(1);
+				this.bprim.addIndex(pnext);
+
+				this.bprim.addIndex(pnext);
+				this.bprim.addIndex(1);
+				this.bprim.addIndex(pnext + 1);
+			}
+
+			pindex += 2;
+
+			prev = p;
+			p = next;
+		}
 	}
 }
 
@@ -428,6 +471,10 @@ class GraphicsStorage {
 
 	public function fetchRow(id: GraphicsId) {
 		return this.storage.get(externalToInternalId(id));
+	}
+
+	public function fetchRowByEntityId(id: EntityId) {
+		return this.storage.get(externalToInternalId(this.entityIdToGraphicsIdIndex[id]));
 	}
 
 	private inline function externalToInternalId(id: GraphicsId): InternalGraphicsId {

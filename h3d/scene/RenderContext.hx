@@ -55,7 +55,7 @@ class RenderContext extends h3d.impl.RenderContext {
 	}
 
 	@:access(h3d.mat.Pass)
-	public inline function emit( mat : h3d.mat.Material, obj, index = 0 ) {
+	public inline function emit( mat : h3d.mat.Material, obj: h3d.pass.DrawObject, index = 0 ) {
 		var p = mat.mainPass;
 		while( p != null ) {
 			emitPass(p, obj).index = index;
@@ -143,7 +143,7 @@ class RenderContext extends h3d.impl.RenderContext {
 		sharedGlobals.push(new SharedGlobal(gid, value));
 	}
 
-	public function emitPass( pass : h3d.mat.Pass, obj : h3d.scene.Object ) @:privateAccess {
+	public function emitPass( pass : h3d.mat.Pass, obj : h3d.pass.DrawObject ) @:privateAccess {
 		var o = allocPool;
 		if( o == null ) {
 			o = new h3d.pass.PassObject();
