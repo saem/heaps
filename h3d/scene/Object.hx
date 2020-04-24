@@ -652,7 +652,7 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 		Build and return the global absolute recursive collider for the object.
 		Returns null if no collider was found.
 	**/
-	@:final public function getCollider() : h3d.col.Collider {
+	final public function getCollider() : h3d.col.Collider {
 		var colliders = [];
 		var col = getGlobalCollider();
 		if( col != null )
@@ -720,6 +720,12 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 /**
 Documented overrides and usages of sync
 
+h3d.scene.Skin
+	extends: 	h3d.scene.Mesh
+	super of:	nothing
+	super.sync: does NOT call super.sync
+	Notes:		- 
+
 h3d.parts.Emitter
 	extends:    h3d.parts.Particles -> h3d.scene.Mesh
 	super of:   nothing
@@ -782,17 +788,6 @@ h3d.scene.Box
 	}
 
 	function emit( ctx : RenderContext.EmitContext ) {
-	}
-
-	function emitRec( ctx : RenderContext.EmitContext ) {
-		if( !visible || (culled && !ctx.computingStatic) )
-			return;
-
-		if( !culled || ctx.computingStatic )
-			emit(ctx);
-
-		for( c in children )
-			c.emitRec(ctx);
 	}
 
 	/**

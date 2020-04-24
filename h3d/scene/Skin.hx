@@ -182,57 +182,61 @@ class Skin extends h3d.scene.Mesh {
 			this.sRow.splitPalette = null;
 	}
 
-	override function sync( ctx : RenderContext.SyncContext ) {
-		if( !syncVisibleFlag && !alwaysSync )
-			return;
-		syncJoints();
+	@:noDebug
+	public static function syncJoints(skin: Skin) {
+		if( !skin.sRow.jointsUpdated ) return;
+		for( j in skin.sRow.skinData.allJoints ) {
+			var id = j.index;
+			var m = skin.sRow.currentAbsPose[id];
+			var r = skin.sRow.currentRelPose[id];
+			var bid = j.bindIndex;
+			if( r == null ) {
+				r = j.defMat;
+			} else if( j.retargetAnim ) {
+				r._41 = j.defMat._41;
+				r._42 = j.defMat._42;
+				r._43 = j.defMat._43;
+			}
+			if( j.parent == null )
+				m.multiply3x4inline(r, skin.absPos);
+			else
+				m.multiply3x4inline(r, skin.sRow.currentAbsPose[j.parent.index]);
+			if( bid >= 0 )
+				skin.sRow.currentPalette[bid].multiply3x4inline(j.transPos, m);
+		}
+		skin.sRow.skinShader.bonesMatrixes = skin.sRow.currentPalette;
+		if( skin.sRow.jointsAbsPosInv != null ) skin.sRow.jointsAbsPosInv._44 = 0; // mark as invalid
+		skin.sRow.jointsUpdated = false;
+	}
 
-		if( this.sRow.showJoints ) {
-			if( this.sRow.jointsGraphics == null ) {
-				this.sRow.jointsGraphics = this.getScene().createGraphics(null);
-				this.sRow.jointsGraphics.material.mainPass.depth(false, Always);
-				this.sRow.jointsGraphics.material.mainPass.setPassName("additive");
+	public static function syncShowJoints(skin: Skin) {
+		final sRow = skin.sRow;
+
+		if( sRow.showJoints ) {
+			if( sRow.jointsGraphics == null ) {
+				sRow.jointsGraphics = skin.getScene().createGraphics(null);
+				sRow.jointsGraphics.material.mainPass.depth(false, Always);
+				sRow.jointsGraphics.material.mainPass.setPassName("additive");
 			}
 
-			var topParent : Object = this;
+			var topParent : Object = skin;
 			while( topParent.parent != null )
 				topParent = topParent.parent;
-			topParent.addChild(this.sRow.jointsGraphics);
+			topParent.addChild(sRow.jointsGraphics);
 
-			var g = this.sRow.jointsGraphics;
+			final g = sRow.jointsGraphics;
 			g.clear();
-			for( j in this.sRow.skinData.allJoints ) {
-				var m = this.sRow.currentAbsPose[j.index];
-				var mp = j.parent == null ? absPos : this.sRow.currentAbsPose[j.parent.index];
+			for( j in sRow.skinData.allJoints ) {
+				var m = sRow.currentAbsPose[j.index];
+				var mp = j.parent == null ? skin.absPos : sRow.currentAbsPose[j.parent.index];
 				g.lineStyle(1, j.parent == null ? 0xFF0000FF : 0xFFFFFF00);
 				g.moveTo(mp._41, mp._42, mp._43);
 				g.lineTo(m._41, m._42, m._43);
 			}
-		} else if( this.sRow.jointsGraphics != null ) {
-			this.sRow.jointsGraphics.remove();
-			this.sRow.jointsGraphics = null;
+		} else if( sRow.jointsGraphics != null ) {
+			sRow.jointsGraphics.remove();
+			sRow.jointsGraphics = null;
 		}
-	}
-
-	@:noDebug
-	function syncJoints() {
-		if( !this.sRow.jointsUpdated ) return;
-		for( j in this.sRow.skinData.allJoints ) {
-			var id = j.index;
-			var m = this.sRow.currentAbsPose[id];
-			var r = this.sRow.currentRelPose[id];
-			var bid = j.bindIndex;
-			if( r == null ) r = j.defMat else if( j.retargetAnim ) { r._41 = j.defMat._41; r._42 = j.defMat._42; r._43 = j.defMat._43; }
-			if( j.parent == null )
-				m.multiply3x4inline(r, absPos);
-			else
-				m.multiply3x4inline(r, this.sRow.currentAbsPose[j.parent.index]);
-			if( bid >= 0 )
-				this.sRow.currentPalette[bid].multiply3x4inline(j.transPos, m);
-		}
-		this.sRow.skinShader.bonesMatrixes = this.sRow.currentPalette;
-		if( this.sRow.jointsAbsPosInv != null ) this.sRow.jointsAbsPosInv._44 = 0; // mark as invalid
-		this.sRow.jointsUpdated = false;
 	}
 
 	override function emit( ctx : RenderContext.EmitContext ) {
@@ -360,6 +364,10 @@ class SkinStorage {
 
 	public function fetchRow(id: SkinId) {
 		return this.storage.get(externalToInternalId(id));
+	}
+
+	public function fetchRowByEntityId(id: EntityId) {
+		return this.storage.get(externalToInternalId(this.entityIdToSkinIdIndex[id]));
 	}
 
 	private inline function externalToInternalId(id: SkinId): InternalSkinId {
