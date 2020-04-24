@@ -63,6 +63,7 @@ class Emitter extends Particles implements Randomized {
 	}
 
 	public function update(dt:Float) {
+		dt *= this.eRow.speed;
 		var s = this.eRow.state;
 		var old = this.eRow.time;
 		if( posChanged ) syncPos();
@@ -256,10 +257,6 @@ class Emitter extends Particles implements Randomized {
 
 		if( this.eRow.state.update != null )
 			this.eRow.state.update(p);
-	}
-
-	override function sync( ctx : h3d.scene.RenderContext.SyncContext ) {
-		update(ctx.elapsedTime * this.eRow.speed);
 	}
 
 	public function isActive() {
