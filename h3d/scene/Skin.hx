@@ -35,6 +35,7 @@ class Joint extends h3d.scene.Object {
 class Skin extends h3d.scene.Mesh {
 
 	private final sRowRef: SkinRowRef;
+	@:allow(h3d.scene.Scene)
 	private final sRow: SkinRow;
 
 	public var jointsUpdated(get,set):Bool;
@@ -239,15 +240,11 @@ class Skin extends h3d.scene.Mesh {
 		}
 	}
 
-	override function emit( ctx : RenderContext.EmitContext ) {
-		if( this.sRow.splitPalette == null )
-			super.emit(ctx);
-		else {
-			for( i in 0...this.sRow.splitPalette.length ) {
-				var m = materials[this.sRow.skinData.splitJoints[i].material];
-				if( m != null )
-					ctx.emit(m, this, i);
-			}
+	public static function emitSkin( sRow : SkinRow, mRow : Mesh.MeshRow, skin : Skin, ctx : RenderContext.EmitContext ) {
+		for( i in 0...sRow.splitPalette.length ) {
+			final m = mRow.materials[sRow.skinData.splitJoints[i].material];
+			if( m != null )
+				ctx.emit(m, skin, i);
 		}
 	}
 

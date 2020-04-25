@@ -950,12 +950,12 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 			row.onEnd(row);
 	}
 
-	override function emit( ctx : h3d.scene.RenderContext.EmitContext ) {
-		for( i in 0...materials.length ) {
-			final m = materials[i];
+	public static function emitGpuParticles( row: GpuParticlesRow, parts: GpuParticles, ctx : h3d.scene.RenderContext.EmitContext ) {
+		for( i in 0...row.materials.length ) {
+			final m = row.materials[i];
 			final g = row.groups[i];
 			if( m != null && g.enable && g.currentParts > 0 )
-				ctx.emit(m, this, i);
+				ctx.emit(m, parts, i);
 		}
 	}
 

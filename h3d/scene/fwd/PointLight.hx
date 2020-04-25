@@ -5,6 +5,7 @@ import h3d.scene.Light.State as LightState;
 
 class PointLight extends FwdLight {
 
+	@:allow(h3d.scene.Scene)
 	var pointState(get,never): State;
 	inline function get_pointState() return this._state;
 	public var params(get, set) : h3d.Vector;
@@ -24,21 +25,25 @@ class PointLight extends FwdLight {
 		return this.pointState.shader.params = p;
 	}
 
-	override function emit(ctx) {
-		var lum = hxd.Math.max(hxd.Math.max(color.r, color.g), color.b);
-		var p = params;
+	public static function updateCullingDistance(state: State) {
+		final color = state.color;
+		final lum = hxd.Math.max(hxd.Math.max(color.r, color.g), color.b);
+		final p = state.shader.params;
 		// solve lum / (x + y.d + z.d²) < 1/128
 		if( p.z == 0 ) {
-			cullingDistance = (lum * 128 - p.x) / p.y;
+			state.cullingDistance = (lum * 128 - p.x) / p.y;
 		} else {
-			var delta = p.y * p.y - 4 * p.z * (p.x - lum * 128);
-			cullingDistance = (p.y + Math.sqrt(delta)) / (2 * p.z);
+			final delta = p.y * p.y - 4 * p.z * (p.x - lum * 128);
+			state.cullingDistance = (p.y + Math.sqrt(delta)) / (2 * p.z);
 		}
-		this.pointState.shader.lightPosition.set(absPos._41, absPos._42, absPos._43);
-		super.emit(ctx);
+	}
+
+	public static function syncShader(state: State, absPos: h3d.Matrix) {
+		state.shader.lightPosition.set(absPos._41, absPos._42, absPos._43);
 	}
 }
 
+@:forward(color, cullingDistance)
 private abstract State(LightState) from LightState {
 	public var shader(get,never): h3d.shader.PointLight;
 	inline function get_shader() return cast this.shader;

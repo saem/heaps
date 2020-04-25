@@ -66,11 +66,6 @@ class Graphics extends Object implements Materialable {
 		gRow.bprim.flush();
 	}
 
-	override function emit( ctx : RenderContext.EmitContext ) {
-		if( this.material != null )
-			ctx.emit(this.material, this);
-	}
-
 	override function draw( ctx : RenderContext.DrawContext ) {
 		flush();
 		this.gRow.bprim.flush();
