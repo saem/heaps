@@ -60,42 +60,46 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 		this.pRowRef.deleteRow();
 	}
 
+	function draw( ctx : h3d.scene.RenderContext.DrawContext ) {
+		drawParticles(this.pRow, ctx);
+	}
+
 	@:access(h2d.Tile)
 	@:noDebug
-	override function draw( ctx : h3d.scene.RenderContext.DrawContext ) {
-		if( this.pRow.head == null )
+	public static function drawParticles( pRow : ParticlesRow, ctx : h3d.scene.RenderContext.DrawContext ) {
+		if( pRow.head == null )
 			return;
-		switch( this.pRow.sortMode ) {
+		switch( pRow.sortMode ) {
 		case Sort, InvSort:
-			var p = this.pRow.head;
+			var p = pRow.head;
 			var m = ctx.camera.m;
 			while( p != null ) {
 				p.w = (p.x * m._13 + p.y * m._23 + p.z * m._33 + m._43) / (p.x * m._14 + p.y * m._24 + p.z * m._34 + m._44);
 				p = p.next;
 			}
-			this.pRow.head = this.pRow.sortMode == Sort ? sort(this.pRow.head) : sortInv(this.pRow.head);
-			this.pRow.tail = this.pRow.head.prev;
-			this.pRow.head.prev = null;
+			pRow.head = pRow.sortMode == Sort ? sort(pRow.head) : sortInv(pRow.head);
+			pRow.tail = pRow.head.prev;
+			pRow.head.prev = null;
 		default:
 		}
-		if( this.pRow.tmpBuf == null ) this.pRow.tmpBuf = new hxd.FloatBuffer();
+		if( pRow.tmpBuf == null ) pRow.tmpBuf = new hxd.FloatBuffer();
 		var pos = 0;
-		var p = this.pRow.head;
-		var tmp = this.pRow.tmpBuf;
+		var p = pRow.head;
+		var tmp = pRow.tmpBuf;
 		var surface = 0.;
-		if( this.pRow.frames == null || this.pRow.frames.length == 0 ) {
-			var t = material.texture == null ? h2d.Tile.fromColor(0xFF00FF) : h2d.Tile.fromTexture(material.texture);
-			this.pRow.frames = [t];
+		if( pRow.frames == null || pRow.frames.length == 0 ) {
+			var t = pRow.material.texture == null ? h2d.Tile.fromColor(0xFF00FF) : h2d.Tile.fromTexture(pRow.material.texture);
+			pRow.frames = [t];
 		}
-		material.texture = this.pRow.frames[0].getTexture();
-		if( this.pRow.emitTrail ) {
+		pRow.material.texture = pRow.frames[0].getTexture();
+		if( pRow.emitTrail ) {
 			var prev = p;
 			var prevX1 = p.x, prevY1 = p.y, prevZ1 = p.z;
 			var prevX2 = p.x, prevY2 = p.y, prevZ2 = p.z;
 			if( p != null ) p = p.next;
 			while( p != null ) {
-				var f = this.pRow.frames[p.frame];
-				if( f == null ) f = this.pRow.frames[0];
+				var f = pRow.frames[p.frame];
+				if( f == null ) f = pRow.frames[0];
 				var ratio = p.size * p.ratio * (f.height / f.width);
 
 				// pos
@@ -113,7 +117,7 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 				tmp[pos++] = f.u;
 				tmp[pos++] = f.v2;
 				// RBGA
-				if( this.pRow.hasColor ) {
+				if( pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -130,7 +134,7 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 				tmp[pos++] = 0;
 				tmp[pos++] = f.u;
 				tmp[pos++] = f.v;
-				if( this.pRow.hasColor ) {
+				if( pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -167,7 +171,7 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 				tmp[pos++] = 0;
 				tmp[pos++] = f.u2;
 				tmp[pos++] = f.v2;
-				if( this.pRow.hasColor ) {
+				if( pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -184,7 +188,7 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 				tmp[pos++] = 0;
 				tmp[pos++] = f.u2;
 				tmp[pos++] = f.v;
-				if( this.pRow.hasColor ) {
+				if( pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -196,8 +200,8 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 			}
 		} else {
 			while( p != null ) {
-				var f = this.pRow.frames[p.frame];
-				if( f == null ) f = this.pRow.frames[0];
+				var f = pRow.frames[p.frame];
+				if( f == null ) f = pRow.frames[0];
 				var ratio = p.size * p.ratio * (f.height / f.width);
 				tmp[pos++] = p.x;
 				tmp[pos++] = p.y;
@@ -212,7 +216,7 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 				tmp[pos++] = f.u;
 				tmp[pos++] = f.v2;
 				// RBGA
-				if( this.pRow.hasColor ) {
+				if( pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -229,7 +233,7 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 				tmp[pos++] = 0.5;
 				tmp[pos++] = f.u;
 				tmp[pos++] = f.v;
-				if( this.pRow.hasColor ) {
+				if( pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -246,7 +250,7 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 				tmp[pos++] = -0.5;
 				tmp[pos++] = f.u2;
 				tmp[pos++] = f.v2;
-				if( this.pRow.hasColor ) {
+				if( pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -263,7 +267,7 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 				tmp[pos++] = 0.5;
 				tmp[pos++] = f.u2;
 				tmp[pos++] = f.v;
-				if( this.pRow.hasColor ) {
+				if( pRow.hasColor ) {
 					tmp[pos++] = p.r;
 					tmp[pos++] = p.g;
 					tmp[pos++] = p.b;
@@ -274,12 +278,12 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 			}
 		}
 		var stride = 10;
-		if( this.pRow.hasColor ) stride += 4;
+		if( pRow.hasColor ) stride += 4;
 		var buffer = h3d.Buffer.ofSubFloats(tmp, stride, Std.int(pos/stride), [Quads, Dynamic, RawFormat]);
-		if( this.pRow.pshader.is3D )
-			this.pRow.pshader.size.set(this.pRow.globalSize, this.pRow.globalSize);
+		if( pRow.pshader.is3D )
+			pRow.pshader.size.set(pRow.globalSize, pRow.globalSize);
 		else
-			this.pRow.pshader.size.set(this.pRow.globalSize * ctx.engine.height / ctx.engine.width * 4, this.pRow.globalSize * 4);
+			pRow.pshader.size.set(pRow.globalSize * ctx.engine.height / ctx.engine.width * 4, pRow.globalSize * 4);
 		ctx.uploadParams();
 		ctx.engine.renderQuadBuffer(buffer);
 		buffer.dispose();
@@ -365,11 +369,11 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 		this.pRow.count--;
 	}
 
-	function sort( list : Particle ) {
+	static function sort( list : Particle ) {
 		return haxe.ds.ListSort.sort(list, function(p1, p2) return p1.w < p2.w ? 1 : -1);
 	}
 
-	function sortInv( list : Particle ) {
+	static function sortInv( list : Particle ) {
 		return haxe.ds.ListSort.sort(list, function(p1, p2) return p1.w < p2.w ? -1 : 1);
 	}
 

@@ -47,10 +47,6 @@ class PointLight extends Light {
 		return cullingDistance = v;
 	}
 
-	override function draw(ctx:RenderContext.DrawContext) {
-		this.pointState.primitive.render(ctx.engine);
-	}
-
 	public static function syncShader(pointState: State, absPos: h3d.Matrix) {
 		final pbr = pointState.shader;
 		pbr.lightColor.load(pointState.color);

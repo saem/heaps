@@ -959,15 +959,13 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 		}
 	}
 
-	override function draw( ctx : h3d.scene.RenderContext.DrawContext ) {
+	public static function drawGpuParticles( row: GpuParticlesRow, ctx : h3d.scene.RenderContext.DrawContext ) {
 		final primitive = row.primitives[ctx.drawPass.index];
 		if( primitive == null || primitive.buffer.isDisposed() )
 			return; // wait next sync()
 		final g = row.groups[ctx.drawPass.index];
 		if( !primitive.isBufferAllocated() ) primitive.alloc(ctx.engine);
 		ctx.engine.renderQuadBuffer(primitive.buffer,0,g.currentParts*2);
-
-		super.draw(ctx);
 	}
 
 	function loadTexture( path : String ) {

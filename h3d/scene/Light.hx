@@ -4,6 +4,7 @@ import h3d.scene.SceneStorage.EntityId;
 class Light extends h3d.scene.Object {
 
 	private final lRowRef : LightRowRef;
+	@:allow(h3d.scene.Scene)
 	private final lRow : LightRow;
 
 	final _state: State;

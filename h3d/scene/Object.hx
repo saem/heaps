@@ -737,9 +737,6 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 		return null;
 	}
 
-	function draw( ctx : RenderContext.DrawContext ) {
-	}
-
 	function calcAbsPos() {
 		qRot.toMatrix(absPos);
 		// prepend scale
@@ -987,12 +984,6 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 			o.children.push(c);
 		}
 		return cast o;
-	}
-
-	@:allow(h3d.pass.Default) private static function drawObject(obj: h3d.pass.DrawObject, ctx: RenderContext.DrawContext) {
-		final o = Object.ObjectMap.get(obj.id);
-		if (o != null)
-			o.draw(ctx);
 	}
 }
 

@@ -66,11 +66,10 @@ class Graphics extends Object implements Materialable {
 		gRow.bprim.flush();
 	}
 
-	override function draw( ctx : RenderContext.DrawContext ) {
-		flush();
-		this.gRow.bprim.flush();
-		this.gRow.bprim.render(ctx.engine);
-		super.draw(ctx);
+	public static function drawGraphics( graphics: GraphicsModule, ctx : RenderContext.DrawContext ) {
+		graphics.flush();
+		graphics.bprim.flush();
+		graphics.bprim.render(ctx.engine);
 	}
 
 	override function getMaterialByName( name : String ) : h3d.mat.Material {

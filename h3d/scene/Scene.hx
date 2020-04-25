@@ -493,6 +493,40 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		}
 	}
 
+	@:allow(h3d.pass.Default) private static function drawObject(obj: h3d.pass.DrawObject, ctx: RenderContext.DrawContext) {
+		final o = Object.ObjectMap.get(obj.id);
+		if (o != null)
+			legacyDraw(o, ctx);
+	}
+
+	static function legacyDraw(object: Object, ctx: RenderContext.DrawContext) {
+		switch(object.objectType) {
+			case TSkin if( object.toSkin().sRow.splitPalette != null ):
+				final skin = object.toSkin();
+				Skin.drawSkin(skin.sRow, skin.mRow, ctx);
+			case TGpuParticles:
+				h3d.parts.GpuParticles.drawGpuParticles(object.toGpuParticlesUnsafe().row, ctx);
+			case TEmitter:
+				final emitter = object.toEmitterUnsafe();
+				h3d.parts.Emitter.drawEmitter(emitter.eRow, emitter.pRow, emitter);
+				h3d.parts.Particles.drawParticles(object.toParticlesUnsafe().pRow, ctx);
+			case TParticles:
+				h3d.parts.Particles.drawParticles(object.toParticlesUnsafe().pRow, ctx);
+			case TMesh | TSkin | TPbrDecal:
+				Mesh.drawMesh(object.toMesh().mRow, ctx);
+			case TPbrPointLight | TPbrSpotLight:
+				final light: Light = cast object;
+				light.lRow.primitive.render(ctx.engine);
+			case TGraphics | TBox:
+				Graphics.drawGraphics(object.toGraphicsUnsafe().gRow, ctx);
+			case TFwdDirLight | TFwdPointLight | TPbrDirLight:
+				// TODO - Confirm that these shouldn't have a draw call
+				null;
+			case TObject | TWorld | TSkinJoint:
+				null;
+		}
+	}
+
 	/**
 		Used to keep various flags for sync/syncChildren up to date.
 	**/

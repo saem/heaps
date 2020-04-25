@@ -115,10 +115,6 @@ class SpotLight extends Light {
 		return absPos.front();
 	}
 
-	override function draw(ctx:RenderContext.DrawContext) {
-		this.spotState.primitive.render(ctx.engine);
-	}
-
 	public static function syncShader(state: State, absPos: h3d.Matrix): Void {
 		final pbr = state.shader;
 		final power = state.power;
