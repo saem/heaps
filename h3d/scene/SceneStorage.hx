@@ -3,6 +3,7 @@ import hds.Map;
 
 class SceneStorage {
     public final entityStorage: EntityStorage = new EntityStorage();
+    public final objectStorage: Object.ObjectStorage = new Object.ObjectStorage();
     public final cameraControllerStorage = new CameraController.CameraControllerStorage();
     public final meshStorage = new h3d.scene.Mesh.MeshStorage();
     public final gpuParticleStorage = new h3d.parts.GpuParticles.GpuParticlesStorage();
@@ -24,6 +25,14 @@ class SceneStorage {
 	
 	public function insertEntity(): EntityId {
 		return this.entityStorage.allocateRow();
+    }
+	
+	public function insertObject(eid: EntityId, objectType: Object.ObjectType, ?parent: Object = null, ?name: String = null): EntityId {
+		return this.objectStorage.allocateRow(eid, objectType, this, parent, name);
+    }
+
+    public function selectObject(eid: EntityId): Object.ObjectRow {
+        return this.objectStorage.fetchRow(eid);
     }
     
     public function insertRelativePosition(eid: EntityId) {
@@ -169,6 +178,7 @@ class SceneStorage {
 	
 	public function reset() {
 		this.entityStorage.reset();
+		this.objectStorage.reset();
 		this.cameraControllerStorage.reset();
 		this.meshStorage.reset();
 		this.gpuParticleStorage.reset();

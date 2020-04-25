@@ -29,6 +29,7 @@ enum abstract ObjectType(Int) {
 	var TObject;
 	var TGraphics;
 	var TBox;
+	var TSphere;
 	var TMesh;
 	var TSkin;
 	var TSkinJoint;
@@ -64,9 +65,16 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	public static final DeletedObjectIds: Array<EntityId> = [];
 
 	/**
+		Numeric ID, will be used to work towards an ECS.
+	**/
+	public final id: EntityId;
+
+	/**
 		TODO convert to bit flag for various components instead
 	**/
-	var objectType: ObjectType = TObject;
+	var objectType(get,set): ObjectType;
+
+	var children(get,set): Array<Object>;
 
 	/**
 		Temporarily add a SceneStorage reference to factor out the old static
@@ -77,87 +85,80 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 
 		Should be set via onAdd.
 	**/
-	var sceneStorage(default, set): h3d.scene.SceneStorage;
-
-	/**
-		Numeric ID, will be used to work towards an ECS.
-	**/
-	public final id: EntityId;
-
-	var children : Array<Object> = [];
+	var sceneStorage(get, never): h3d.scene.SceneStorage;
 
 	/**
 		The parent object in the scene tree.
 	**/
-	public var parent(default, null) : Object = null;
-
-	/**
-		How many immediate children this object has.
-	**/
-	public var numChildren(get, never) : Int;
+	public var parent(get,set): Object;
 
 	/**
 		The name of the object, can be used to retrieve an object within a tree by using `getObjectByName` (default null)
 	**/
-	@:s public var name : Null<String> = null;
+	@:s public var name(get,set): Null<String>;
 
 	/**
 		Various flags, such as whether to render or not.
 	**/
-	@:s var flags : ObjectFlags = new ObjectFlags(0);
+	@:s var flags(get,set): ObjectFlags;
+
+	/**
+		How many immediate children this object has.
+	**/
+	public var numChildren(get, never): Int;
 
 	/**
 		The x position of the object relative to its parent.
 	**/
-	@:s public var x(get, set) : Float;
+	@:s public var x(get, set): Float;
 
 	/**
 		The y position of the object relative to its parent.
 	**/
-	@:s public var y(get, set) : Float;
+	@:s public var y(get, set): Float;
 
 	/**
 		The z position of the object relative to its parent.
 	**/
-	@:s public var z(get, set) : Float;
+	@:s public var z(get, set): Float;
 
 	/**
 		The amount of scaling along the X axis of this object (default 1.0)
 	**/
-	@:s public var scaleX(get, set) : Float;
+	@:s public var scaleX(get, set): Float;
 
 	/**
 		The amount of scaling along the Y axis of this object (default 1.0)
 	**/
-	@:s public var scaleY(get, set) : Float;
+	@:s public var scaleY(get, set): Float;
 
 	/**
 		The amount of scaling along the Z axis of this object (default 1.0)
 	**/
-	@:s public var scaleZ(get, set) : Float;
+	@:s public var scaleZ(get, set): Float;
 
 	/**
 		This is an additional optional transformation that is performed before other local transformations.
 		It is used by the animation system.
 	**/
-	public var defaultTransform(default, set) : h3d.Matrix;
-	@:s public var currentAnimation(get, never) : h3d.anim.Animation;
+	public var defaultTransform(get, set): h3d.Matrix;
+	@:s public var currentAnimation(get, never): h3d.anim.Animation;
 	inline function get_currentAnimation() return anim.currentAnimation;
 
 	/**
 		Is the object and its children are displayed on screen (default true).
 	**/
-	public var visible(get, set) : Bool;
+	public var visible(get, set): Bool;
 
 	/**
 		Inform that the object is not to be displayed and his animation doesn't have to be sync.
 	**/
-	public var culled(get, set) : Bool;
+	public var culled(get, set): Bool;
 
 	/**
 		When an object is not visible or culled, its animation does not get synchronized unless you set alwaysSync=true
 	**/
-	public var alwaysSync(get, set) : Bool;
+	public var alwaysSync(get, set): Bool;
 
 	/**
 		Is the Object visible for the purposes of sync.
@@ -173,7 +174,7 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 
 		NB: This isn't public because it's only ever managed in the graph
 	**/
-	var syncVisibleFlag(get, set) : Bool;
+	var syncVisibleFlag(get, set): Bool;
 
 	/**
 		Whether the syncChildren process should continue or stop, this is mostly if
@@ -181,38 +182,37 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 
 		This is required for breadth first traversal when doing recursive sync.
 	**/
-	var syncContinueFlag(get, set) : Bool;
+	var syncContinueFlag(get, set): Bool;
 
 	/**
 		Whether the sync resulted in any sort of position change.
 	**/
-	var syncChangedFlag(get, set) : Bool;
+	var syncChangedFlag(get, set): Bool;
 
 	/**
 		When enabled, the object bounds are ignored when using getBounds()
 	**/
-	public var ignoreBounds(get, set) : Bool;
+	public var ignoreBounds(get, set): Bool;
 
 	/**
-		When enabled, the object can be serialized (default : true)
+		When enabled, the object can be serialized (default: true)
 	**/
-	public var allowSerialize(get, set) : Bool;
+	public var allowSerialize(get, set): Bool;
 
 	/**
 		When selecting the lights to apply to this object, we will use the camera target as reference
 		instead of the object absolute position. This is useful for very large objects so they can get good lighting.
 	**/
-	public var lightCameraCenter(get, set) : Bool;
+	public var lightCameraCenter(get, set): Bool;
 
+	public var cullingCollider(get,set): h3d.col.Collider;
 
-	public var cullingCollider : h3d.col.Collider = null;
-
-	public var absPos(default, null) : h3d.Matrix = null;
-	var invPos : h3d.Matrix = null;
-	var qRot(get, set) : h3d.Quat;
-	var posChanged(get,set) : Bool;
-	var allocated(get,set) : Bool;
-	var lastFrame : Int = 0;
+	public var absPos(get,set): h3d.Matrix;
+	var invPos(get,set): h3d.Matrix;
+	var qRot(get, set): h3d.Quat;
+	var posChanged(get,set): Bool;
+	var allocated(get,set): Bool;
+	var lastFrame(get,set): Int;
 
 	// Start of transformation to arrays of components
 	var relPos(get, null): RelativePosition;
@@ -220,30 +220,34 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	var anim(get, null): Animation;
 	inline function get_anim() return this.sceneStorage.animationStorage.fetchRow(this.id);
 
+	@:allow(h3d.scene.Scene)
+	private final oRowRef: ObjectRowRef;
+	private final oRow: ObjectRow;
+
 	/**
 		Create a new empty object, and adds it to the parent object if not null.
 
 		No longer allow direct creation, use static methods instead.
 	**/
 	@:allow(h3d.scene.Scene.createObject)
-	private function new( eid: h3d.scene.SceneStorage.EntityId, ?parent : Object ) {
-		this.id = eid;
-		ObjectMap.set(this.id, this);
-		// More defensive sceneStorage setting hilarity
-		if( parent != null && parent.sceneStorage != null )
-			this.sceneStorage = parent.sceneStorage;
-		flags = new ObjectFlags(0);
-		absPos = new h3d.Matrix();
-		absPos.identity();
-		allowSerialize = true;
+	private function new( oRowRef: ObjectRowRef ) {
+		this.oRowRef = oRowRef;
+		this.oRow = oRowRef.getRow();
 
-		visible = true;
-		syncVisibleFlag = true;
-		syncContinueFlag = true;
-		syncChangedFlag = false;
+		this.id = oRow.id;
+		ObjectMap.set(this.id, this);
+		
 		if( parent != null )
 			parent.addChild(this);
 	}
+
+	inline function get_sceneStorage() return this.oRow.sceneStorage;
+	inline function get_name() return this.oRow.name;
+	inline function set_name(n) return this.oRow.name = n;
+	inline function get_flags() return this.oRow.flags;
+	inline function set_flags(f) return this.oRow.flags = f;
+	inline function get_objectType() return this.oRow.objectType;
+	inline function set_objectType(t) return this.oRow.objectType = t;
 
 	inline function get_x() return this.relPos.x;
 	inline function set_x(v) return this.relPos.x = v;
@@ -259,6 +263,10 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	inline function set_scaleZ(v) return this.relPos.scaleZ = v;
 	inline function get_qRot() return this.relPos.rotationQuat;
 	inline function set_qRot(q) return this.relPos.rotationQuat = q;
+	inline function get_absPos() return this.relPos.absPos;
+	inline function set_absPos(a) return this.relPos.absPos = a;
+	inline function get_invPos() return this.relPos.invPos;
+	inline function set_invPos(a) return this.relPos.invPos = a;
 	inline function get_visible() return flags.has(FVisible);
 	inline function get_syncVisibleFlag() return flags.has(FSyncVisibility);
 	inline function get_syncContinueFlag() return flags.has(FSyncContinue);
@@ -271,45 +279,26 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	inline function get_ignoreBounds() return flags.has(FIgnoreBounds);
 	inline function get_allowSerialize() return !flags.has(FNoSerialize);
 	inline function set_posChanged(b) return this.relPos.posChanged = (b);
-	inline function set_culled(b) return flags.set(FCulled, b);
-	inline function set_visible(b) return flags.set(FVisible,b);
-	inline function set_syncVisibleFlag(b) return flags.set(FSyncVisibility,b);
-	inline function set_syncContinueFlag(b) return flags.set(FSyncContinue,b);
-	inline function set_syncChangedFlag(b) return flags.set(FSyncChanged,b);
-	inline function set_allocated(b) return flags.set(FAllocated, b);
-	inline function set_lightCameraCenter(b) return flags.set(FLightCameraCenter, b);
-	inline function set_alwaysSync(b) return flags.set(FAlwaysSync, b);
-	inline function set_ignoreBounds(b) return flags.set(FIgnoreBounds, b);
-	inline function set_allowSerialize(b) return !flags.set(FNoSerialize, !b);
-	inline function set_defaultTransform(v) {
-		defaultTransform = v;
-		posChanged = true;
-		return v;
-	}
-
-	/**
-		You get a SceneStorage!
-		And you get a SceneStorage!
-		Everybody gets a SceneStorage!!!
-
-		Srsly tho, this is extremely defensive, remove ASAP.
-
-		Possible being:
-		* Object lifetimes can be reasoned about
-	**/
-	function set_sceneStorage(s) {
-		if(s == null) return s;
-
-		if(this.sceneStorage != null && this.sceneStorage != s)
-			throw "Cannot mix objects with different sceneStorage";
-
-		this.sceneStorage = s;
-		for(c in this.children) {
-			c.sceneStorage = s;
-		}
-
-		return s;
-	}
+	inline function set_culled(b) return this.oRow.flags.set(FCulled, b);
+	inline function set_visible(b) return this.oRow.flags.set(FVisible,b);
+	inline function set_syncVisibleFlag(b) return this.oRow.flags.set(FSyncVisibility,b);
+	inline function set_syncContinueFlag(b) return this.oRow.flags.set(FSyncContinue,b);
+	inline function set_syncChangedFlag(b) return this.oRow.flags.set(FSyncChanged,b);
+	inline function set_allocated(b) return this.oRow.flags.set(FAllocated, b);
+	inline function set_lightCameraCenter(b) return this.oRow.flags.set(FLightCameraCenter, b);
+	inline function set_alwaysSync(b) return this.oRow.flags.set(FAlwaysSync, b);
+	inline function set_ignoreBounds(b) return this.oRow.flags.set(FIgnoreBounds, b);
+	inline function set_allowSerialize(b) return !this.oRow.flags.set(FNoSerialize, !b);
+	inline function get_defaultTransform() return this.relPos.defaultTransform;
+	inline function set_defaultTransform(v) return this.relPos.defaultTransform = v;
+	inline function get_cullingCollider() return this.oRow.cullingCollider;
+	inline function set_cullingCollider(v) return this.oRow.cullingCollider = v;
+	inline function get_parent() return this.oRow.parent;
+	inline function set_parent(p) return this.oRow.parent = p;
+	inline function get_children() return this.oRow.children;
+	inline function set_children(p) return this.oRow.children = p;
+	inline function get_lastFrame() return this.oRow.lastFrame;
+	inline function set_lastFrame(f) return this.oRow.lastFrame = f;
 
 	/**
 		Create an animation instance bound to the object, set it as currentAnimation and play it.
@@ -492,8 +481,6 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 			if( p == o ) throw "Recursive addChild";
 			p = p.parent;
 		}
-		if( o.sceneStorage == null && this.sceneStorage != null)
-			o.sceneStorage = this.sceneStorage;
 		if( o.parent != null ) {
 			// prevent calling onDelete
 			var old = o.allocated;
@@ -1084,6 +1071,21 @@ class RelativePosition {
 		The amount of scaling along the Z axis of this object (default 1.0)
 	**/
 	@:s public var scaleZ(default,set) : Float = 1.;
+	
+	// TODO inclusion of this likely warrants RelativePosition rename
+	public var absPos : h3d.Matrix = h3d.Matrix.I();
+	public var invPos : h3d.Matrix = null;
+
+	/**
+		This is an additional optional transformation that is performed before other local transformations.
+		It is used by the animation system.
+	**/
+	public var defaultTransform(default, set) : h3d.Matrix = null;
+	inline function set_defaultTransform(v) {
+		this.defaultTransform = v;
+		this.posChanged = true;
+		return v;
+	}
 
 	public function new(id: RelativePositionId) {
 		this.id = id;
@@ -1264,5 +1266,183 @@ private class Animation {
 	**/
 	public function stopAnimation() {
 		currentAnimation = null;
+	}
+}
+
+class ObjectRowRef {
+	final rowId: EntityId;
+	final sceneStorage: h3d.scene.SceneStorage;
+	
+	public function new(rowId: EntityId, sceneStorage: h3d.scene.SceneStorage) {
+		this.rowId = rowId;
+		this.sceneStorage = sceneStorage;
+	}
+
+	public inline function getRow() {
+		return this.sceneStorage.selectObject(rowId);
+	}
+
+	/**
+		TODO Leaving this here as it's not a general delete
+	**/
+	public inline function deleteRow() {
+		final eid = this.getRow().entityId;
+		// TODO implement this properly with checking for component types
+		this.sceneStorage.entityStorage.deallocateRow(eid);
+		this.sceneStorage.objectStorage.deallocateRow(eid);
+	}
+}
+
+class ObjectRow {
+	public var id: EntityId;
+	public var entityId(get,null): EntityId;
+	inline function get_entityId() return this.id;
+
+	/**
+		TODO convert to bit flag for various components instead
+	**/
+	public var objectType: ObjectType = TObject;
+
+	public var children : Array<Object> = [];
+
+	/**
+		The name of the object, can be used to retrieve an object within a tree by using `getObjectByName` (default null)
+	**/
+	public var name : Null<String> = null;
+
+	/**
+		Is the object and its children are displayed on screen (default true).
+	**/
+	public var visible(get, set) : Bool;
+
+	/**
+		Inform that the object is not to be displayed and his animation doesn't have to be sync.
+	**/
+	public var culled(get, set) : Bool;
+
+	/**
+		When an object is not visible or culled, its animation does not get synchronized unless you set alwaysSync=true
+	**/
+	public var alwaysSync(get, set) : Bool;
+
+	/**
+		Is the Object visible for the purposes of sync.
+	
+		To replace RenderContext.SyncContext::visibileFlag
+
+		- Current object during a syncChildren updates it so children can query it
+		- If an object is visible and it hasn't been culled then it's considered visible
+		- Children query the parent, which breaks the SyncContext dependency
+
+		Once all SyncContext dependencies no longer require depth first traversal,
+		we can switch to breadth first traversal and work towards ECS.
+
+		NB: This isn't public because it's only ever managed in the graph
+	**/
+	var syncVisibleFlag(get, set) : Bool;
+
+	/**
+		Whether the syncChildren process should continue or stop, this is mostly if
+		the animation removes this object and we need to stop.
+
+		This is required for breadth first traversal when doing recursive sync.
+	**/
+	var syncContinueFlag(get, set) : Bool;
+
+	/**
+		Whether the sync resulted in any sort of position change.
+	**/
+	var syncChangedFlag(get, set) : Bool;
+
+	/**
+		When enabled, the object bounds are ignored when using getBounds()
+	**/
+	public var ignoreBounds(get, set) : Bool;
+
+	/**
+		When enabled, the object can be serialized (default : true)
+	**/
+	public var allowSerialize(get, set) : Bool;
+
+	/**
+		When selecting the lights to apply to this object, we will use the camera target as reference
+		instead of the object absolute position. This is useful for very large objects so they can get good lighting.
+	**/
+	public var lightCameraCenter(get, set) : Bool;
+
+	public var sceneStorage : SceneStorage = null;
+
+	public var parent : Object = null;
+
+	public var allocated(get,set) : Bool;
+
+	public var lastFrame : Int = 0;
+
+	public var cullingCollider: h3d.col.Collider = null;
+
+	/**
+		Various flags, such as whether to render or not.
+	**/
+	public var flags : ObjectFlags = new ObjectFlags(0);
+
+	public function new(id: EntityId, sceneStorage: SceneStorage, objectType: ObjectType, ?parent: Object = null, ?name: String = null) {
+		this.id = id;
+		this.name = name;
+
+		this.sceneStorage = sceneStorage;
+		this.parent = parent;
+
+		this.objectType = objectType;
+		this.allowSerialize = true;
+		this.visible = true;
+
+		this.syncVisibleFlag = true;
+		this.syncContinueFlag = true;
+		this.syncChangedFlag = false;
+	}
+
+	inline function get_visible() return this.flags.has(FVisible);
+	inline function get_syncVisibleFlag() return this.flags.has(FSyncVisibility);
+	inline function get_syncContinueFlag() return this.flags.has(FSyncContinue);
+	inline function get_syncChangedFlag() return this.flags.has(FSyncChanged);
+	inline function get_allocated() return this.flags.has(FAllocated);
+	inline function get_culled() return this.flags.has(FCulled);
+	inline function get_lightCameraCenter() return this.flags.has(FLightCameraCenter);
+	inline function get_alwaysSync() return this.flags.has(FAlwaysSync);
+	inline function get_ignoreBounds() return this.flags.has(FIgnoreBounds);
+	inline function get_allowSerialize() return !this.flags.has(FNoSerialize);
+	inline function set_culled(b) return this.flags.set(FCulled, b);
+	inline function set_visible(b) return this.flags.set(FVisible,b);
+	inline function set_syncVisibleFlag(b) return this.flags.set(FSyncVisibility,b);
+	inline function set_syncContinueFlag(b) return this.flags.set(FSyncContinue,b);
+	inline function set_syncChangedFlag(b) return this.flags.set(FSyncChanged,b);
+	inline function set_allocated(b) return this.flags.set(FAllocated, b);
+	inline function set_lightCameraCenter(b) return this.flags.set(FLightCameraCenter, b);
+	inline function set_alwaysSync(b) return this.flags.set(FAlwaysSync, b);
+	inline function set_ignoreBounds(b) return this.flags.set(FIgnoreBounds, b);
+	inline function set_allowSerialize(b) return !this.flags.set(FNoSerialize, !b);
+}
+
+class ObjectStorage {
+	final storage = new hds.Map<EntityId, ObjectRow>();
+
+	public function new() {}
+
+	public function allocateRow(id: EntityId, objectType: ObjectType, sceneStorage: SceneStorage, ?parent: Object = null, ?name: String = null) {
+        this.storage.set(id, new ObjectRow(id, sceneStorage, objectType, parent, name));
+
+		return id;
+	}
+
+	public function fetchRow(id: EntityId) {
+		return this.storage.get(id);
+	}
+
+	public function deallocateRow(eid: EntityId) {
+		return this.storage.remove(eid);
+	}
+
+	public function reset() {
+		this.storage.clear();
 	}
 }

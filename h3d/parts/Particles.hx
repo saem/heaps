@@ -35,12 +35,11 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 	inline function set_material(m) return this.pRow.material = m;
 
 	@:allow(h3d.scene.Scene.createParticles)
-	private function new( eid: EntityId, pRowRef:ParticlesRowRef, ?parent:h3d.scene.Object = null) {
+	private function new(oRowRef: h3d.scene.Object.ObjectRowRef, pRowRef:ParticlesRowRef) {
 		this.pRowRef = pRowRef;
 		this.pRow = pRowRef.getRow();
 		
-		super(eid, parent);
-		this.objectType = h3d.scene.Object.ObjectType.TParticles;
+		super(oRowRef);
 	}
 
 	function set_hasColor(b) {

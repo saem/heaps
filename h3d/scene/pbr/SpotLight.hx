@@ -17,10 +17,9 @@ class SpotLight extends Light {
 	var lightProj(get,set) : h3d.Camera;
 
 	@:allow(h3d.scene.Scene.createPbrSpotLight)
-	private function new(eid: EntityId, lRowRef: h3d.scene.Light.LightRowRef, ?parent) {
+	private function new(oRowRef: h3d.scene.Object.ObjectRowRef, lRowRef: h3d.scene.Light.LightRowRef) {
 		State.init(lRowRef.getRow(), this);
-		super(eid, lRowRef, parent);
-		this.objectType = h3d.scene.Object.ObjectType.TPbrSpotLight;
+		super(oRowRef, lRowRef);
 		maxRange = 10;
 		angle = 45;
 	}

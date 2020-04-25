@@ -18,9 +18,9 @@ class Light extends h3d.scene.Light {
 	public var occlusionFactor(get,set) : Float;
 	public var primitive(get,never) : h3d.prim.Primitive;
 
-	private function new(eid: EntityId, lRowRef: h3d.scene.Light.LightRowRef, ?parent: h3d.scene.Object = null) {
+	private function new(oRowRef: h3d.scene.Object.ObjectRowRef, lRowRef: h3d.scene.Light.LightRowRef) {
 		State.init(lRowRef.getRow(), this);
-		super(eid, lRowRef, parent);
+		super(oRowRef, lRowRef);
 	}
 
 	inline function get_power() return this.pbrState.power;

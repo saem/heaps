@@ -10,10 +10,9 @@ class DirLight extends Light {
 	inline function get_dirState() return this._state;
 
 	@:allow(h3d.scene.Scene.createPbrDirLight)
-	private function new(eid: EntityId, lRowRef: h3d.scene.Light.LightRowRef, ?dir: h3d.Vector, ?parent) {
+	private function new(oRowRef: h3d.scene.Object.ObjectRowRef, lRowRef: h3d.scene.Light.LightRowRef, ?dir: h3d.Vector) {
 		State.init(lRowRef.getRow(), this);
-		super(eid, lRowRef, parent);
-		this.objectType = h3d.scene.Object.ObjectType.TPbrDirLight;
+		super(oRowRef, lRowRef);
 		if( dir != null ) setDirection(dir);
 	}
 

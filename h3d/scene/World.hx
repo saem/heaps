@@ -198,12 +198,11 @@ class World extends h3d.scene.Object {
 	private final wRow : WorldRow;
 
 	@:allow(h3d.scene.Scene.createWorld)
-	private function new(eid: EntityId, wRowRef: WorldRowRef, parent: h3d.scene.Object) {
+	private function new(oRowRef: Object.ObjectRowRef, wRowRef: WorldRowRef) {
 		this.wRowRef = wRowRef;
 		this.wRow = wRowRef.getRow();
 		
-		super(eid, parent);
-		this.objectType = Object.ObjectType.TWorld;
+		super(oRowRef);
 		
 		if( this.wRow.autoCollect )
 			h3d.Engine.getCurrent().mem.garbage = this.garbage;

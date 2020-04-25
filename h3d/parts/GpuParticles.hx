@@ -481,12 +481,11 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 	inline function set_onEnd(e) return this.row.onEnd = e;
 
 	@:allow(h3d.scene.Scene.createGpuParticles)
-	private function new(eid: EntityId, rowRef:GpuParticlesRowRef, parent:h3d.scene.Object) {
+	private function new(oRowRef: h3d.scene.Object.ObjectRowRef, rowRef:GpuParticlesRowRef) {
 		this.row = rowRef.getRow(); // cache this for now
 		this.rowRef = rowRef;
 
-		super(eid, parent);
-		this.objectType = h3d.scene.Object.ObjectType.TGpuParticles;
+		super(oRowRef);
 	}
 
 	override function onRemove() {

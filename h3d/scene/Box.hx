@@ -8,12 +8,11 @@ class Box extends Graphics {
 	private final bRow : BoxRow;
 
 	@:allow(h3d.scene.Scene.createBox)
-	private function new( eid : EntityId, bRowRef : BoxRowRef, gRowRef : Graphics.GraphicsRowRef, ?depth : Bool = true, ?parent : Object = null) {
+	private function new( oRowRef : Object.ObjectRowRef, bRowRef : BoxRowRef, gRowRef : Graphics.GraphicsRowRef, ?depth : Bool = true) {
 		this.bRowRef = bRowRef;
 		this.bRow = bRowRef.getRow();
 		
-		super(eid, gRowRef, parent);
-		this.objectType = Object.ObjectType.TBox;
+		super(oRowRef, gRowRef);
 
 		if( !depth ) material.mainPass.depth(true, Always);
 	}
