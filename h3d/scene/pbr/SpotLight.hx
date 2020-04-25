@@ -5,6 +5,7 @@ import h3d.scene.Light.State as LightState;
 
 class SpotLight extends Light {
 
+	@:allow(h3d.scene.Scene)
 	var spotState(get,never): State;
 	inline function get_spotState() return this._state;
 
@@ -118,13 +119,7 @@ class SpotLight extends Light {
 		this.spotState.primitive.render(ctx.engine);
 	}
 
-	override function sync(ctx) {
-		super.sync(ctx);
-
-		syncShader(this.spotState, this.absPos);
-	}
-
-	static inline function syncShader(state: State, absPos: h3d.Matrix): Void {
+	public static function syncShader(state: State, absPos: h3d.Matrix): Void {
 		final pbr = state.shader;
 		final power = state.power;
 		final angle = state.angle;

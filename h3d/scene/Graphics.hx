@@ -24,6 +24,7 @@ private class GPoint {
 class Graphics extends Object implements Materialable {
 
 	private final gRowRef : GraphicsRowRef;
+	@:allow(h3d.scene.Scene)
 	private final gRow : GraphicsModule;
 
 	public var materials(get,set): Array<h3d.mat.Material>;
@@ -60,10 +61,9 @@ class Graphics extends Object implements Materialable {
 		this.gRowRef.deleteRow();
 	}
 
-	override function sync(ctx:RenderContext.SyncContext) {
-		super.sync(ctx);
-		flush();
-		this.gRow.bprim.flush();
+	public static function syncGraphics(gRow:GraphicsModule) {
+		gRow.flush();
+		gRow.bprim.flush();
 	}
 
 	override function emit( ctx : RenderContext.EmitContext ) {

@@ -447,6 +447,7 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 	static inline var VERSION = 2;
 	static inline var STRIDE = 14;
 
+	@:allow(h3d.scene.Scene)
 	private final row: GpuParticlesRow;
 	private final rowRef: GpuParticlesRowRef;
 
@@ -475,6 +476,10 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 	public var uploadedCount(get,never): Float;
 	inline function get_uploadedCount() return this.row.uploadedCount;
 
+	public var onEnd(get,set): (row:GpuParticlesRow) -> Void;
+	inline function get_onEnd() return this.row.onEnd;
+	inline function set_onEnd(e) return this.row.onEnd = e;
+
 	@:allow(h3d.scene.Scene.createGpuParticles)
 	private function new(eid: EntityId, rowRef:GpuParticlesRowRef, parent:h3d.scene.Object) {
 		this.row = rowRef.getRow(); // cache this for now
@@ -502,15 +507,11 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 						calcAbsPos();
 						posChanged = false;
 					}
-					sync(new h3d.scene.RenderContext.SyncContext(@:privateAccess s.renderer.ctx));
+					GpuParticles.syncGpuParticles(this, new h3d.scene.RenderContext.SyncContext(@:privateAccess s.renderer.ctx), this.row);
 				}
 				break;
 			}
 		return super.getBoundsRec(b);
-	}
-
-	public dynamic function onEnd() {
-		if( row.duration > 0 ) row.currentTime = -1;
 	}
 
 	public function save() : Dynamic {
@@ -603,7 +604,7 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 		}
 	}
 
-	function rebuildAll() {
+	static function rebuildAll(row: GpuParticlesRow, oRow: h3d.scene.Object) {
 
 		var ebounds = null, calcEmit = null, partCount = 0, partAlloc = row.partAlloc;
 		row.bounds.empty();
@@ -629,11 +630,11 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 				calcEmit = g.emitMode;
 				switch( g.emitMode ) {
 				case ParentBounds:
-					var ignore = ignoreBounds;
-					ignoreBounds = true;
-					ebounds = parent.getBounds();
-					ignoreBounds = ignore;
-					ebounds.transform(getInvPos());
+					var ignore = oRow.ignoreBounds;
+					oRow.ignoreBounds = true;
+					ebounds = oRow.parent.getBounds();
+					oRow.ignoreBounds = ignore;
+					ebounds.transform(oRow.getInvPos());
 				case VolumeBounds, CameraBounds:
 					ebounds = row.volumeBounds;
 					if( ebounds == null ) ebounds = row.volumeBounds = h3d.col.Bounds.fromValues( -1, -1, -1, 2, 2, 2 );
@@ -683,7 +684,7 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 
 	static var PUVS = [new h3d.prim.UV(0, 0), new h3d.prim.UV(1, 0), new h3d.prim.UV(0, 1), new h3d.prim.UV(1, 1)];
 
-	function cleanParts( g : GpuPartGroup, pneeded : Int, checkMove = false ) {
+	static function cleanParts( row: GpuParticlesRow, g : GpuPartGroup, pneeded : Int, checkMove = false ) {
 		if( g.maxTime < 0 )
 			return;
 		var p = g.particles;
@@ -710,7 +711,7 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 		g.maxTime = -1;
 	}
 
-	function syncGroup( g : GpuPartGroup, camera : h3d.Camera, prevTime : Float, visible : Bool ) {
+	static function syncGroup( row: GpuParticlesRow, absPos: h3d.Matrix, g : GpuPartGroup, camera : h3d.Camera, prevTime : Float, visible : Bool ) {
 
 		// emit
 		var needSync = false;
@@ -728,7 +729,7 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 				var old = g.maxTime;
 				g.maxTime = g.lastMove;
 				var count = g.currentParts;
-				cleanParts(g, 0, true);
+				cleanParts(row, g, 0, true);
 				if( g.currentParts < count ) needSync = true;
 				g.maxTime = old;
 			}
@@ -739,7 +740,7 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 			if( g.currentParts < pneeded ) {
 
 				if( g.lastMove == 0 )
-					cleanParts(g, pneeded);
+					cleanParts(row, g, pneeded);
 
 				var partAlloc = row.partAlloc;
 				while( g.currentParts < pneeded ) {
@@ -772,7 +773,7 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 				}
 				// remove at once
 				if( g.currentParts - count <= pneeded || count > 1000 ) {
-					cleanParts(g, pneeded);
+					cleanParts(row, g, pneeded);
 					if( g.currentParts > pneeded ) g.maxTime = ftime;
 					needSync = true;
 				}
@@ -861,8 +862,12 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 		}
 	}
 
-	override function sync(ctx) {
-		super.sync(ctx);
+	/**
+		Replaces the old Object::sync override
+	**/
+	public static function syncGpuParticles(parts: GpuParticles, ctx: h3d.scene.RenderContext.SyncContext, row: GpuParticlesRow) {
+		// What could be a hypothetical object row
+		final oRow = parts;
 
 		// free memory
 		if( row.partAlloc != null )
@@ -871,12 +876,12 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 		var prev = row.currentTime;
 		row.currentTime += ctx.elapsedTime;
 		if( prev < row.duration && row.currentTime >= row.duration ) {
-			onEnd();
-			if( !allocated )
+			row.onEnd(row);
+			if( !oRow.allocated )
 				return; // was removed
 		}
 
-		if( !syncVisibleFlag && !alwaysSync )
+		if( !oRow.syncVisibleFlag && !oRow.alwaysSync )
 			return;
 
 		for( g in row.groups ) {
@@ -897,7 +902,7 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 		for( gid in 0 ... row.groups.length ) {
 			final primitive = gid < row.primitives.length ? row.primitives[gid] : null;
 			if( primitive == null || primitive.buffer == null || primitive.buffer.isDisposed() ) {
-				rebuildAll();
+				rebuildAll(row, oRow);
 				break;
 			}
 		}
@@ -906,7 +911,7 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 		var hasPart = false;
 		for( g in row.groups ) {
 			final volumeBounds = row.volumeBounds;
-			syncGroup(g, camera, prev, syncVisibleFlag);
+			syncGroup(row, oRow.absPos, g, camera, prev, oRow.syncVisibleFlag);
 			if( g.currentParts == 0 )
 				continue;
 			// sync shader params
@@ -934,7 +939,7 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 				g.pshader.offset.z %= volumeBounds.zSize;
 			} else {
 				if( g.isRelative )
-					g.pshader.transform.load(absPos);
+					g.pshader.transform.load(oRow.absPos);
 				else
 					g.pshader.transform.identity();
 				g.pshader.offset.set(0, 0, 0);
@@ -942,7 +947,7 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 		}
 
 		if( row.duration == 0 && !hasPart )
-			onEnd();
+			row.onEnd(row);
 	}
 
 	override function emit( ctx : h3d.scene.RenderContext.EmitContext ) {
@@ -1090,6 +1095,10 @@ class GpuParticlesRow {
 		Tells how many particles are live actually
 	**/
 	public var count(get,never) : Int;
+
+	public dynamic function onEnd(row: GpuParticlesRow) {
+		if( row.duration > 0 ) row.currentTime = -1;
+	} 
 
 	function set_seed(s) {
 		if( groups != null )

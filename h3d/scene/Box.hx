@@ -4,6 +4,7 @@ import h3d.scene.SceneStorage.EntityId;
 class Box extends Graphics {
 
 	private final bRowRef : BoxRowRef;
+	@:allow(h3d.scene.Scene)
 	private final bRow : BoxRow;
 
 	@:allow(h3d.scene.Scene.createBox)
@@ -34,47 +35,45 @@ class Box extends Graphics {
 		return null;
 	}
 
-	override function sync(ctx) {
-		if( this.bRow.bounds == null ) {
-			if( this.bRow.prevXMin == -0.5 && this.bRow.prevYMin == -0.5 && this.bRow.prevZMin == -0.5 && this.bRow.prevXMax == 0.5 && this.bRow.prevYMax == 0.5 && this.bRow.prevZMax == 0.5 )
+	public static function syncUpdatePrimitive(bRow: BoxRow, graphics: Graphics.GraphicsModule) {
+		if( bRow.bounds == null ) {
+			if( bRow.prevXMin == -0.5 && bRow.prevYMin == -0.5 && bRow.prevZMin == -0.5 && bRow.prevXMax == 0.5 && bRow.prevYMax == 0.5 && bRow.prevZMax == 0.5 )
 				return;
-			this.bRow.prevXMin = -0.5;
-			this.bRow.prevYMin = -0.5;
-			this.bRow.prevZMin = -0.5;
-			this.bRow.prevXMax = 0.5;
-			this.bRow.prevYMax = 0.5;
-			this.bRow.prevZMax = 0.5;
+			bRow.prevXMin = -0.5;
+			bRow.prevYMin = -0.5;
+			bRow.prevZMin = -0.5;
+			bRow.prevXMax = 0.5;
+			bRow.prevYMax = 0.5;
+			bRow.prevZMax = 0.5;
 		} else {
-			if( this.bRow.prevXMin == this.bRow.bounds.xMin && this.bRow.prevYMin == this.bRow.bounds.yMin && this.bRow.prevZMin == this.bRow.bounds.zMin && this.bRow.prevXMax == this.bRow.bounds.xMax && this.bRow.prevYMax == this.bRow.bounds.yMax && this.bRow.prevZMax == this.bRow.bounds.zMax )
+			if( bRow.prevXMin == bRow.bounds.xMin && bRow.prevYMin == bRow.bounds.yMin && bRow.prevZMin == bRow.bounds.zMin && bRow.prevXMax == bRow.bounds.xMax && bRow.prevYMax == bRow.bounds.yMax && bRow.prevZMax == bRow.bounds.zMax )
 				return;
-			this.bRow.prevXMin = this.bRow.bounds.xMin;
-			this.bRow.prevYMin = this.bRow.bounds.yMin;
-			this.bRow.prevZMin = this.bRow.bounds.zMin;
-			this.bRow.prevXMax = this.bRow.bounds.xMax;
-			this.bRow.prevYMax = this.bRow.bounds.yMax;
-			this.bRow.prevZMax = this.bRow.bounds.zMax;
+			bRow.prevXMin = bRow.bounds.xMin;
+			bRow.prevYMin = bRow.bounds.yMin;
+			bRow.prevZMin = bRow.bounds.zMin;
+			bRow.prevXMax = bRow.bounds.xMax;
+			bRow.prevYMax = bRow.bounds.yMax;
+			bRow.prevZMax = bRow.bounds.zMax;
 		}
-		clear();
-		lineStyle(this.bRow.thickness, this.bRow.color);
-		moveTo(this.bRow.prevXMin, this.bRow.prevYMin, this.bRow.prevZMin);
-		lineTo(this.bRow.prevXMax, this.bRow.prevYMin, this.bRow.prevZMin);
-		lineTo(this.bRow.prevXMax, this.bRow.prevYMax, this.bRow.prevZMin);
-		lineTo(this.bRow.prevXMin, this.bRow.prevYMax, this.bRow.prevZMin);
-		lineTo(this.bRow.prevXMin, this.bRow.prevYMin, this.bRow.prevZMin);
-		lineTo(this.bRow.prevXMin, this.bRow.prevYMin, this.bRow.prevZMax);
-		lineTo(this.bRow.prevXMax, this.bRow.prevYMin, this.bRow.prevZMax);
-		lineTo(this.bRow.prevXMax, this.bRow.prevYMax, this.bRow.prevZMax);
-		lineTo(this.bRow.prevXMin, this.bRow.prevYMax, this.bRow.prevZMax);
-		lineTo(this.bRow.prevXMin, this.bRow.prevYMin, this.bRow.prevZMax);
+		graphics.clear();
+		graphics.lineStyle(bRow.thickness, bRow.color);
+		graphics.moveTo(bRow.prevXMin, bRow.prevYMin, bRow.prevZMin);
+		graphics.lineTo(bRow.prevXMax, bRow.prevYMin, bRow.prevZMin);
+		graphics.lineTo(bRow.prevXMax, bRow.prevYMax, bRow.prevZMin);
+		graphics.lineTo(bRow.prevXMin, bRow.prevYMax, bRow.prevZMin);
+		graphics.lineTo(bRow.prevXMin, bRow.prevYMin, bRow.prevZMin);
+		graphics.lineTo(bRow.prevXMin, bRow.prevYMin, bRow.prevZMax);
+		graphics.lineTo(bRow.prevXMax, bRow.prevYMin, bRow.prevZMax);
+		graphics.lineTo(bRow.prevXMax, bRow.prevYMax, bRow.prevZMax);
+		graphics.lineTo(bRow.prevXMin, bRow.prevYMax, bRow.prevZMax);
+		graphics.lineTo(bRow.prevXMin, bRow.prevYMin, bRow.prevZMax);
 
-		moveTo(this.bRow.prevXMax, this.bRow.prevYMin, this.bRow.prevZMin);
-		lineTo(this.bRow.prevXMax, this.bRow.prevYMin, this.bRow.prevZMax);
-		moveTo(this.bRow.prevXMin, this.bRow.prevYMax, this.bRow.prevZMin);
-		lineTo(this.bRow.prevXMin, this.bRow.prevYMax, this.bRow.prevZMax);
-		moveTo(this.bRow.prevXMax, this.bRow.prevYMax, this.bRow.prevZMin);
-		lineTo(this.bRow.prevXMax, this.bRow.prevYMax, this.bRow.prevZMax);
-
-		super.sync(ctx);
+		graphics.moveTo(bRow.prevXMax, bRow.prevYMin, bRow.prevZMin);
+		graphics.lineTo(bRow.prevXMax, bRow.prevYMin, bRow.prevZMax);
+		graphics.moveTo(bRow.prevXMin, bRow.prevYMax, bRow.prevZMin);
+		graphics.lineTo(bRow.prevXMin, bRow.prevYMax, bRow.prevZMax);
+		graphics.moveTo(bRow.prevXMax, bRow.prevYMax, bRow.prevZMin);
+		graphics.lineTo(bRow.prevXMax, bRow.prevYMax, bRow.prevZMax);
 	}
 }
 

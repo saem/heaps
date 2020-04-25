@@ -382,19 +382,26 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 
 				// TODO handle named phases extracted out of various syncs.
 				switch(c.objectType) {
-					case TGraphics: c.sync(ctx);
-					case TBox: c.sync(ctx);
+					case TGraphics:
+						Graphics.syncGraphics(c.toGraphicsUnsafe().gRow);
+					case TBox:
+						Box.syncUpdatePrimitive(c.toBoxUnsafe().bRow, c.toGraphicsUnsafe().gRow);
+						Graphics.syncGraphics(c.toGraphicsUnsafe().gRow);
 					case TSkin if(c.syncVisibleFlag || c.alwaysSync):
 						Skin.syncJoints(cast c);
 						Skin.syncShowJoints(cast c);
-					case TGpuParticles: c.sync(ctx);
-					case TEmitter: c.toEmitterUnsafe().update(ctx.elapsedTime);
-					case TPbrPointLight: c.sync(ctx);
-					case TPbrSpotLight: c.sync(ctx);
-					case TPbrDecal: c.sync(ctx);
-					case _:
+					case TGpuParticles:
+						h3d.parts.GpuParticles.syncGpuParticles(c.toGpuParticlesUnsafe(), ctx, c.toGpuParticlesUnsafe().row);
+					case TEmitter:
+						c.toEmitterUnsafe().update(ctx.elapsedTime);
+					case TPbrPointLight:
+						h3d.scene.pbr.PointLight.syncShader(c.toPbrPointLightUnsafe().pointState, c.absPos);
+					case TPbrSpotLight:
+						h3d.scene.pbr.SpotLight.syncShader(c.toPbrSpotLightUnsafe().spotState, c.absPos);
+					case TPbrDecal:
+						h3d.scene.pbr.Decal.syncPbrDecal(c.toPbrDecalUnsafe().mRow, c.getAbsPos());
+					case _: null;
 						// No override: TObject,TMesh,TSkinJoint,TParticles,TWorld,TFwdDirLight,TFwdPointLight,TPbrDirLight
-						c.sync(ctx);
 				}
 
 				c.posChanged = false;
