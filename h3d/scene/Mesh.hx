@@ -92,13 +92,11 @@ class Mesh extends h3d.scene.Object implements Materialable {
 		return primitive.getCollider();
 	}
 
-	override function draw( ctx : RenderContext.DrawContext ) {
-		if( materials.length > 1 )
-			primitive.selectMaterial(ctx.drawPass.index);
+	public static function drawMesh( mRow : MeshRow, ctx : RenderContext.DrawContext ) {
+		if( mRow.materials.length > 1 )
+			mRow.primitive.selectMaterial(ctx.drawPass.index);
 
-		primitive.render(ctx.engine);
-
-		super.draw(ctx);
+		mRow.primitive.render(ctx.engine);
 	}
 
 	public static function emitMesh( mRow : MeshRow, mesh : Mesh, ctx : RenderContext.EmitContext ) {

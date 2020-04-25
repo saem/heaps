@@ -6,6 +6,7 @@ import h3d.parts.Particles.ParticlesRowRef;
 class Emitter extends Particles implements Randomized {
 
 	private final eRowRef: EmitterRowRef;
+	@:allow(h3d.scene.Scene)
 	private final eRow: EmitterRow;
 
 	@:allow(h3d.scene.Scene.createEmitter)
@@ -263,9 +264,9 @@ class Emitter extends Particles implements Randomized {
 		return this.pRow.count != 0 || this.eRow.time < 1 || this.eRow.state.loop;
 	}
 
-	override function draw( ctx : h3d.scene.RenderContext.DrawContext ) {
-		this.pRow.globalSize = eval(this.eRow.state.globalSize) * 0.1;
-		super.draw(ctx);
+	// TODO this isn't a real draw method, maybe move to sync?
+	public static function drawEmitter( eRow : EmitterRow, pRow : Particles.ParticlesRow, emitter : Emitter ) {
+		pRow.globalSize = Data.State.eval(eRow.state.globalSize,eRow.time, emitter, eRow.curPart) * 0.1;
 	}
 
 }

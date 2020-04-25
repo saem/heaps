@@ -248,16 +248,12 @@ class Skin extends h3d.scene.Mesh {
 		}
 	}
 
-	override function draw( ctx : RenderContext.DrawContext ) {
-		if( this.sRow.splitPalette == null ) {
-			super.draw(ctx);
-		} else {
-			var i = ctx.drawPass.index;
-			this.sRow.skinShader.bonesMatrixes = this.sRow.splitPalette[i];
-			primitive.selectMaterial(i);
-			ctx.uploadParams();
-			primitive.render(ctx.engine);
-		}
+	public static function drawSkin( sRow: SkinRow, mRow: Mesh.MeshRow, ctx : RenderContext.DrawContext ) {
+		final i = ctx.drawPass.index;
+		sRow.skinShader.bonesMatrixes = sRow.splitPalette[i];
+		mRow.primitive.selectMaterial(i);
+		ctx.uploadParams();
+		mRow.primitive.render(ctx.engine);
 	}
 
 	#if (hxbit && !macro && heaps_enable_serialize)
