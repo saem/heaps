@@ -11,10 +11,9 @@ class PointLight extends FwdLight {
 	public var params(get, set) : h3d.Vector;
 
 	@:allow(h3d.scene.Scene.createFwdPointLight)
-	private function new(eid: EntityId, lRowRef: h3d.scene.Light.LightRowRef, ?parent) {
+	private function new(oRowRef: h3d.scene.Object.ObjectRowRef, lRowRef: h3d.scene.Light.LightRowRef) {
 		State.init(lRowRef.getRow());
-		super(eid, lRowRef, parent);
-		this.objectType = h3d.scene.Object.ObjectType.TFwdPointLight;
+		super(oRowRef, lRowRef);
 	}
 
 	inline function get_params() {

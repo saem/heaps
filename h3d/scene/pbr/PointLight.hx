@@ -17,10 +17,9 @@ class PointLight extends Light {
 	public var range(get,set) : Float;
 
 	@:allow(h3d.scene.Scene.createPbrPointLight)
-	private function new(eid: EntityId, lRowRef: h3d.scene.Light.LightRowRef, ?parent) {
+	private function new(oRowRef: h3d.scene.Object.ObjectRowRef, lRowRef: h3d.scene.Light.LightRowRef) {
 		State.init(lRowRef.getRow(), this);
-		super(eid, lRowRef, parent);
-		this.objectType = h3d.scene.Object.ObjectType.TPbrPointLight;
+		super(oRowRef, lRowRef);
 		range = 10;
 		this.pointState.primitive = h3d.prim.Sphere.defaultUnitSphere();
 	}

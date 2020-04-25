@@ -44,12 +44,11 @@ class Graphics extends Object implements Materialable {
 	public var is3D(get, set) : Bool;
 
 	@:allow(h3d.scene.Scene.createGraphics)
-	private function new(eid:EntityId, gRowRef:GraphicsRowRef, ?parent:h3d.scene.Object = null) {
+	private function new(oRowRef:Object.ObjectRowRef, gRowRef:GraphicsRowRef) {
 		this.gRowRef = gRowRef;
 		this.gRow = this.gRowRef.getRow();
 
-		super(eid, parent);
-		this.objectType = Object.ObjectType.TGraphics;
+		super(oRowRef);
 	}
 
 	inline function get_is3D() : Bool return this.gRow.is3D;

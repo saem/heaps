@@ -15,12 +15,11 @@ class Joint extends h3d.scene.Object {
 	inline function set_index(i) return this.sjRow.index = i;
 
 	@:allow(h3d.scene.Scene.createSkinJoint)
-	private function new(eid: EntityId, sjRowRef: SkinJointRowRef) {
+	private function new(oRowRef: h3d.scene.Object.ObjectRowRef, sjRowRef: SkinJointRowRef) {
 		this.sjRowRef = sjRowRef;
 		this.sjRow = sjRowRef.getRow();
 
-		super(eid, null);
-		this.objectType = Object.ObjectType.TSkinJoint;
+		super(oRowRef);
 		name = sjRow.name;
 		// fake parent
 		this.parent = sjRow.skin;
@@ -53,12 +52,11 @@ class Skin extends h3d.scene.Mesh {
 	inline function get_currentRelPose():Array<Matrix> return this.sRow.currentRelPose;
 
 	@:allow(h3d.scene.Scene.createSkin)
-	private function new(eid: EntityId, sRowRef:SkinRowRef, mRowRef: h3d.scene.Mesh.MeshRowRef, ?parent:h3d.scene.Object) {
+	private function new(oRowRef: Object.ObjectRowRef, sRowRef:SkinRowRef, mRowRef: h3d.scene.Mesh.MeshRowRef) {
 		this.sRowRef = sRowRef;
 		this.sRow = this.sRowRef.getRow();
 		
-		super(eid, mRowRef, parent);
-		this.objectType = Object.ObjectType.TSkin;
+		super(oRowRef, mRowRef);
 
 		if( sRow.skinData != null )
 			setSkinData(sRow.skinData);

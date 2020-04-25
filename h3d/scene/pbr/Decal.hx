@@ -7,12 +7,11 @@ class Decal extends Mesh {
 	private final dRow : DecalRow;
 
 	@:allow(h3d.scene.Scene.createPbrDecal)
-	private function new( eid: EntityId, dRowRef: DecalRowRef, mRowRef: h3d.scene.Mesh.MeshRowRef, ?parent : h3d.scene.Object ) {
+	private function new( oRowRef: h3d.scene.Object.ObjectRowRef, dRowRef: DecalRowRef, mRowRef: h3d.scene.Mesh.MeshRowRef ) {
 		this.dRowRef = dRowRef;
 		this.dRow = dRowRef.getRow();
 
-		super(eid, mRowRef, parent);
-		this.objectType = h3d.scene.Object.ObjectType.TPbrDecal;
+		super(oRowRef, mRowRef);
 	}
 
 	public static function syncPbrDecal( mRow : h3d.scene.Mesh.MeshRow, absPos: h3d.Matrix ) {

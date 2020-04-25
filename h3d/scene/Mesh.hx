@@ -42,12 +42,11 @@ class Mesh extends h3d.scene.Object implements Materialable {
 	**/
 	@:allow(h3d.scene.Scene.createMesh)
 	@:allow(h3d.scene.Scene.createMeshWithMaterials)
-	private function new( eid: EntityId, mRowRef : MeshRowRef, ?parent : h3d.scene.Object = null ) {
+	private function new(oRowRef: h3d.scene.Object.ObjectRowRef, mRowRef : MeshRowRef) {
 		this.mRowRef = mRowRef;
 		this.mRow = mRowRef.getRow();
 
-		super(eid, parent);
-		this.objectType = Object.ObjectType.TMesh;
+		super(oRowRef);
 	}
 
 	override private function onAdd() {
