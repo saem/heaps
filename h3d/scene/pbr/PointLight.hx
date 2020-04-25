@@ -5,6 +5,7 @@ import h3d.scene.Light.State as LightState;
 
 class PointLight extends Light {
 
+	@:allow(h3d.scene.Scene)
 	var pointState(get,never): State;
 	inline function get_pointState() return cast this._state;
 
@@ -19,6 +20,7 @@ class PointLight extends Light {
 	private function new(eid: EntityId, lRowRef: h3d.scene.Light.LightRowRef, ?parent) {
 		State.init(lRowRef.getRow(), this);
 		super(eid, lRowRef, parent);
+		this.objectType = h3d.scene.Object.ObjectType.TPbrPointLight;
 		range = 10;
 		this.pointState.primitive = h3d.prim.Sphere.defaultUnitSphere();
 	}
@@ -49,19 +51,17 @@ class PointLight extends Light {
 		this.pointState.primitive.render(ctx.engine);
 	}
 
-	override function sync(ctx) {
-		super.sync(ctx);
-
-		final pbr = this.pointState.shader;
-		pbr.lightColor.load(this.pointState.color);
-		final range = hxd.Math.max(range, 1e-10);
-		final size = hxd.Math.min(size, range);
-		final power = power * 10; // base scale
+	public static function syncShader(pointState: State, absPos: h3d.Matrix) {
+		final pbr = pointState.shader;
+		pbr.lightColor.load(pointState.color);
+		final range = hxd.Math.max(pointState.cullingDistance, 1e-10);
+		final size = hxd.Math.min(pointState.size, range);
+		final power = pointState.power * 10; // base scale
 		pbr.lightColor.scale3(power * power);
 		pbr.lightPos.set(absPos.tx, absPos.ty, absPos.tz);
 		pbr.invLightRange4 = 1 / (range * range * range * range);
 		pbr.pointSize = size;
-		pbr.occlusionFactor = occlusionFactor;
+		pbr.occlusionFactor = pointState.occlusionFactor;
 	}
 
 	var s = new h3d.col.Sphere();
@@ -87,7 +87,7 @@ class PointLight extends Light {
 	}
 }
 
-@:forward(size, zNear, s, color, primitive)
+@:forward(size, zNear, s, color, primitive, cullingDistance, power, occlusionFactor)
 private abstract State(LightState) to LightState from LightState {
 	public var shader(get,never): h3d.shader.pbr.Light.PointLight;
 	inline function get_shader() return cast this.shader;

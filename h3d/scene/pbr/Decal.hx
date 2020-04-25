@@ -15,17 +15,13 @@ class Decal extends Mesh {
 		this.objectType = h3d.scene.Object.ObjectType.TPbrDecal;
 	}
 
-	override function sync( ctx : RenderContext.SyncContext ) {
-		super.sync(ctx);
+	public static function syncPbrDecal( mRow : h3d.scene.Mesh.MeshRow, absPos: h3d.Matrix ) {
+		final shader = mRow.material.mainPass.getShader(h3d.shader.pbr.VolumeDecal.DecalPBR);
+		
+		if( shader == null ) return;
 
-		var shader = material.mainPass.getShader(h3d.shader.pbr.VolumeDecal.DecalPBR);
-		if( shader != null )
-			syncDecalPBR(shader);
-	}
-
-	function syncDecalPBR( shader : h3d.shader.pbr.VolumeDecal.DecalPBR ) {
-		shader.normal = getAbsPos().up();
-		shader.tangent = getAbsPos().right();
+		shader.normal = absPos.up();
+		shader.tangent = absPos.right();
 	}
 }
 

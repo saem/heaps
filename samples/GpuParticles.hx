@@ -41,7 +41,7 @@ class GpuParticles extends SampleApp {
 		addCheck("Move", function() return moving, function(v) moving = v);
 		addCheck("Relative", function() return g.isRelative, function(v) g.isRelative = v);
 
-		parts.onEnd = function() {
+		parts.onEnd = function(_) {
 			engine.backgroundColor = 0xFF000080;
 			parts.currentTime = 0;
 		};

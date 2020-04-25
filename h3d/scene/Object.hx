@@ -648,10 +648,31 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 		throw this + " is not a Skin";
 	}
 
-	/**
-		If the object is a Emitter, return the corresponding Emitter. If not, throw an exception.
-	**/
 	public inline function toEmitterUnsafe() : h3d.parts.Emitter {
+		return cast this;
+	}
+
+	public inline function toGpuParticlesUnsafe() : h3d.parts.GpuParticles {
+		return cast this;
+	}
+
+	public inline function toGraphicsUnsafe() : h3d.scene.Graphics {
+		return cast this;
+	}
+
+	public inline function toBoxUnsafe() : h3d.scene.Box {
+		return cast this;
+	}
+
+	public inline function toPbrPointLightUnsafe() : h3d.scene.pbr.PointLight {
+		return cast this;
+	}
+
+	public inline function toPbrSpotLightUnsafe() : h3d.scene.pbr.SpotLight {
+		return cast this;
+	}
+
+	public inline function toPbrDecalUnsafe() : h3d.scene.pbr.Decal {
 		return cast this;
 	}
 
@@ -721,51 +742,6 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 			absPos.multiply3x4inline(defaultTransform, absPos);
 		if( invPos != null )
 			invPos._44 = 0; // mark as invalid
-	}
-
-	function sync( ctx : RenderContext.SyncContext ) {
-/**
-Documented overrides and usages of sync
-
-h3d.parts.GpuParticles
-	extends:    h3d.scene.Mesh
-	super of:   nothing
-	super.sync: calls it before anything else <-- sync as precondition?
-	Notes:		- updates internally based on ctx.dt, camera, ...
-
-h3d.scene.pbr.Decal
-	extends:    h3d.scene.Mesh
-	super of:   nothing
-	super.sync: calls it before anything else <-- sync as precondition?
-	Notes:		- updates internally based on material and absPos
-
-h3d.scene.pbr.PointLight
-	extends:    h3d.scene.pbr.Light -> h3d.scene.Light -> h3d.scene.Object
-	super of:   nothing
-	super.sync: calls it before anything else <-- sync as precondition?
-	Notes:		- updates internally based on absPos
-
-h3d.scene.pbr.SpotLight
-	extends:    h3d.scene.pbr.Light -> h3d.scene.Light -> h3d.scene.Object
-	super of:   nothing
-	super.sync: calls it before anything else <-- sync as precondition?
-	Notes:		- updates internally based on absPos
-
-h3d.scene.Graphics
-	extends:    h3d.scene.Mesh
-	super of:   h3d.scene.Box & h3d.scene.Sphere
-	super.sync: calls it before anything else <-- sync as precondition?
-	Notes:		- flushes itself and the BigPrimitive
-
-h3d.scene.Box
-	extends:    h3d.scene.Graphics
-	super of:   nothing
-	super.sync: lots of actual drawing code prior to <-- sync as postcondition?
-	Notes:		- updates internal data
-				- clears and writes out latest graphics
-				- calls sync
-				- h3d.scene.Sphere's sytle doesn't need this
-**/
 	}
 	
 	function postSyncChildren( ctx : RenderContext.SyncContext ) : Void {

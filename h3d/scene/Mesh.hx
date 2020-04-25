@@ -8,6 +8,7 @@ import h3d.scene.SceneStorage.EntityId;
 class Mesh extends h3d.scene.Object implements Materialable {
 
 	private final mRowRef : MeshRowRef;
+	@:allow(h3d.scene.Scene)
 	private final mRow : MeshRow;
 
 	/**
