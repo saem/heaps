@@ -101,11 +101,11 @@ class Mesh extends h3d.scene.Object implements Materialable {
 		super.draw(ctx);
 	}
 
-	override function emit( ctx : RenderContext.EmitContext ) {
-		for( i in 0...materials.length ) {
-			var m = materials[i];
+	public static function emitMesh( mRow : MeshRow, mesh : Mesh, ctx : RenderContext.EmitContext ) {
+		for( i in 0...mRow.materials.length ) {
+			final m = mRow.materials[i];
 			if( m != null )
-				ctx.emit(m, this, i);
+				ctx.emit(m, mesh, i);
 		}
 	}
 

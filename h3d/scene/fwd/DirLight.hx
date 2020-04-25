@@ -5,6 +5,7 @@ import h3d.scene.Light.State as LightState;
 
 class DirLight extends FwdLight {
 
+	@:allow(h3d.scene.Scene)
 	var dirState(get,never): State;
 	inline function get_dirState() { return this._state; }
 
@@ -20,10 +21,9 @@ class DirLight extends FwdLight {
 		return absPos.front();
 	}
 
-	override function emit(ctx) {
-		this.dirState.shader.direction.load(absPos.front());
-		this.dirState.shader.direction.normalize();
-		super.emit(ctx);
+	public static function syncShader(state: State, absPos: h3d.Matrix): Void {
+		state.shader.direction.load(absPos.front());
+		state.shader.direction.normalize();
 	}
 }
 

@@ -58,8 +58,8 @@ class Light extends h3d.scene.Object {
 		return false;
 	}
 
-	override function emit(ctx:RenderContext.EmitContext) {
-		ctx.emitLight(this);
+	public static function emitLight(light: Light, ctx:RenderContext.EmitContext) {
+		ctx.emitLight(light);
 	}
 
 	function getShadowDirection() : h3d.Vector {

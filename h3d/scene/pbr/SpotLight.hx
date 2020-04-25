@@ -145,19 +145,13 @@ class SpotLight extends Light {
 		}
 	}
 
-	var s(get,never): h3d.col.Sphere;
-	var d(get,never): h3d.Vector;
-	inline function get_s() return this.spotState.s;
-	inline function get_d() return this.spotState.d;
-	override function emit(ctx:RenderContext.EmitContext) {
-		if( ctx.computingStatic ) {
-			super.emit(ctx);
-			return;
-		}
-
+	public static function emitPbrSpotLight(state: State, ctx:RenderContext.EmitContext, light: SpotLight, absPos: h3d.Matrix) {
 		if( ctx.pbrLightPass == null )
 			throw "Rendering a pbr light require a PBR compatible scene renderer";
 
+		final s = state.s;
+		final d = state.d;
+		final maxRange = state.cullingDistance;
 		d.load(absPos.front());
 		d.scale3(maxRange / 2.0);
 		s.x = absPos.tx + d.x;
@@ -168,8 +162,8 @@ class SpotLight extends Light {
 		if( !ctx.camera.frustum.hasSphere(s) )
 			return;
 
-		super.emit(ctx);
-		ctx.emitPass(ctx.pbrLightPass, this);
+		h3d.scene.Light.emitLight(light, ctx);
+		ctx.emitPass(ctx.pbrLightPass, light);
 	}
 }
 

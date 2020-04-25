@@ -32,8 +32,8 @@ enum abstract ObjectType(Int) {
 	var TMesh;
 	var TSkin;
 	var TSkinJoint;
-	var TParticles;
 	var TGpuParticles;
+	var TParticles;
 	var TEmitter;
 	var TWorld;
 	var TFwdDirLight;
@@ -656,11 +656,31 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 		return cast this;
 	}
 
+	public inline function toParticlesUnsafe() : h3d.parts.Particles {
+		return cast this;
+	}
+
 	public inline function toGraphicsUnsafe() : h3d.scene.Graphics {
 		return cast this;
 	}
 
 	public inline function toBoxUnsafe() : h3d.scene.Box {
+		return cast this;
+	}
+
+	public inline function toLightUnsafe() : h3d.scene.Light {
+		return cast this;
+	}
+
+	public inline function toPbrDirLightUnsafe() : h3d.scene.pbr.DirLight {
+		return cast this;
+	}
+
+	public inline function toFwdDirLightUnsafe() : h3d.scene.fwd.DirLight {
+		return cast this;
+	}
+
+	public inline function toFwdPointLightUnsafe() : h3d.scene.fwd.PointLight {
 		return cast this;
 	}
 
@@ -756,9 +776,6 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 			for( c in children )
 				c.posChanged = true;
 		}
-	}
-
-	function emit( ctx : RenderContext.EmitContext ) {
 	}
 
 	/**

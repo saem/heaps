@@ -394,14 +394,21 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 						h3d.parts.GpuParticles.syncGpuParticles(c.toGpuParticlesUnsafe(), ctx, c.toGpuParticlesUnsafe().row);
 					case TEmitter:
 						c.toEmitterUnsafe().update(ctx.elapsedTime);
+					case TFwdDirLight:
+						h3d.scene.fwd.DirLight.syncShader(c.toFwdDirLightUnsafe().dirState, c.absPos);
+					case TFwdPointLight:
+						h3d.scene.fwd.PointLight.updateCullingDistance(c.toFwdPointLightUnsafe().pointState);
+						h3d.scene.fwd.PointLight.syncShader(c.toFwdPointLightUnsafe().pointState, c.absPos);
+					case TPbrDirLight:
+						h3d.scene.pbr.DirLight.syncShader(c.toPbrDirLightUnsafe().dirState, c.absPos);
 					case TPbrPointLight:
 						h3d.scene.pbr.PointLight.syncShader(c.toPbrPointLightUnsafe().pointState, c.absPos);
 					case TPbrSpotLight:
 						h3d.scene.pbr.SpotLight.syncShader(c.toPbrSpotLightUnsafe().spotState, c.absPos);
 					case TPbrDecal:
 						h3d.scene.pbr.Decal.syncPbrDecal(c.toPbrDecalUnsafe().mRow, c.getAbsPos());
-					case _: null;
-						// No override: TObject,TMesh,TSkinJoint,TParticles,TWorld,TFwdDirLight,TFwdPointLight,TPbrDirLight
+					case TObject | TWorld | TMesh | TSkin | TParticles | TSkinJoint:
+						null;
 				}
 
 				c.posChanged = false;
@@ -441,12 +448,48 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 				continue;	// this and children aren't to be emitted
 
 			if( !c.culled || ctx.computingStatic ) {
-				c.emit(ctx);
+				emitObject(c, ctx);
 			}
 
 			if( c.children.length > 0 ) {
 				emitChildren(c.children, ctx, storage);
 			}
+		}
+	}
+
+	static function emitObject(object: Object, ctx: RenderContext.EmitContext) {
+		switch(object.objectType) {
+			case TGpuParticles:
+				final parts = object.toGpuParticlesUnsafe();
+				h3d.parts.GpuParticles.emitGpuParticles(parts.row, parts, ctx);
+			case TFwdDirLight | TFwdPointLight:
+				Light.emitLight(cast object, ctx);
+			case TPbrDirLight | TPbrPointLight | TPbrSpotLight if (ctx.computingStatic):
+				Light.emitLight(object.toLightUnsafe(),ctx);
+			case TPbrDirLight:
+				Light.emitLight(object.toPbrDirLightUnsafe(), ctx);
+			case TPbrPointLight:
+				final light = object.toPbrPointLightUnsafe();
+				h3d.scene.pbr.PointLight.emitPbrPointLight(light.pointState, ctx, light, object.absPos);
+			case TPbrSpotLight:
+				final light = object.toPbrSpotLightUnsafe();
+				h3d.scene.pbr.SpotLight.emitPbrSpotLight(light.spotState, ctx, light, object.absPos);
+			case TSkin if (object.toSkin().sRow.splitPalette != null):
+				final skin = object.toSkin();
+				Skin.emitSkin(skin.sRow, skin.mRow, skin, ctx);
+			case TSkin | TMesh | TPbrDecal:
+				final mesh = object.toMesh();
+				Mesh.emitMesh(mesh.mRow, mesh, ctx);
+			case TGraphics | TBox:
+				final gRow = object.toGraphicsUnsafe().gRow;
+				if(gRow.material != null)
+					ctx.emit(gRow.material, object);
+			case TParticles | TEmitter:
+				final pRow = object.toParticlesUnsafe().pRow;
+				if(pRow.material != null)
+					ctx.emit(pRow.material, object);
+			case TObject | TWorld | TSkinJoint :
+				null;
 		}
 	}
 

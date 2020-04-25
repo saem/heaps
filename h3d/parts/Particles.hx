@@ -20,6 +20,7 @@ private class ParticleIterator {
 class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 
 	private final pRowRef: ParticlesRowRef;
+	@:allow(h3d.scene.Scene)
 	private final pRow: ParticlesRow;
 
 	public var materials(get,set): Array<h3d.mat.Material>;
@@ -57,11 +58,6 @@ class Particles extends h3d.scene.Object implements h3d.scene.Materialable {
 	override function onRemove() {
 		super.onRemove();
 		this.pRowRef.deleteRow();
-	}
-
-	override function emit( ctx : h3d.scene.RenderContext.EmitContext ) {
-		if( this.material != null )
-			ctx.emit(this.material, this);
 	}
 
 	@:access(h2d.Tile)
