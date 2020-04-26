@@ -268,6 +268,7 @@ class CameraControllerRow {
 	public var theta(get, never) : Float;
 	public var phi(get, never) : Float;
 	public var fovY(get, never) : Float;
+	public var target(get, never) : h3d.col.Point;
 
 	public var targetFovY(get,set) : Float;
 	inline function get_targetFovY() return targetOffset.w;
