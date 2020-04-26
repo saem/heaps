@@ -5,6 +5,7 @@
     "description" : "The GPU Game Framework",
     "version" : "1.7.0",
 	"releasenote" : "",
+	"classPath": "src",
 	"contributors" : ["ncannasse"],
 	"dependencies" : { "format" : "" }
 }

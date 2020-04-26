@@ -1,0 +1,14 @@
+-cp test
+-cp src
+
+-lib hxbit
+-lib format
+-lib utest
+--each
+
+--next
+-debug
+-js target/test/testAll.js
+-main TestAll
+
+-cmd node ./target/test/testAll.js

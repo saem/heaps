@@ -13,3 +13,4 @@ bin
 /tools/mikktspace/out
 *.exe
 .haxelib
+/target
