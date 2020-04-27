@@ -10,11 +10,9 @@ import htst.fc.Property.Predicate;
  */
 class FastCheck {
     /**
-     * See runIt https://github.com/dubzzz/fast-check/blob/368563be9e224de0e56016f1b0f5fb8351c480c8/src/check/runner/Runner.ts#L21
+     * Overall flow is loosely based on runIt, see: https://github.com/dubzzz/fast-check/blob/368563be9e224de0e56016f1b0f5fb8351c480c8/src/check/runner/Runner.ts#L21
+     * Seed Generation is a bastardized version of: https://github.com/dubzzz/fast-check/blob/master/src/check/runner/configuration/QualifiedParameters.ts#L51
      * 
-     * @param arb 
-     * @param predicate 
-     * @return -> RunDetails
      */
     public static function check<Ts>(property: Property<Ts>): RunDetails<Ts> {
         // TODO - JS number semantic assumptions and Haxe's lack of specification don't mix
@@ -70,8 +68,9 @@ private class FastCheckInternal {
     /**
      * Think tossing a die -- we just be playin' D&D over here.
      * 
-     * @param property 
-     * @param seed 
+     * based off: https://github.com/dubzzz/fast-check/blob/master/src/check/runner/Tosser.ts#L23
+     * 
+     * TODO - They use thunks, I think this relates to shrinking and path/seed/rng management
      */
     public static function toss<Ts>(property: Property<Ts>, seed: Int): PropertyGen<Ts> {
         final rng = PsuedoRand.xorshift128plus(seed);
@@ -138,8 +137,16 @@ class Parameters<T> extends BaseParameters {
 }
 
 /**
- * References:
+ * References & Things to look at:
  * 
- * If I need to simulate finally as in try/catch/finally
+ * If we need to simulate finally as in try/catch/finally
  *  https://gist.github.com/yvt/fe1b1be6f976f1812a94
+ * 
+ * This might be an option for arbitrarily wide tuples/predicates/etc...
+ *  - Forum post: https://community.haxe.org/t/variadic-type-parameters/2194
+ *  - Full gist:  https://gist.github.com/nadako/b086569b9fffb759a1b5
+ *      - Check the comments as they contain a key fix
+ * 
+ * FC is huge and broken up into a lot pieces, this is a map:
+ *  https://github.com/dubzzz/fast-check/blob/master/src/fast-check-default.ts
  */

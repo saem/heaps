@@ -19,8 +19,9 @@ interface Gen<Ts> { function generate(mrng: Random): Ts; }
 interface Run<Ts> { function run(v: Ts): RunResult; }
 
 /**
+ * Based on: https://github.com/dubzzz/fast-check/blob/master/src/check/property/Property.generic.ts
  * 
- * https://github.com/dubzzz/fast-check/blob/master/src/check/property/Property.generic.ts
+ * Check out how they do before and after hooks in the above link for preconditions
  */
 class SyncProperty<Ts> implements Property<Ts> {
     final arb: Arbitrary<Ts>;
@@ -35,6 +36,13 @@ class SyncProperty<Ts> implements Property<Ts> {
         return this.arb.generate(mrng);
     }
 
+    /**
+     * Determines how to interpret the result
+     * 
+     * TODO - this should use the current result and accumulated state for control flow
+     * 
+     * Based on: https://github.com/dubzzz/fast-check/blob/368563be9e224de0e56016f1b0f5fb8351c480c8/src/check/runner/RunnerIterator.ts#L43
+     */
     public function run(v: Ts): RunResult {
         var output: Null<RunResult> = null;
         try {
@@ -79,12 +87,19 @@ class PropertyGen<Ts> {
 
     public function next(): Ts {
         this.index++;
-        // not entirely sure why we jump (not implemented) or skip
+        // not entirely sure why we skipN or jump (not implemented)
+        // see: https://github.com/dubzzz/fast-check/blob/master/src/check/runner/Tosser.ts#L23
         this.rng = Generator.skipN(this.rng, 42);
         return this.property.generate(new Random(this.rng));
     }
 }
 
+/**
+ * PreconditionFailure concept is not implemented, rough idea:
+ *  - one can have preconditions to skip tests/inputs
+ *  - this tracks that
+ *  - skipping isn't always possible, of course
+ */
 enum RunResult {
     Success;
     Failure(message:String);
