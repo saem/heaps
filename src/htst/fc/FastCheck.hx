@@ -1,48 +1,113 @@
 package htst.fc;
 
+import htst.rand.Generator as PsuedoRand;
+import htst.fc.Property.Gen;
+import htst.fc.Property.PropertyGen;
+import htst.fc.Property.Predicate;
+
+/**
+ * Port of https://github.com/dubzzz/fast-check
+ */
 class FastCheck {
-    public static function assert<Ts>(property: Property<Ts>) {
-        final out = check(property);
-        throwIfFailed(out);
-    }
+    /**
+     * See runIt https://github.com/dubzzz/fast-check/blob/368563be9e224de0e56016f1b0f5fb8351c480c8/src/check/runner/Runner.ts#L21
+     * 
+     * @param arb 
+     * @param predicate 
+     * @return -> RunDetails
+     */
     public static function check<Ts>(property: Property<Ts>): RunDetails<Ts> {
-        return null;
+        // TODO - JS number semantic assumptions and Haxe's lack of specification don't mix
+        final seed:Int = Math.floor(Date.now().getTime()) ^ (Math.floor(Math.random() * 0x10000000));
+        final gen = FastCheckInternal.toss(property, seed);
+        final runner = new Runner(gen, property);
+        final result = runner.runCheck();
+        return (result.isFailure()) ?
+            Failure(result.runs, seed, result.value, result.failure) :
+            Success(result.runs, seed);
     }
 
-    public static function property() {
-        
+    public static function assert<Ts>(property: Property<Ts>) {
+        switch(check(property)) {
+            case Failure(r, s, v, m):
+                utest.Assert.isTrue(false, 'Run: ${r}, Seed: ${s}, Counter Example: ${v}, Message: ${m}');
+            case Success(r,s):
+                utest.Assert.isTrue(true);
+        }
+    }
+
+    /**
+     * Eventually m ake code like the following possible:
+     *
+     * property(Gen<A>, (a) => {
+     *  return boolean pass/fail
+     * });
+     * property(Gen<A>, Gen<B>, (a,b) => {
+     *  return boolean pass/fail
+     * });
+     * property(Gen<A>, Gen<B>, Gen<C>, (a,b,c) => {
+     *  return boolean pass/fail
+     * });
+     * ...
+     * 
+     * Currently we can only support single value properties
+     */
+    public static function property<A>(arb: Arbitrary<A>, predicate: Predicate<A>): Property<A> {
+        return new Property.SyncProperty<A>(arb, predicate);
     }
 
     public static function bool() {}
-    public static function float() {}
-    public static function float64array() {}
-
-    /**
-     * Blindly ported from FC, until I've figured out uTest integrations
-     *
-     * @param out 
-     */
-    public static function throwIfFailed(out) {
-        trace(out);
+    public static function int(): Arbitrary<Int> {
+        return new IntArbitrary();
     }
+    public static function uInt(): Arbitrary<UInt> {
+        return new UIntArbitrary();
+    }
+    public static function float() {}
 }
 
-class Property<Ts> implements Property<Ts> {
-    final arb: Arbitrary<Ts>;
-    final predicate: (t: Ts) -> Bool;
-
-    public function new(arb: Arbitrary<Ts>, predicate: (t: Ts) -> Bool) {
-        this.arb = arb;
-        this.predicate = predicate;
-    }
-
-    public function generate(mrng: Random): Ts {
-        return this.arb.generate(mrng);
+private class FastCheckInternal {
+    /**
+     * Think tossing a die -- we just be playin' D&D over here.
+     * 
+     * @param property 
+     * @param seed 
+     */
+    public static function toss<Ts>(property: Property<Ts>, seed: Int): PropertyGen<Ts> {
+        final rng = PsuedoRand.xorshift128plus(seed);
+        return new PropertyGen(property, seed, rng);
     }
 }
 
 interface Arbitrary<T> {
     public function generate(mrng: Random): T;
+}
+
+class IntArbitrary implements Arbitrary<Int> {
+    public function new() {}
+
+    public function generate(mrng: Random): Int {
+        return mrng.nextInt();
+    }
+} 
+
+class UIntArbitrary implements Arbitrary<Int> {
+    public function new() {}
+
+    public function generate(mrng: Random): Int {
+        final v = mrng.nextInt();
+        return v < 0 ? v * -1 : v;
+    }
+} 
+
+/**
+ * Run details in order to handle success and failure
+ * 
+ * https://github.com/dubzzz/fast-check/blob/master/src/check/runner/reporter/RunDetails.ts
+ */
+enum RunDetails<Ts> {
+    Failure(numRuns: Int, seed: Int, counterExample: Ts, error: String);
+    Success(numRuns: Int, seed: Int);
 }
 
 class BaseParameters {
@@ -72,7 +137,9 @@ class Parameters<T> extends BaseParameters {
     }
 }
 
-enum RunDetails<Ts> {
-    Failed( numRuns: Int, seed: Int, counterExample: Ts, error: String);
-    Success(numRuns: Int, seed: Int);
-}
+/**
+ * References:
+ * 
+ * If I need to simulate finally as in try/catch/finally
+ *  https://gist.github.com/yvt/fe1b1be6f976f1812a94
+ */
