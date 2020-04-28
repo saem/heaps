@@ -6,6 +6,7 @@ import htst.fc.FastCheck.Arbitrary;
 import haxe.CallStack;
 
 typedef Predicate<A> = (a: A) -> Bool;
+typedef Check<A> = (a: A) -> Void;
 
 /**
  * A property is the combination of:
@@ -23,7 +24,16 @@ interface Run<Ts> { function run(v: Ts): RunResult; }
  * 
  * Check out how they do before and after hooks in the above link for preconditions
  */
-class SyncProperty<Ts> implements Property<Ts> {
+interface SyncProperty<Ts> extends Property<Ts> {
+    public function generate(mrng: Random): Ts;
+
+    /**
+     * Determines how to interpret the result
+     */
+    public function run(v: Ts): RunResult;
+}
+
+class SyncPropertyForAll<Ts> implements SyncProperty<Ts> {
     final arb: Arbitrary<Ts>;
     final predicate: Predicate<Ts>;
 
@@ -38,8 +48,6 @@ class SyncProperty<Ts> implements Property<Ts> {
 
     /**
      * Determines how to interpret the result
-     * 
-     * TODO - this should use the current result and accumulated state for control flow
      * 
      * Based on: https://github.com/dubzzz/fast-check/blob/368563be9e224de0e56016f1b0f5fb8351c480c8/src/check/runner/RunnerIterator.ts#L43
      */
@@ -63,6 +71,48 @@ class SyncProperty<Ts> implements Property<Ts> {
     }
 }
 
+class SyncPropertyForEach<Ts> implements SyncProperty<Ts> {
+    final arb: Arbitrary<Ts>;
+    final check: Check<Ts>;
+
+    public function new(arb: Arbitrary<Ts>, check: Check<Ts>) {
+        this.arb = arb;
+        this.check = check;
+    }
+
+    public function generate(mrng: Random): Ts {
+        return this.arb.generate(mrng);
+    }
+
+    /**
+     * Determines how to interpret the result
+     * 
+     * TODO - this should use the current result and accumulated state for control flow
+     * 
+     * Based on: https://github.com/dubzzz/fast-check/blob/368563be9e224de0e56016f1b0f5fb8351c480c8/src/check/runner/RunnerIterator.ts#L43
+     */
+    public function run(v: Ts): RunResult {
+        try {
+            this.check(v);
+        } catch(e: RunResult) {
+            return switch(e) {
+                case PreconditionFailure: e;
+                case _: throw Failure("This should never be thrown");
+            }
+        }
+
+        // TODO - hack to tie into utest
+        final results = utest.Assert.results;
+        if(results.length == 0) return Failure("Did not assert anything");
+        if(results.filter((a) -> switch(a) {
+            case Success(_) | Ignore(_): false;
+            default: true;
+        }).length > 0) return Failure("See utest.Assert failure");
+
+        return Success;
+    }
+}
+
 /**
  * N.B. Didn't implement lazy generation, might do that later
  *
@@ -82,7 +132,7 @@ class PropertyGen<Ts> {
 
     public function hasNext(): Bool { 
         // this will change once skipping and other things are implemented
-        return this.index < 10000;
+        return this.index < 1000;
     }
 
     public function next(): Ts {

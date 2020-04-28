@@ -1,9 +1,10 @@
 package htst.fc;
 
+import htst.fc.Property.SyncPropertyForAll;
 import htst.rand.Generator as PsuedoRand;
-import htst.fc.Property.Gen;
 import htst.fc.Property.PropertyGen;
 import htst.fc.Property.Predicate;
+import htst.fc.Property.Check;
 
 /**
  * Port of https://github.com/dubzzz/fast-check
@@ -37,21 +38,25 @@ class FastCheck {
     /**
      * Eventually m ake code like the following possible:
      *
-     * property(Gen<A>, (a) => {
+     * forAll(Gen<A>, (a) => {
      *  return boolean pass/fail
      * });
-     * property(Gen<A>, Gen<B>, (a,b) => {
+     * forAll(Gen<A>, Gen<B>, (a,b) => {
      *  return boolean pass/fail
      * });
-     * property(Gen<A>, Gen<B>, Gen<C>, (a,b,c) => {
+     * forAll(Gen<A>, Gen<B>, Gen<C>, (a,b,c) => {
      *  return boolean pass/fail
      * });
      * ...
      * 
      * Currently we can only support single value properties
      */
-    public static function property<A>(arb: Arbitrary<A>, predicate: Predicate<A>): Property<A> {
-        return new Property.SyncProperty<A>(arb, predicate);
+    public static function forAll<A>(arb: Arbitrary<A>, predicate: Predicate<A>): Property<A> {
+        return new Property.SyncPropertyForAll<A>(arb, predicate);
+    }
+
+    public static function forEach<A>(arb: Arbitrary<A>, check: Check<A>): Property<A>  {
+        return new Property.SyncPropertyForEach<A>(arb, check);
     }
 
     public static function bool() {}
