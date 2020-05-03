@@ -4,7 +4,8 @@ import htst.fc.FastCheck;
 
 class RandomTest extends utest.Test {
     function testShowSucceedingProperty() {
-        FastCheck.assert(FastCheck.forAll(FastCheck.uInt(),(i) -> i > 0));
+        FastCheck.assert(FastCheck.forAllOld(FastCheck.uInt(),(i) -> i > 0));
+        FastCheck.macroTest("foo", "bar");
     }
 
     // function testShowFailingProperty() {

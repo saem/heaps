@@ -1,7 +1,5 @@
 package htst.fc;
 
-import htst.fc.Property.SyncPropertyForAll;
-import htst.rand.Generator as PsuedoRand;
 import htst.fc.Property.PropertyGen;
 import htst.fc.Property.Predicate;
 import htst.fc.Property.Check;
@@ -13,11 +11,10 @@ class FastCheck {
     /**
      * Overall flow is loosely based on runIt, see: https://github.com/dubzzz/fast-check/blob/368563be9e224de0e56016f1b0f5fb8351c480c8/src/check/runner/Runner.ts#L21
      * Seed Generation is a bastardized version of: https://github.com/dubzzz/fast-check/blob/master/src/check/runner/configuration/QualifiedParameters.ts#L51
-     * 
      */
     public static function check<Ts>(property: Property<Ts>): RunDetails<Ts> {
         // TODO - JS number semantic assumptions and Haxe's lack of specification don't mix
-        final seed:Int = Math.floor(Date.now().getTime()) ^ (Math.floor(Math.random() * 0x10000000));
+        final seed = Seed.generateDefaultSeed();
         final gen = FastCheckInternal.toss(property, seed);
         final runner = new Runner(gen, property);
         final result = runner.runCheck();
@@ -51,8 +48,19 @@ class FastCheck {
      * 
      * Currently we can only support single value properties
      */
-    public static function forAll<A>(arb: Arbitrary<A>, predicate: Predicate<A>): Property<A> {
+    public static function forAllOld<A>(arb: Arbitrary<A>, predicate: Predicate<A>): Property<A> {
         return new Property.SyncPropertyForAll<A>(arb, predicate);
+    }
+
+    public static macro function forAll(es: Array<haxe.macro.Expr>) {
+        final types = es.map(e -> haxe.macro.Context.toComplexType(haxe.macro.Context.typeof(e)));
+        return macro new ForAllExpression();
+    }
+
+    public static macro function macroTest(es: Array<haxe.macro.Expr>) {
+        final types = es.map(e -> haxe.macro.Context.toComplexType(haxe.macro.Context.typeof(e)));
+        final output = [for(t in types) macro trace($v{t.getName()})];
+        return macro $b{output};
     }
 
     public static function forEach<A>(arb: Arbitrary<A>, check: Check<A>): Property<A>  {
@@ -77,9 +85,8 @@ private class FastCheckInternal {
      * 
      * TODO - They use thunks, I think this relates to shrinking and path/seed/rng management
      */
-    public static function toss<Ts>(property: Property<Ts>, seed: Int): PropertyGen<Ts> {
-        final rng = PsuedoRand.xorshift128plus(seed);
-        return new PropertyGen(property, seed, rng);
+    public static function toss<Ts>(property: Property<Ts>, seed: Seed): PropertyGen<Ts> {
+        return new PropertyGen(property, seed, Random.createRandom(seed));
     }
 }
 
@@ -95,10 +102,10 @@ class IntArbitrary implements Arbitrary<Int> {
     }
 } 
 
-class UIntArbitrary implements Arbitrary<Int> {
+class UIntArbitrary implements Arbitrary<UInt> {
     public function new() {}
 
-    public function generate(mrng: Random): Int {
+    public function generate(mrng: Random): UInt {
         final v = mrng.nextInt();
         return v < 0 ? v * -1 : v;
     }
@@ -110,8 +117,8 @@ class UIntArbitrary implements Arbitrary<Int> {
  * https://github.com/dubzzz/fast-check/blob/master/src/check/runner/reporter/RunDetails.ts
  */
 enum RunDetails<Ts> {
-    Failure(numRuns: Int, seed: Int, counterExample: Ts, error: String);
-    Success(numRuns: Int, seed: Int);
+    Failure(numRuns: Int, seed: Seed, counterExample: Ts, error: String);
+    Success(numRuns: Int, seed: Seed);
 }
 
 class BaseParameters {
@@ -154,4 +161,7 @@ class Parameters<T> extends BaseParameters {
  * 
  * FC is huge and broken up into a lot pieces, this is a map:
  *  https://github.com/dubzzz/fast-check/blob/master/src/fast-check-default.ts
+ * 
+ * How to use @:genericBuild + expression macros to create new static functions
+ *  http://www.kevinresol.com/2016-11-23/genericbuild-function-haxe/
  */

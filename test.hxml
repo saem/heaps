@@ -4,6 +4,7 @@
 -lib hxbit
 -lib format
 -lib utest
+-lib seedyrng
 --each
 
 --next

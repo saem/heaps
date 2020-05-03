@@ -1,7 +1,5 @@
 package htst.fc;
 
-import htst.rand.Generator;
-import htst.rand.Generator.RandomGenerator;
 import htst.fc.FastCheck.Arbitrary;
 import haxe.CallStack;
 
@@ -120,11 +118,11 @@ class SyncPropertyForEach<Ts> implements SyncProperty<Ts> {
  */
 class PropertyGen<Ts> {
     final property: Gen<Ts>;
-    final seed: Int;
-    var rng: RandomGenerator;
+    final seed: Seed;
+    var rng: Random;
     var index = 0;
 
-    public inline function new(property: Gen<Ts>, seed: Int, rng: RandomGenerator) {
+    public inline function new(property: Gen<Ts>, seed: Seed, rng: Random) {
         this.property = property;
         this.seed = seed;
         this.rng = rng;
@@ -137,10 +135,9 @@ class PropertyGen<Ts> {
 
     public function next(): Ts {
         this.index++;
-        // not entirely sure why we skipN or jump (not implemented)
-        // see: https://github.com/dubzzz/fast-check/blob/master/src/check/runner/Tosser.ts#L23
-        this.rng = Generator.skipN(this.rng, 42);
-        return this.property.generate(new Random(this.rng));
+        // Better independance between values generated during a test suite
+        this.rng.skipN(42);
+        return this.property.generate(this.rng);
     }
 }
 

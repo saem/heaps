@@ -7,5 +7,5 @@
 	"releasenote" : "",
 	"classPath": "src",
 	"contributors" : ["ncannasse"],
-	"dependencies" : { "format" : "" }
+	"dependencies" : { "format" : "", "seedyrng" : "" }
 }
