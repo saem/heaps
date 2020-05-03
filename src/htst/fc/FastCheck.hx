@@ -4,6 +4,8 @@ import htst.fc.Property.PropertyGen;
 import htst.fc.Property.Predicate;
 import htst.fc.Property.Check;
 
+import haxe.macro.Expr;
+
 /**
  * Port of https://github.com/dubzzz/fast-check
  */
@@ -54,13 +56,8 @@ class FastCheck {
 
     public static macro function forAll(es: Array<haxe.macro.Expr>) {
         final types = es.map(e -> haxe.macro.Context.toComplexType(haxe.macro.Context.typeof(e)));
-        return macro new ForAllExpression();
-    }
-
-    public static macro function macroTest(es: Array<haxe.macro.Expr>) {
-        final types = es.map(e -> haxe.macro.Context.toComplexType(haxe.macro.Context.typeof(e)));
-        final output = [for(t in types) macro trace($v{t.getName()})];
-        return macro $b{output};
+        final expr = ENew({pack: ["htst", "fc"], name: "ForAllExpression", params:[for(t in types) TPType(t)]}, []);
+        return {expr: expr, pos: haxe.macro.Context.currentPos()};
     }
 
     public static function forEach<A>(arb: Arbitrary<A>, check: Check<A>): Property<A>  {
