@@ -4,7 +4,9 @@ import htst.fc.Property.PropertyGen;
 import htst.fc.Property.Predicate;
 import htst.fc.Property.Check;
 
+#if macro
 import haxe.macro.Expr;
+#end
 
 /**
  * Port of https://github.com/dubzzz/fast-check
@@ -66,10 +68,10 @@ class FastCheck {
 
     public static function bool() {}
     public static function int(): Arbitrary<Int> {
-        return new IntArbitrary();
+        return new Arbitrary.IntArbitrary();
     }
     public static function uInt(): Arbitrary<UInt> {
-        return new UIntArbitrary();
+        return new Arbitrary.UIntArbitrary();
     }
     public static function float() {}
 }
@@ -84,27 +86,6 @@ private class FastCheckInternal {
      */
     public static function toss<Ts>(property: Property<Ts>, seed: Seed): PropertyGen<Ts> {
         return new PropertyGen(property, seed, Random.createRandom(seed));
-    }
-}
-
-interface Arbitrary<T> {
-    public function generate(mrng: Random): T;
-}
-
-class IntArbitrary implements Arbitrary<Int> {
-    public function new() {}
-
-    public function generate(mrng: Random): Int {
-        return mrng.nextInt();
-    }
-} 
-
-class UIntArbitrary implements Arbitrary<UInt> {
-    public function new() {}
-
-    public function generate(mrng: Random): UInt {
-        final v = mrng.nextInt();
-        return v < 0 ? v * -1 : v;
     }
 } 
 

@@ -1,6 +1,6 @@
 package htst.fc;
 
-#if macro
-@:genericBuild(FCMacro.forAllExpressionBuild())
-#end
+@:genericBuild(htst.fc.FCMacro.forAllExpressionBuild())
 class ForAllExpression<Rest> {}
+
+class ForAllExpressionBase {}

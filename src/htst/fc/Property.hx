@@ -1,6 +1,6 @@
 package htst.fc;
 
-import htst.fc.FastCheck.Arbitrary;
+import htst.fc.FastCheck;
 import haxe.CallStack;
 
 typedef Predicate<A> = (a: A) -> Bool;
