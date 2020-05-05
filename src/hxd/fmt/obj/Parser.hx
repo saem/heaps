@@ -60,7 +60,7 @@ typedef FaceVert = {v:Int, t:Null<Int>, n:Null<Int>};
 typedef Face = {verts: Array<FaceVert>, smooth:Bool};
 typedef FaceMatMap = Map<String, Array<Face>>;
 
-class ObjParser {
+class Parser {
 
     var lines: BytesToLines;
 
@@ -294,10 +294,10 @@ class ObjParser {
         }
     }
 
-    public static function parse(name: String, file: haxe.io.Bytes): ObjParser {
+    public static function parse(name: String, file: haxe.io.Bytes): Parser {
 
         //var bytes = sys.io.File.getBytes(file);
-        var parser = new ObjParser(name, file);
+        var parser = new Parser(name, file);
         parser.parseFile();
         return parser;
     }

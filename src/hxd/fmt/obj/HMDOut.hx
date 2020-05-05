@@ -4,11 +4,11 @@ import hxd.fmt.hmd.Data;
 import Debug;
 
 
-class ObjHMDOut {
+class HMDOut {
 	final filePath: String;
 	var dataOut: haxe.io.BytesOutput;
-	var obj: ObjParser;
-	var mats: Map<String, ObjParser.Material>;
+	var obj: hxd.fmt.obj.Parser;
+	var mats: Map<String, Parser.Material>;
 
 	var vertSeqMap = new util.SeqIntMap();
 	var vertData = [];
@@ -27,7 +27,7 @@ class ObjHMDOut {
 		bounds.empty();
 	}
 
-	private function handleFace(f: ObjParser.Face, hasTexCoords) {
+	private function handleFace(f: Parser.Face, hasTexCoords) {
 		var inds = [];
 		Debug.assert(f.verts.length == 3);
 
