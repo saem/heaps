@@ -14,7 +14,14 @@ class UIntArbitrary implements Arbitrary<UInt> {
     public function new() {}
 
     public function generate(mrng: Random): UInt {
-        final v = mrng.nextInt();
-        return v < 0 ? v * -1 : v;
+        return mrng.nextIntInRange(0);
     }
 }
+
+class BoolArbitrary implements Arbitrary<Bool> {
+    public function new() {}
+
+    public function generate(mrng: Random): Bool {
+        return mrng.nextBool();
+    }
+} 

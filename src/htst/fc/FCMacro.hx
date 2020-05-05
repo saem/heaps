@@ -24,10 +24,11 @@ class FCMacro {
         final ctParams: Array<TypeParam> = [for (t in params) TPType(t.toComplexType())];
         final result = TPath({pack: pack, name: name, params: ctParams});
 
-        if(doesTypeExist(name)) {
-            return result;
+        if(doesTypeExist(name) || true) {
+            return null;
         }
 
+        final genType = Context.getType("htst.fc.Generator");
         final pos = Context.currentPos();
 
         final typeParams:Array<TypeParamDecl> = [];
