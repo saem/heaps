@@ -68,6 +68,10 @@ class FastCheck {
         // TODO - error handling
 
         final predicateExpr = es[es.length - 1];
+        final predicateCall = switch(predicateExpr.expr) {
+            case EFunction(_): (macro (predicate));
+            case _: predicateExpr;
+        }
 
         final arbitraryExprs = es.slice(0, -1);
         final arbitraryVars:Array<Expr> = [];
@@ -97,13 +101,13 @@ class FastCheck {
         final arbs = {expr: EBlock(arbitraryVars), pos: pos};
         final testLoop = macro {
             for(index in 0...1000) {
-                utest.Assert.isTrue((predicate)($a{arbitraryArgs}));
+                utest.Assert.isTrue(${predicateCall}($a{arbitraryArgs}));
                 rng.skipN(42);
             }
         };
 
         final result = vars.concat(arbs).concat(testLoop);
-        // trace(haxe.macro.ExprTools.toString(result));
+        haxe.macro.ExprTools.toString(result);
         return result;
     }
 

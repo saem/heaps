@@ -11,14 +11,8 @@ class RandomTest extends utest.Test {
         final bool = FastCheck.bool();
         final uInt: UIntArb = FastCheck.uInt();
 
-        function local() { return true; };
-        // this.thingy
-        // local
-
         FastCheck.forAll(FastCheck.int(), uInt, bool, function(a,b,c) { return true; });
     }
-
-    function thingy() { return true; }
 
     // function testShowFailingProperty() {
     //     FastCheck.assert(FastCheck.forAll(FastCheck.int(),(i) -> i > 0));
