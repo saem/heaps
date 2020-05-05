@@ -235,8 +235,8 @@ class ConvertGLTF2HMD extends hxd.fs.Convert {
 			relPath = localPath.substr(baseDir.length);
 		}
 		try {
-			final gltf = new hxd.fmt.gltf.GLTFParser(name, localPath, relPath, srcBytes);
-			final hmdOut = new hxd.fmt.gltf.HMDOut(name, relPath, gltf.getData());
+			final parser = new hxd.fmt.gltf.Parser(name, localPath, relPath, srcBytes);
+			final hmdOut = new hxd.fmt.gltf.HMDOut(name, relPath, parser.getData());
 			var hmd = hmdOut.toHMD();
 			var out = new haxe.io.BytesOutput();
 			new hxd.fmt.hmd.Writer(out).write(hmd);

@@ -108,7 +108,7 @@ class AnimationData {
 	public function new() {}
 }
 
-class GLTFData {
+class Data {
 	public static final SAMPLE_RATE = 60.0;
 
 	public var bufferData: Array<haxe.io.Bytes> = [];
