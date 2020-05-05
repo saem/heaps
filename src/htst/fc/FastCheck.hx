@@ -7,6 +7,7 @@ import htst.fc.Property.Check;
 #if macro
 import haxe.macro.Context;
 import haxe.macro.Expr;
+using htst.fc.FCMacroTools;
 #end
 
 /**
@@ -63,51 +64,47 @@ class FastCheck {
         final complexTypes = es.map(e -> Context.toComplexType(Context.follow(Context.typeof(e))));
         final expr = ENew({pack: ["htst", "fc"], name: "ForAllExpression", params:[for(t in complexTypes) TPType(t)]}, []);
         final oldResult = {expr: expr, pos: pos};
-        
-
-        for(i in 0...es.length) {
-           trace(es[i]);
-           trace(types[i]);
-        }
 
         // TODO - error handling
-        
+
         final predicateExpr = es[es.length - 1];
-        final arbitraryExpr = es.slice(0, -1);
+
+        final arbitraryExprs = es.slice(0, -1);
         final arbitraryVars:Array<Expr> = [];
         final arbitraryArgs = [];
-        for(i in 0...arbitraryExpr.length) {
+        for(i in 0...arbitraryExprs.length) {
             final varName = 'arb$i';
             arbitraryVars.push({
                 expr: EVars([{
                     name: varName,
                     type: complexTypes[i],
-                    expr: arbitraryExpr[i],
+                    expr: arbitraryExprs[i],
                     isFinal: true
                 }]),
                 pos: pos
             });
-            //final arg = {expr: ECall(EField(EConst(CIdent(varName)), "generate"), EConstant(CIdent("rng"))), pos: pos};
+
             final arbArgExp:Expr = macro $i{varName}.generate(rng);
-            // arbitraryArgs.push(arbArgExp);
+            arbitraryArgs.push(arbArgExp);
         }
 
-        trace(Context.parse('{var test = 13; var fart = 18; trace(fart);}', pos));
-
-        final dumbLoop = macro {
+        final vars = macro {
             final seed = htst.fc.Seed.generateDefaultSeed();
             final rng = htst.fc.Random.createRandom(seed);
 
             final predicate = ${predicateExpr};
-            //$e{[for(j in 0...arbitraryExpr.length) macro final arb = arbitraryExpr[j]]};
-
+        };
+        final arbs = {expr: EBlock(arbitraryVars), pos: pos};
+        final testLoop = macro {
             for(index in 0...1000) {
                 utest.Assert.isTrue((predicate)($a{arbitraryArgs}));
                 rng.skipN(42);
             }
         };
 
-        return dumbLoop;
+        final result = vars.concat(arbs).concat(testLoop);
+        // trace(haxe.macro.ExprTools.toString(result));
+        return result;
     }
 
     public static function forEach<A>(arb: Arbitrary<A>, check: Check<A>): Property<A>  {
