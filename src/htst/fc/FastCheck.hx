@@ -60,10 +60,7 @@ class FastCheck {
 
     public static macro function forAll(es: Array<Expr>) {
         final pos = Context.currentPos();
-        final types = es.map(e -> Context.follow(Context.typeof(e)));
         final complexTypes = es.map(e -> Context.toComplexType(Context.follow(Context.typeof(e))));
-        final expr = ENew({pack: ["htst", "fc"], name: "ForAllExpression", params:[for(t in complexTypes) TPType(t)]}, []);
-        final oldResult = {expr: expr, pos: pos};
 
         // TODO - error handling
 
