@@ -8,6 +8,7 @@ import htst.fc.Property.Check;
 import haxe.macro.Context;
 import haxe.macro.Expr;
 using htst.fc.FCMacroTools;
+using haxe.macro.MacroStringTools;
 #end
 
 /**
@@ -96,15 +97,22 @@ class FastCheck {
             final predicate = ${predicateExpr};
         };
         final arbs = {expr: EBlock(arbitraryVars), pos: pos};
+
+        // TODO - store temporaries for each generated arbitrary arg
+
         final testLoop = macro {
             for(index in 0...1000) {
-                utest.Assert.isTrue(${predicateCall}($a{arbitraryArgs}));
+                utest.Assert.isTrue(${predicateCall}($a{arbitraryArgs}), 'Failed for seed ($$seed), on run ($$index)');
+
+                // TODO - Assert message should contain a counter example
+                // TODO - Stop early if a failing case is found
+
                 rng.skipN(42);
             }
         };
 
         final result = vars.concat(arbs).concat(testLoop);
-        haxe.macro.ExprTools.toString(result);
+        //trace(haxe.macro.ExprTools.toString(result));
         return result;
     }
 
