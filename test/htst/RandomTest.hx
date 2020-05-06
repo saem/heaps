@@ -14,6 +14,14 @@ class RandomTest extends utest.Test {
         FastCheck.forAll(FastCheck.int(), uInt, bool, function(a,b,c) { return true; });
     }
 
+    function testShowCheckProperty() {
+        FastCheck.assert(FastCheck.forAllOld(FastCheck.uInt(),(i) -> i > 0));
+        final bool = FastCheck.bool();
+        final uInt: UIntArb = FastCheck.uInt();
+        
+        FastCheck.checkAll(FastCheck.int(), uInt, bool, function(a,b,c) { return utest.Assert.isTrue(true); });
+    }
+
     // function testShowFailingProperty() {
     //     FastCheck.assert(FastCheck.forAll(FastCheck.int(),(i) -> i > 0));
     // }

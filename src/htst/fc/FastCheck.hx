@@ -123,7 +123,90 @@ class FastCheck {
             .concat(arbs)
             .concat({expr: EBlock(arbValueTemps), pos:pos})
             .concat(testLoop);
-        // trace(haxe.macro.ExprTools.toString(result));
+        return result;
+    }
+
+    public static macro function checkAll(es: Array<Expr>) {
+        final pos = Context.currentPos();
+        final complexTypes = es.map(e -> Context.toComplexType(Context.follow(Context.typeof(e))));
+
+        // TODO - error handling
+
+        final checkExpr = es[es.length - 1];
+        final checkCall = switch(checkExpr.expr) {
+            case EFunction(_): (macro (check));
+            case _: checkExpr;
+        }
+
+        final arbitraryExprs = es.slice(0, -1);
+        final arbitraryVars:Array<Expr> = [];
+        final arbitraryArgs = [];
+        final arbValueTemps:Array<Expr> = [];
+        final setArbValueTemps:Array<Expr> = [];
+        var counterExample:Array<String> = [];
+        for(i in 0...arbitraryExprs.length) {
+            final varName = 'arb$i';
+            final tmpName = '${varName}Tmp';
+            counterExample.push('($$$tmpName)');
+            arbitraryVars.push({
+                expr: EVars([{
+                    name: varName,
+                    type: complexTypes[i],
+                    expr: arbitraryExprs[i],
+                    isFinal: true
+                }]),
+                pos: pos
+            });
+
+            arbValueTemps.push(macro var $tmpName);
+            setArbValueTemps.push(macro $i{tmpName} = $i{varName}.generate(rng));
+            arbitraryArgs.push(macro $i{tmpName});
+        }
+
+        final vars = macro {
+            final seed = htst.fc.Seed.generateDefaultSeed();
+            final rng = htst.fc.Random.createRandom(seed);
+
+            final check = ${checkExpr};
+            var success = true; // flag to track test state
+            var resultsCount = utest.Assert.results.length; // in case other things were run already
+            var resultsIter = null;
+        };
+        final arbs = {expr: EBlock(arbitraryVars), pos: pos};
+
+        final loopBody = ({expr: EBlock(setArbValueTemps), pos: pos}).concat(macro {
+            ${checkCall}($a{arbitraryArgs});
+
+            // TODO - hack to tie into utest
+            final results = utest.Assert.results;
+            if(resultsIter == null) { resultsIter = results.iterator(); }
+            final newResultsCount = utest.Assert.results.length - resultsCount;
+            var r = 0;
+            while(r < newResultsCount && success) {
+                if(!resultsIter.next().match(Success(_) | Ignore(_))) {
+                    success = false;
+                    break;
+                }
+                r++;
+            }
+            resultsCount = results.length;
+
+            // stop early on failure
+            if(!success) {
+                utest.Assert.fail('Failed for seed ($$seed), on run ($$index), with counter example: ${counterExample.join(', ')}');
+                break;
+            }
+
+            rng.skipN(42);
+        });
+        final testLoop = macro {
+            for(index in 0...1000) ${loopBody}
+        };
+
+        final result = vars
+            .concat(arbs)
+            .concat({expr: EBlock(arbValueTemps), pos:pos})
+            .concat(testLoop);
         return result;
     }
 
