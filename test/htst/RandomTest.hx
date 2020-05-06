@@ -7,7 +7,6 @@ typedef UIntArb = Arbitrary<UInt>;
 
 class RandomTest extends utest.Test {
     function testShowSucceedingProperty() {
-        FastCheck.assert(FastCheck.forAllOld(FastCheck.uInt(),(i) -> i > 0));
         final bool = FastCheck.bool();
         final uInt: UIntArb = FastCheck.uInt();
 
@@ -15,11 +14,10 @@ class RandomTest extends utest.Test {
     }
 
     function testShowCheckProperty() {
-        FastCheck.assert(FastCheck.forAllOld(FastCheck.uInt(),(i) -> i > 0));
         final bool = FastCheck.bool();
         final uInt: UIntArb = FastCheck.uInt();
         
-        FastCheck.checkAll(FastCheck.int(), uInt, bool, function(a,b,c) { return utest.Assert.isTrue(true); });
+        FastCheck.checkAll(FastCheck.int(), uInt, bool, function(a,b,c) { return utest.Assert.isTrue(false); });
     }
 
     // function testShowFailingProperty() {
