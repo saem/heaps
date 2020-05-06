@@ -17,6 +17,54 @@ class FastCheck {
         Pass in some number of Generators, a predicate with matching signature
     **/
     public static macro function forAll(es: Array<Expr>) {
+        return doCheckAll(es, Predicate);
+    }
+
+    /**
+        Pass in some number of Generators, a check function with matching signature.
+        Note the check function will need to use utest.Assert independently.
+    **/
+    public static macro function checkAll(es: Array<Expr>) {
+        // TODO - error handling
+
+        final checkExpr = es[es.length - 1];
+        final checkCall = switch(checkExpr.expr) {
+            case EFunction(_): (macro (check));
+            case _: checkExpr;
+        }
+        final arbExp = es.slice(0, -1);
+        final args = [for(i in 0...arbExp.length) {name: 'arb$i', type: null}];
+        final callArgs = [for(i in 0...arbExp.length) 'arb$i'].map(f -> macro $i{f});
+        final predicate = {
+            expr: EFunction(
+                FAnonymous,
+                {
+                    args: args,
+                    ret: TPath({name: "Bool", pack: []}),
+                    expr: macro {
+                        final check = ${checkExpr};
+                        ${checkCall}($a{callArgs});
+        
+                        // TODO - hack to tie into utest
+                        for(r in utest.Assert.results) {
+                            if(!r.match(Success(_) | Ignore(_))) {
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    }
+                }
+            ),
+            pos: Context.currentPos()
+        };
+        es[es.length -1] = predicate;
+
+        return doCheckAll(es, Check);
+    }
+
+    #if macro
+    static function doCheckAll(es: Array<Expr>, kind: Kind) {
         final pos = Context.currentPos();
         final complexTypes = es.map(e -> Context.toComplexType(Context.follow(Context.typeof(e))));
 
@@ -62,91 +110,15 @@ class FastCheck {
         };
         final arbs = {expr: EBlock(arbitraryVars), pos: pos};
 
-        final loopBody = ({expr: EBlock(setArbValueTemps), pos: pos}).concat(macro {
-            utest.Assert.isTrue(${predicateCall}($a{arbitraryArgs}), 'Failed for seed ($$seed), on run ($$index), with counter example: ${counterExample.join(', ')}');
-
-            if(!utest.Assert.results.last().match(Success(_))) {
-                success = false;
-                break; // stop early on failure
-            }
-
-            rng.skipN(42);
-        });
-        final testLoop = macro {
-            for(index in 0...1000) ${loopBody}
-        };
-
-        final result = vars
-            .concat(arbs)
-            .concat({expr: EBlock(arbValueTemps), pos:pos})
-            .concat(testLoop);
-        return result;
-    }
-
-    /**
-        Pass in some number of Generators, a check function with matching signature.
-        Note the check function will need to use utest.Assert independently.
-    **/
-    public static macro function checkAll(es: Array<Expr>) {
-        final pos = Context.currentPos();
-        final complexTypes = es.map(e -> Context.toComplexType(Context.follow(Context.typeof(e))));
-
-        // TODO - error handling
-
-        final checkExpr = es[es.length - 1];
-        final checkCall = switch(checkExpr.expr) {
-            case EFunction(_): (macro (check));
-            case _: checkExpr;
+        final checkKind = switch kind {
+            case Predicate: macro utest.Assert.isTrue(success, 'Failed for seed ($$seed), on run ($$index), with counter example: ${counterExample.join(', ')}');
+            case Check: macro null;
         }
 
-        final arbitraryExprs = es.slice(0, -1);
-        final arbitraryVars:Array<Expr> = [];
-        final arbitraryArgs = [];
-        final arbValueTemps:Array<Expr> = [];
-        final setArbValueTemps:Array<Expr> = [];
-        var counterExample:Array<String> = [];
-        for(i in 0...arbitraryExprs.length) {
-            final varName = 'arb$i';
-            final tmpName = '${varName}Tmp';
-            counterExample.push('($$$tmpName)');
-            arbitraryVars.push({
-                expr: EVars([{
-                    name: varName,
-                    type: complexTypes[i],
-                    expr: arbitraryExprs[i],
-                    isFinal: true
-                }]),
-                pos: pos
-            });
-
-            arbValueTemps.push(macro var $tmpName);
-            setArbValueTemps.push(macro $i{tmpName} = $i{varName}.generate(rng));
-            arbitraryArgs.push(macro $i{tmpName});
-        }
-
-        final vars = macro {
-            final seed = htst.fc.Seed.generateDefaultSeed();
-            final rng = htst.fc.Random.createRandom(seed);
-
-            final check = ${checkExpr};
-            var success = true; // flag to track test state
-        };
-        final arbs = {expr: EBlock(arbitraryVars), pos: pos};
-
         final loopBody = ({expr: EBlock(setArbValueTemps), pos: pos}).concat(macro {
-            ${checkCall}($a{arbitraryArgs});
-
-            // TODO - hack to tie into utest
-            final results = utest.Assert.results;
-            final resultsIter = results.iterator();
-            for(r in results) {
-                if(!r.match(Success(_) | Ignore(_))) {
-                    success = false;
-                    break;
-                }
-            }
-
-            // stop early on failure
+            success = ${predicateCall}($a{arbitraryArgs});
+            ${checkKind}
+            
             if(!success) {
                 utest.Assert.fail('Failed for seed ($$seed), on run ($$index), with counter example: ${counterExample.join(', ')}');
                 break;
@@ -164,6 +136,7 @@ class FastCheck {
             .concat(testLoop);
         return result;
     }
+    #end
 
     public static function bool(): Arbitrary<Bool> {
         return new Arbitrary.BoolArbitrary();
@@ -176,6 +149,13 @@ class FastCheck {
     }
     public static function float() {}
 }
+
+#if macro
+enum Kind {
+    Predicate;
+    Check;
+}
+#end
 
 /**
  * References & Things to look at:
