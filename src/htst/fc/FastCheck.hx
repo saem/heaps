@@ -74,8 +74,13 @@ class FastCheck {
         final arbitraryExprs = es.slice(0, -1);
         final arbitraryVars:Array<Expr> = [];
         final arbitraryArgs = [];
+        final arbValueTemps:Array<Expr> = [];
+        final setArbValueTemps:Array<Expr> = [];
+        var counterExample:Array<String> = [];
         for(i in 0...arbitraryExprs.length) {
             final varName = 'arb$i';
+            final tmpName = '${varName}Tmp';
+            counterExample.push('($$$tmpName)');
             arbitraryVars.push({
                 expr: EVars([{
                     name: varName,
@@ -86,8 +91,9 @@ class FastCheck {
                 pos: pos
             });
 
-            final arbArgExp:Expr = macro $i{varName}.generate(rng);
-            arbitraryArgs.push(arbArgExp);
+            arbValueTemps.push(macro var $tmpName);
+            setArbValueTemps.push(macro $i{tmpName} = $i{varName}.generate(rng));
+            arbitraryArgs.push(macro $i{tmpName});
         }
 
         final vars = macro {
@@ -95,24 +101,29 @@ class FastCheck {
             final rng = htst.fc.Random.createRandom(seed);
 
             final predicate = ${predicateExpr};
+            var success = true; // flag to track test state
         };
         final arbs = {expr: EBlock(arbitraryVars), pos: pos};
 
-        // TODO - store temporaries for each generated arbitrary arg
+        final loopBody = ({expr: EBlock(setArbValueTemps), pos: pos}).concat(macro {
+            utest.Assert.isTrue(${predicateCall}($a{arbitraryArgs}), 'Failed for seed ($$seed), on run ($$index), with counter example: ${counterExample.join(', ')}');
 
-        final testLoop = macro {
-            for(index in 0...1000) {
-                utest.Assert.isTrue(${predicateCall}($a{arbitraryArgs}), 'Failed for seed ($$seed), on run ($$index)');
-
-                // TODO - Assert message should contain a counter example
-                // TODO - Stop early if a failing case is found
-
-                rng.skipN(42);
+            if(!utest.Assert.results.last().match(Success(_))) {
+                success = false;
+                break; // stop early on failure
             }
+
+            rng.skipN(42);
+        });
+        final testLoop = macro {
+            for(index in 0...1000) ${loopBody}
         };
 
-        final result = vars.concat(arbs).concat(testLoop);
-        //trace(haxe.macro.ExprTools.toString(result));
+        final result = vars
+            .concat(arbs)
+            .concat({expr: EBlock(arbValueTemps), pos:pos})
+            .concat(testLoop);
+        // trace(haxe.macro.ExprTools.toString(result));
         return result;
     }
 

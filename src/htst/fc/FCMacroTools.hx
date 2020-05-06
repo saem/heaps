@@ -1,5 +1,6 @@
 package htst.fc;
 
+#if macro
 import haxe.macro.Expr;
 import haxe.macro.Expr.ExprDef;
 import haxe.macro.Context;
@@ -26,3 +27,4 @@ class FCMacroTools {
         }
     }
 }
+#end
