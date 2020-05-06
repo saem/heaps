@@ -1,9 +1,5 @@
 package htst.fc;
 
-import htst.fc.Property.PropertyGen;
-import htst.fc.Property.Predicate;
-import htst.fc.Property.Check;
-
 #if macro
 import haxe.macro.Context;
 import haxe.macro.Expr;
@@ -134,8 +130,6 @@ class FastCheck {
 
             final check = ${checkExpr};
             var success = true; // flag to track test state
-            var resultsCount = utest.Assert.results.length; // in case other things were run already
-            var resultsIter = null;
         };
         final arbs = {expr: EBlock(arbitraryVars), pos: pos};
 
@@ -144,17 +138,13 @@ class FastCheck {
 
             // TODO - hack to tie into utest
             final results = utest.Assert.results;
-            if(resultsIter == null) { resultsIter = results.iterator(); }
-            final newResultsCount = utest.Assert.results.length - resultsCount;
-            var r = 0;
-            while(r < newResultsCount && success) {
-                if(!resultsIter.next().match(Success(_) | Ignore(_))) {
+            final resultsIter = results.iterator();
+            for(r in results) {
+                if(!r.match(Success(_) | Ignore(_))) {
                     success = false;
                     break;
                 }
-                r++;
             }
-            resultsCount = results.length;
 
             // stop early on failure
             if(!success) {
@@ -172,6 +162,7 @@ class FastCheck {
             .concat(arbs)
             .concat({expr: EBlock(arbValueTemps), pos:pos})
             .concat(testLoop);
+        trace(haxe.macro.ExprTools.toString(result));
         return result;
     }
 
