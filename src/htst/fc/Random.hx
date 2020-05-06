@@ -3,6 +3,15 @@ package htst.fc;
 import seedyrng.Random as Rand;
 import seedyrng.Xorshift64Plus;
 
+/**
+	Wrapper around rng (seedyrng) which generates random bits mostly.
+
+	This makes that more useful by providing key types:
+	- Int
+	- Float
+	- Bool
+	- ...
+**/
 class Random {
 	private static inline final MIN_INT = 0x80000000;
 	private static inline final MAX_INT = 0x7fffffff;
