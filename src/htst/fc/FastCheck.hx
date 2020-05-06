@@ -162,7 +162,6 @@ class FastCheck {
             .concat(arbs)
             .concat({expr: EBlock(arbValueTemps), pos:pos})
             .concat(testLoop);
-        trace(haxe.macro.ExprTools.toString(result));
         return result;
     }
 

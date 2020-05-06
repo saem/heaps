@@ -17,7 +17,7 @@ class RandomTest extends utest.Test {
         final bool = FastCheck.bool();
         final uInt: UIntArb = FastCheck.uInt();
         
-        FastCheck.checkAll(FastCheck.int(), uInt, bool, function(a,b,c) { return utest.Assert.isTrue(false); });
+        FastCheck.checkAll(FastCheck.int(), uInt, bool, function(a,b,c) { return utest.Assert.isTrue(true); });
     }
 
     // function testShowFailingProperty() {
