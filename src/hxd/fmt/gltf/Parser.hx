@@ -1,5 +1,6 @@
 package hxd.fmt.gltf;
 
+import haxe.crypto.Base64;
 import h3d.Quat;
 import h3d.Vector;
 import haxe.Json;
@@ -201,8 +202,17 @@ class Parser {
 		// Read all files
 		var buffers = srcData.buffers;
 		for (buf in buffers) {
-			// TODO: proper URI handling
-			var buffBytes = sys.io.File.getBytes(localDir + buf.uri);
+			var buffBytes;
+			var base64Pat = ~/^data:(.*);base64,/;
+			var uriStart = buf.uri.substr(0,60);
+			if (base64Pat.match(uriStart)) {
+				// This is a base64 encoded buffer, decode it
+				var dataStart = buf.uri.indexOf(";base64,") + 8;
+				buffBytes = Base64.decode(buf.uri.substr(dataStart));
+			} else {
+				buffBytes = sys.io.File.getBytes(localDir + buf.uri);
+			}
+			// TODO: better URI handling
 			if (buf.byteLength < buffBytes.length) {
 				throw 'Buffer: ${buf.uri} is too small. Expected: ${buf.byteLength} bytes';
 			}
@@ -358,8 +368,20 @@ class Parser {
 				var imageInd = tex.source;
 				var image = srcData.images[imageInd];
 
-				Debug.assert(image.uri != null);
-				matData.colorTex = image.uri;
+				if(image.uri != null) {
+					matData.colorTex = File(image.uri);
+				} else if(image.bufferView != null) {
+					var ext = switch(image.mimeType) {
+						case "image/png": "PNG";
+						case "image/jpeg": "JPG";
+						default:
+							throw "unknown image type";
+					}
+					var bufView = srcData.bufferViews[image.bufferView];
+					matData.colorTex = Buffer(bufView.buffer, bufView.byteOffset, bufView.byteLength,ext);
+				} else {
+					Debug.assert(false, "Image must have either a bufferView or URI");
+				}
 			}
 
 			outData.mats.push(matData);
