@@ -41,9 +41,10 @@ class FileConverter {
 		// this is the default converts config, it can be override in per-directory props.json
 		defaultConfig = makeConfig({
 			"fs.convert" : {
-				"fbx"  : { "convert" : "hmd", "priority" : -1 },
-				"gltf" : { "convert" : "hmd", "priority" : -1 },
-				"obj" : { "convert" : "hmd", "priority" : -1 },
+				"fbx"  : { "convert" : "hmd" , "priority" : -1 },
+				"gltf" : { "convert" : "hmd" , "priority" : -1 },
+				"glb"  : { "convert" : "hmd" , "priority" : -1 },
+				"obj"  : { "convert" : "hmd" , "priority" : -1 },
 				"fnt"  : { "convert" : "bfnt", "priority" : -1 }
 			}
 		});
