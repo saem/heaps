@@ -707,6 +707,11 @@ class Parser {
 		return outData;
 	}
 
+	public static function parseGLTF(name, localDir, file:haxe.io.Bytes) {
+		var parser = new Parser(name, localDir, file);
+		return parser.getData();
+	}
+
 	public static function parseGLB(name, localDir, file:haxe.io.Bytes) {
 		// Read header
 		var magic = file.getString(0, 4);
@@ -734,6 +739,7 @@ class Parser {
 			Debug.assert(binType == "BIN");
 			binBytes = file.sub(binChunkStart+8,binChunkLen);
 		}
-		return new Parser(name, localDir, jsonBytes, binBytes);
+		var parser = new Parser(name, localDir, jsonBytes, binBytes);
+		return parser.getData();
 	}
 }

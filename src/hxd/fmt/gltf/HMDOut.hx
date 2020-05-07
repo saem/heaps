@@ -501,4 +501,8 @@ class HMDOut {
 		return ret;
 	}
 
+	public static function emitHMD(name:String, relDir:String, data: Data) {
+		var out = new HMDOut(name, relDir,data);
+		return out.toHMD();
+	}
 }
