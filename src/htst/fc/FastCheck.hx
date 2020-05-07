@@ -81,9 +81,11 @@ class FastCheck {
         final arbitraryArgs = [];
         final arbValueTemps:Array<Expr> = [];
         final setArbValueTemps:Array<Expr> = [];
+        final arbEdgeCases = [];
         var counterExample:Array<String> = [];
         for(i in 0...arbitraryExprs.length) {
             final varName = 'arb$i';
+            final edgeName = 'arb${i}EdgeCase';
             final tmpName = '${varName}Tmp';
             counterExample.push('($$$tmpName)');
             arbitraryVars.push({
@@ -97,7 +99,8 @@ class FastCheck {
             });
 
             arbValueTemps.push(macro var $tmpName);
-            setArbValueTemps.push(macro $i{tmpName} = $i{varName}.generate(rng));
+            arbEdgeCases.push(macro var $edgeName = $i{varName}.getEdgeCases());
+            setArbValueTemps.push(macro $i{tmpName} = index < $p{[edgeName, "length"]} ? $i{edgeName}[index] : $i{varName}.generate(rng));
             arbitraryArgs.push(macro $i{tmpName});
         }
 
@@ -109,6 +112,7 @@ class FastCheck {
             var success = true; // flag to track test state
         };
         final arbs = {expr: EBlock(arbitraryVars), pos: pos};
+        final edges = {expr: EBlock(arbEdgeCases), pos: pos};
 
         final checkKind = switch kind {
             case Predicate: macro utest.Assert.isTrue(success, 'Failed for seed ($$seed), on run ($$index), with counter example: ${counterExample.join(', ')}');
@@ -117,13 +121,15 @@ class FastCheck {
 
         final loopBody = ({expr: EBlock(setArbValueTemps), pos: pos}).concat(macro {
             success = ${predicateCall}($a{arbitraryArgs});
+
             ${checkKind}
-            
+
             if(!success) {
                 utest.Assert.fail('Failed for seed ($$seed), on run ($$index), with counter example: ${counterExample.join(', ')}');
                 break;
             }
 
+            // space out for higher quality RNG
             rng.skipN(42);
         });
         final testLoop = macro {
@@ -132,6 +138,7 @@ class FastCheck {
 
         final result = vars
             .concat(arbs)
+            .concat(edges)
             .concat({expr: EBlock(arbValueTemps), pos:pos})
             .concat(testLoop);
         return result;
