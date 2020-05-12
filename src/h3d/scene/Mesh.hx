@@ -22,7 +22,7 @@ class Mesh extends h3d.scene.Object implements Materialable {
 		The material of the mesh: the properties used to display it (texture, color, shaders, etc.)
 	**/
 	public var material(get, set) : h3d.mat.Material;
-	
+
 	inline function get_materials() return this.mRow.materials;
 	inline function set_materials(m) return this.mRow.materials = m;
 	inline function get_primitive() return this.mRow.primitive;
@@ -149,7 +149,7 @@ private abstract InternalMeshId(Int) {
 class MeshRowRef {
 	final rowId: MeshId;
 	final sceneStorage: h3d.scene.SceneStorage;
-	
+
 	public function new(rowId: MeshId, sceneStorage: h3d.scene.SceneStorage) {
 		this.rowId = rowId;
 		this.sceneStorage = sceneStorage;
@@ -194,10 +194,14 @@ class MeshRow {
 		this.entityId = eid;
 
 		this.primitive = primitive;
-		this.materials = ( materials == null || materials.length == 0 ) ?
-			[h3d.mat.MaterialSetup.current.createMaterial()] :
+
+		this.materials = if ( materials == null || materials.length == 0 ) {
+			var defMat = h3d.mat.MaterialSetup.current.createMaterial();
+			defMat.props = defMat.getDefaultProps();
+			[defMat];
+		} else {
 			materials;
-		material.props = material.getDefaultProps();
+		}
 	}
 }
 
@@ -205,7 +209,7 @@ class MeshStorage {
 	final entityIdToMeshIdIndex = new hds.Map<EntityId, MeshId>();
 	final storage = new hds.Map<InternalMeshId, MeshRow>();
 	var sequence = new SequenceMesh();
-	
+
 	public function new() {}
 
 	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId, primitive : h3d.prim.Primitive, ?materials : Array<h3d.mat.Material> = null) {
