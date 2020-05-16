@@ -4,7 +4,7 @@ import hxd.Math;
 @:allow(h3d.col)
 class Plane {
 
-	// Place equation :  nx.X + ny.Y + nz.Z - d = 0
+	// Plane equation :  nx * X + ny * Y + nz * Z - d = 0
 	var nx : Float;
 	var ny : Float;
 	var nz : Float;
@@ -18,7 +18,7 @@ class Plane {
 	}
 
 	/**
-		Returns the plan normal
+		Returns the plane normal
 	**/
 	public inline function getNormal() {
 		return new Point(nx, ny, nz);
@@ -59,7 +59,7 @@ class Plane {
 	}
 
 	/**
-		Normalize the plan, so we can use distance().
+		Normalize the plane, so we can use distance().
 	**/
 	public inline function normalize() {
 		var len = Math.invSqrt(nx * nx + ny * ny + nz * nz);
@@ -74,7 +74,9 @@ class Plane {
 	}
 
 	/**
-		Returns the signed distance between a point an the plane. This requires the plan to be normalized. If the distance is negative it means that we are "under" the plan.
+		Returns the signed distance between a point an the plane.
+		This requires the plane to be normalized.
+		If the distance is negative it means that we are "under" the plane.
 	**/
 	public inline function distance( p : Point ) {
 		return nx * p.x + ny * p.y + nz * p.z - d;
