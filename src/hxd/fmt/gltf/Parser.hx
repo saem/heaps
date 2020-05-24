@@ -1,5 +1,6 @@
 package hxd.fmt.gltf;
 
+import hxd.Debug;
 import haxe.crypto.Base64;
 import h3d.Quat;
 import h3d.Vector;
@@ -218,7 +219,7 @@ class Parser {
 				var dataStart = buf.uri.indexOf(";base64,") + 8;
 				buffBytes = Base64.decode(buf.uri.substr(dataStart));
 			} else {
-				buffBytes = sys.io.File.getBytes(localDir + buf.uri);
+				#if sys buffBytes = sys.io.File.getBytes(localDir + buf.uri); #end
 			}
 			// TODO: better URI handling
 			if (buffBytes.length < buf.byteLength) {

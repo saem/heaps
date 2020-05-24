@@ -1,6 +1,5 @@
 package h3d.scene;
 
-import h3d.scene.Object.ObjectRowRef;
 import h3d.scene.SceneStorage.EntityId;
 
 /**
@@ -303,8 +302,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	**/
 	public function hardwarePick( pixelX : Float, pixelY : Float): Object {
 		var engine = h3d.Engine.getCurrent();
-		camera.screenRatio = engine.width / engine.height;
-		camera.update();
+		updateCamera(engine, camera, sceneStorage);
 		ctx.start(camera, engine, this);
 
 		var ray = camera.rayFromScreen(pixelX, pixelY);
@@ -370,7 +368,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 			}
 			if( c.lastFrame != ctx.frame ) {
 				setFlags(c);
-				animate(c, new RenderContext.AnimationContext(ctx));
+				animate(c, storage.selectObjectAnimation(c.id), new RenderContext.AnimationContext(ctx));
 				if(!c.syncContinueFlag) {
 					p++;
 					continue;
@@ -540,25 +538,37 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 		}
 	}
 
-	static function animate(object: Object, ctx: RenderContext.AnimationContext): Void {
-		object.syncChangedFlag = (switch(tryAnimation(object, ctx)) {
+	static function animate(object: Object, anim: Animation.AnimationRow, ctx: RenderContext.AnimationContext): Void {
+		object.syncChangedFlag = (switch(tryAnimation(object, anim, ctx)) {
 			case AnimationResult.Removed: object.syncContinueFlag = false;
 			default: object.posChanged || object.syncChangedFlag;
 		});
 	}
 
-	static function tryAnimation(object: Object, ctx: RenderContext.AnimationContext): AnimationResult {
-		if( object.currentAnimation == null ) {
-			return AnimationResult.NoAnimation;
+	static function tryAnimation(object: Object, anim: Animation.AnimationRow, ctx: RenderContext.AnimationContext): AnimationResult {
+		switch(anim.state) {
+			case Removed:
+				return AnimationResult.NoAnimation;
+			case Remove:
+				anim.currentAnimation = null;
+				anim.state = Removed;
+				return AnimationResult.NoAnimation;
+			case Play:
+				anim.currentAnimation.bind(object);
+				anim.currentAnimation.initInstance();
+				anim.state = Playing;
+			case Playing:
+				null; // do the rest
 		}
+		final animation = anim.currentAnimation;
 
 		final old = object.parent;
 		var dt = ctx.elapsedTime;
-		while( dt > 0 && object.currentAnimation != null )
-			dt = object.currentAnimation.update(dt);
+		while( dt > 0 && !anim.state.match(Remove) )
+			dt = animation.update(dt);
 
-		if( object.currentAnimation != null && ((object.syncVisibleFlag && object.visible && !object.culled) || object.alwaysSync)  )
-			object.currentAnimation.sync();
+		if( !anim.state.match(Remove) && ((object.syncVisibleFlag && object.visible && !object.culled) || object.alwaysSync)  )
+			animation.sync();
 		if( object.parent == null && old != null )
 			return AnimationResult.Removed; // if we were removed by an animation event
 
@@ -622,7 +632,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	public function syncOnly( et : Float ) {
 		var engine = h3d.Engine.getCurrent();
 		setElapsedTime(et);
-		updateCamera(engine, camera);
+		updateCamera(engine, camera, sceneStorage);
 		ctx.start(camera, engine, this);
 		syncScene(new RenderContext.SyncContext(ctx));
 		ctx.done();
@@ -645,7 +655,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	**/
 	public function render( engine : h3d.Engine ) {
 		allocateScene(this);
-		updateCamera(engine, camera);
+		updateCamera(engine, camera, sceneStorage);
 		realRender(engine, this, this.ctx, this.camera, this.renderer, this.lightSystem);
 	}
 
@@ -654,9 +664,30 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 			scene.onAdd();
 	}
 
-	private static inline function updateCamera(engine: h3d.Engine, camera: h3d.Camera) {
+	private static inline function updateCamera(engine: h3d.Engine, camera: h3d.Camera, sceneStorage: SceneStorage) {
 		camera.screenRatio = engine.getTargetScreenRation();
+		animateCameraFov(camera, sceneStorage);
 		camera.update();
+	}
+
+	private static inline function animateCameraFov(camera: h3d.Camera, sceneStorage: SceneStorage) {
+		if(camera.follow == null || camera.follow.pos.name != null) {
+			return;
+		}
+
+		var p = camera.follow.pos;
+		var a = null;
+		while( p != null ) {
+			a = sceneStorage.selectObjectAnimation(p.id);
+			if( a != null ) {
+				final v = a.currentAnimation.getPropValue(p.name, "FOVY");
+				if( v != null ) {
+					camera.fovY = v;
+					break;
+				}
+			}
+			p = p.parent;
+		}
 	}
 
 	@:access(h3d.mat.Pass)
@@ -1051,7 +1082,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 	private inline static function createObjectComponents(storage: SceneStorage, eid: EntityId, objectType: Object.ObjectType, parent: Object = null, ?name: String = null) {
 		storage.insertObject(eid, objectType, parent, name);
 		storage.insertRelativePosition(eid);
-		storage.insertAnimation(eid);
+		storage.insertObjectAnimation(eid);
 	}
 }
 

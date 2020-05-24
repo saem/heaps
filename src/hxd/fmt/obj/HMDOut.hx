@@ -1,8 +1,8 @@
 package hxd.fmt.obj;
 
 import hxd.fmt.hmd.Data;
-import Debug;
-
+import hxd.Debug;
+import hds.SeqIntMap;
 
 class HMDOut {
 	final filePath: String;
@@ -10,7 +10,7 @@ class HMDOut {
 	var obj: hxd.fmt.obj.Parser;
 	var mats: Map<String, Parser.Material>;
 
-	var vertSeqMap = new util.SeqIntMap();
+	var vertSeqMap = new SeqIntMap();
 	var vertData = [];
 	var normData = [];
 	var texData = [];

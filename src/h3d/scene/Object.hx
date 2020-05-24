@@ -142,8 +142,6 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 		It is used by the animation system.
 	**/
 	public var defaultTransform(get, set): h3d.Matrix;
-	@:s public var currentAnimation(get, never): h3d.anim.Animation;
-	inline function get_currentAnimation() return anim.currentAnimation;
 
 	/**
 		Is the object and its children are displayed on screen (default true).
@@ -218,7 +216,7 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	var relPos(get, null): RelativePosition;
 	inline function get_relPos() return this.sceneStorage.relativePositionStorage.fetchRow(this.id);
 	var anim(get, null): Animation;
-	inline function get_anim() return this.sceneStorage.animationStorage.fetchRow(this.id);
+	inline function get_anim() return this.sceneStorage.objectAnimationStorage.fetchRow(this.id);
 
 	@:allow(h3d.scene.Scene)
 	private final oRowRef: ObjectRowRef;
@@ -301,25 +299,29 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	inline function set_lastFrame(f) return this.oRow.lastFrame = f;
 
 	/**
-		Create an animation instance bound to the object, set it as currentAnimation and play it.
+        Create an animation instance and schedule the scene to:
+        * bind it to the instance referenced by id
+        * play it starting in the following sync
 	**/
 	public function playAnimation( a : h3d.anim.Animation ) {
-		return anim.playAnimation(a);
+		return Animation.scheduleAnimation(this.sceneStorage, this.id, a).currentAnimation;
 	}
 
 	/**
-		Change the current animation. This animation should be an instance that was previously created by playAnimation.
+        Change the current animation.
+        The animation must be an instance previously created by playAnimation.
 	**/
 	public function switchToAnimation( a : h3d.anim.Animation ) {
-		return anim.switchToAnimation(a);
+		return Animation.switchToAnimation(this.sceneStorage, this.id, a);
 	}
 
 	/**
-		Stop the current animation. If recursive is set to true, all children will also stop their animation
+		Stop the current animation.
+		If recursive is set, all children will also stop their animation
 	**/
 	public function stopAnimation( ?recursive = false ) {
-		anim.stopAnimation();
-		
+		Animation.stopAnimation(this.sceneStorage, this.id);
+
 		// TODO can't do this with the component, should be in a system.
 		if(recursive) {
 			for(c in children)
@@ -941,8 +943,8 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 		posChanged = true;
 		absPos = new h3d.Matrix();
 		absPos.identity();
-		if( currentAnimation != null )
-			@:privateAccess currentAnimation.initAndBind(this);
+		if( anim.currentAnimation != null )
+			@:privateAccess anim.currentAnimation.initAndBind(this);
 	}
 	#end
 
@@ -1208,64 +1210,6 @@ class RelativePosition {
 		tmpMat.prependScale(1.0 / s.x, 1.0 / s.y, 1.0 / s.z);
 		this.rotationQuat.initRotateMatrix(tmpMat);
 		this.posChanged = true;
-	}
-}
-
-abstract AnimationId(EntityId) from EntityId to EntityId {}
-
-class AnimationStorage {
-	final storage = new hds.Map<AnimationId, Animation>();
-
-	public function new() {}
-
-	public function allocateRow(eid: h3d.scene.SceneStorage.EntityId): AnimationId {
-		final row = new Animation(eid);
-		this.storage.set(eid, row);
-
-		return eid;
-	}
-
-	public function deallocateRow(id: AnimationId) {
-		return this.storage.remove(id);
-	}
-
-	public function fetchRow(id: AnimationId) {
-		return this.storage.get(id);
-	}
-
-	public function reset() {
-		this.storage.clear();
-	}
-}
-
-private class Animation {
-	public final id: AnimationId;
-
-	@:s public var currentAnimation(default, null) : h3d.anim.Animation = null;
-
-	public function new(id: AnimationId) {
-		this.id = id;
-	}
-	
-	/**
-		Create an animation instance bound to the object, set it as currentAnimation and play it.
-	**/
-	public function playAnimation( a : h3d.anim.Animation ) {
-		return currentAnimation = a.createInstance(Object.ObjectMap.get(this.id));
-	}
-
-	/**
-		Change the current animation. This animation should be an instance that was previously created by playAnimation.
-	**/
-	public function switchToAnimation( a : h3d.anim.Animation ) {
-		return currentAnimation = a;
-	}
-
-	/**
-		Stop the current animation.
-	**/
-	public function stopAnimation() {
-		currentAnimation = null;
 	}
 }
 
