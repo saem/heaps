@@ -55,12 +55,12 @@ class BitmapData {
 			ctx = canvas.getContext2d();
 			#else
 			data = new BitmapInnerData();
-			#if hl
+				#if hl
 			data.pixels = new hl.Bytes(width * height * 4);
 			(data.pixels:hl.Bytes).fill(0, width * height * 4, 0);
-			#else
+				#else
 			data.pixels = new haxe.ds.Vector(width * height);
-			#end
+				#end
 			data.width = width;
 			data.height = height;
 			#end
