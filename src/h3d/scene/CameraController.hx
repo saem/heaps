@@ -170,6 +170,12 @@ class CameraControllerEventHandlerSystem {
 			if( row.pushing == e.button ) {
 				row.pushing = -1;
 				sceneEvents.stopDrag();
+				final clickDelay = haxe.Timer.stamp() - row.pushTime;
+				final pointerDrift = hxd.Math.distance(e.relX - row.pushStartX, e.relY - row.pushStartY);
+				// TODO - move threshold constants to tuneables
+				if(e.kind == ERelease && clickDelay < 0.2 && pointerDrift < 5) {
+					row.onClick(e);
+				}
 			}
 		case EMove:
 			switch( row.pushing ) {
@@ -193,8 +199,9 @@ class CameraControllerEventHandlerSystem {
 	}
 
 	static inline function push(row:CameraControllerRow, pushX:Float, pushY:Float) {
-		row.pushX = pushX;
-		row.pushY = pushY;
+		row.pushTime = haxe.Timer.stamp();
+		row.pushStartX = row.pushX = pushX;
+		row.pushStartY = row.pushY = pushY;
 	}
 
 	static function fov(row:CameraControllerRow, delta:Float) {
@@ -278,8 +285,11 @@ class CameraControllerRow {
 	public var pushing = -1;
 	public var pushX = 0.;
 	public var pushY = 0.;
+	public var pushStartX = 0.;
+	public var pushStartY = 0.;
 	public var moveX = 0.;
 	public var moveY = 0.;
+	public var pushTime = 0.;
 	public var curPos = new h3d.Vector();
 	public var curOffset = new h3d.Vector();
 	public var targetPos = new h3d.Vector(10. / 25., Math.PI / 4, Math.PI * 5 / 13);
@@ -304,6 +314,11 @@ class CameraControllerRow {
 	public function onEvent(e:hxd.Event):Void {
 		this.eventHandler.onEvent(this, e);
 	}
+
+	/**
+		Set this to register an onClick handler
+	**/
+	public dynamic function onClick(e:hxd.Event) {}
 }
 
 /**
