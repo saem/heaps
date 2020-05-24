@@ -121,6 +121,7 @@ class Animation implements hxd.impl.Serializable {
 		return a;
 	}
 
+	@:allow(h3d.scene.Scene.tryAnimation)
 	function initInstance() {
 		isInstance = true;
 	}
@@ -133,6 +134,13 @@ class Animation implements hxd.impl.Serializable {
 		a.bind(base);
 		a.initInstance();
 		return a;
+	}
+
+	public function createUnboundInstance() {
+		final instance = this.clone();
+		instance.objects = [for(o in this.objects) o.clone()];
+		instance.initInstance();
+		return instance;
 	}
 
 	/**

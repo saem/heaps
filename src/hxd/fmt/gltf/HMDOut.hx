@@ -4,9 +4,10 @@ import h3d.Quat;
 import h3d.Vector;
 import h3d.col.Bounds;
 import hxd.fmt.hmd.Data;
+import hxd.Debug;
+import hds.SeqIntMap;
 
 import hxd.fmt.gltf.Data;
-
 
 class HMDOut {
 

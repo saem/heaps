@@ -1,4 +1,6 @@
-package hxd.fmt.gltf;
+package hds;
+
+import hxd.Debug;
 
 typedef MapVal = { ints:Array<Int>, index:Int};
 

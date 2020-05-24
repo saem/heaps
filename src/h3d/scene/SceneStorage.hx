@@ -19,7 +19,7 @@ class SceneStorage {
     public final worldStorage = new h3d.scene.World.WorldStorage();
 
     public final relativePositionStorage = new h3d.scene.Object.RelativePositionStorage();
-    public final animationStorage = new h3d.scene.Object.AnimationStorage();
+    public final objectAnimationStorage = new h3d.scene.Animation.AnimationStorage();
 
 	public function new() {}
 	
@@ -43,12 +43,12 @@ class SceneStorage {
         return this.relativePositionStorage.fetchRow(id);
     }
     
-    public function insertAnimation(eid: EntityId) {
-        return this.animationStorage.allocateRow(eid);
+    public function insertObjectAnimation(eid: EntityId) {
+        return this.objectAnimationStorage.allocateRow(eid);
     }
 
-    public function selectAnimation(id: h3d.scene.Object.AnimationId) {
-        return this.animationStorage.fetchRow(id);
+    public function selectObjectAnimation(id: h3d.scene.Animation.AnimationId) {
+        return this.objectAnimationStorage.fetchRow(id);
     }
     
     public function insertMesh(eid: EntityId, primitive: h3d.prim.Primitive, materials: Array<h3d.mat.Material>): h3d.scene.Mesh.MeshId {
