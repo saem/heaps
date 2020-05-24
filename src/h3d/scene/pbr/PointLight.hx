@@ -73,7 +73,7 @@ class PointLight extends Light {
 			return;
 
 		h3d.scene.Light.emitLight(light, ctx);
-		ctx.emitPass(ctx.pbrLightPass, light);
+		ctx.emitPass(ctx.pbrLightPass, new h3d.pass.DrawObject(light, Legacy));
 	}
 }
 

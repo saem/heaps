@@ -242,7 +242,7 @@ class Skin extends h3d.scene.Mesh {
 		for( i in 0...sRow.splitPalette.length ) {
 			final m = mRow.materials[sRow.skinData.splitJoints[i].material];
 			if( m != null )
-				ctx.emit(m, skin, i);
+				ctx.emit(m, new h3d.pass.DrawObject(skin, Legacy), i);
 		}
 	}
 

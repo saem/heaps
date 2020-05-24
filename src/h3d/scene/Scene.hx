@@ -312,7 +312,7 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 			if( m.primitive == null ) return;
 			ray.transform(m.getInvPos());
 			if( m.primitive.getBounds().rayIntersection(ray,false) >= 0 )
-				ctx.emitPass(m.material.mainPass, m);
+				ctx.emitPass(m.material.mainPass, objectToDrawCommand(m));
 			ray.load(savedRay);
 		});
 
@@ -479,20 +479,27 @@ class Scene extends h3d.scene.Object implements h3d.IDrawable implements hxd.Sce
 			case TGraphics | TBox | TSphere:
 				final gRow = object.toGraphicsUnsafe().gRow;
 				if(gRow.material != null)
-					ctx.emit(gRow.material, object);
+					ctx.emit(gRow.material, objectToDrawCommand(object));
 			case TParticles | TEmitter:
 				final pRow = object.toParticlesUnsafe().pRow;
 				if(pRow.material != null)
-					ctx.emit(pRow.material, object);
+					ctx.emit(pRow.material, objectToDrawCommand(object));
 			case TObject | TWorld | TSkinJoint :
 				null;
 		}
 	}
 
-	@:allow(h3d.pass.Default) private static function drawObject(obj: h3d.pass.DrawObject, ctx: RenderContext.DrawContext) {
-		final o = Object.ObjectMap.get(obj.id);
-		if (o != null)
-			legacyDraw(o, ctx);
+	private static inline function objectToDrawCommand(obj: Object) {
+		return new h3d.pass.DrawObject(obj, Legacy);
+	}
+
+	@:allow(h3d.pass.Default) private static function drawObject(cmd: h3d.pass.DrawObject, ctx: RenderContext.DrawContext) {
+		switch(cmd.command) {
+			case Legacy:
+				final o = Object.ObjectMap.get(cmd.id);
+				if (o != null)
+					legacyDraw(o, ctx);
+		}
 	}
 
 	static function legacyDraw(object: Object, ctx: RenderContext.DrawContext) {

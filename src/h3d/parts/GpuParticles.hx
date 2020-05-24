@@ -954,7 +954,7 @@ class GpuParticles extends h3d.scene.Object implements h3d.scene.Materialable {
 			final m = row.materials[i];
 			final g = row.groups[i];
 			if( m != null && g.enable && g.currentParts > 0 )
-				ctx.emit(m, parts, i);
+				ctx.emit(m, new h3d.pass.DrawObject(parts, Legacy), i);
 		}
 	}
 

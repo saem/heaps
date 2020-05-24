@@ -61,7 +61,7 @@ class Default extends Base {
 					ctx.lightSystem.initGlobals(globals);
 					lightInit = true;
 				}
-				shaders = ctx.lightSystem.computeLight(h3d.scene.Object.ObjectMap.get(p.obj.id), shaders);
+				shaders = ctx.lightSystem.computeLight(p.obj, shaders);
 			}
 			p.shader = manager.compileShaders(shaders, p.pass.batchMode);
 			p.shaders = shaders;

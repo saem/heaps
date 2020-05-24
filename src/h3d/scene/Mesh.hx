@@ -102,7 +102,7 @@ class Mesh extends h3d.scene.Object implements Materialable {
 		for( i in 0...mRow.materials.length ) {
 			final m = mRow.materials[i];
 			if( m != null )
-				ctx.emit(m, mesh, i);
+				ctx.emit(m, new h3d.pass.DrawObject(mesh, Legacy), i);
 		}
 	}
 
