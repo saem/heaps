@@ -215,8 +215,6 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 	// Start of transformation to arrays of components
 	var relPos(get, null): RelativePosition;
 	inline function get_relPos() return this.sceneStorage.relativePositionStorage.fetchRow(this.id);
-	var anim(get, null): Animation;
-	inline function get_anim() return this.sceneStorage.objectAnimationStorage.fetchRow(this.id);
 
 	@:allow(h3d.scene.Scene)
 	private final oRowRef: ObjectRowRef;
@@ -943,8 +941,9 @@ class Object implements hxd.impl.Serializable implements Cloneable {
 		posChanged = true;
 		absPos = new h3d.Matrix();
 		absPos.identity();
-		if( anim.currentAnimation != null )
-			@:privateAccess anim.currentAnimation.initAndBind(this);
+		final anim = this.sceneStorage.objectAnimationStorage.fetchRow(this.id);
+		if( anim != null && anim.currentAnimation != null )
+			@:privateAccess anim.initAndBind(this);
 	}
 	#end
 
