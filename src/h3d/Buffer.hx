@@ -55,12 +55,6 @@ class Buffer {
 		if( flags != null )
 			for( f in flags )
 				this.flags.set(f);
-		#if flash
-		// flash strictly requires indexes to be within the bounds of the buffer
-		// so we cannot use quad/triangle indexes unless the buffer is large enough
-		if( this.flags.has(Quads) || this.flags.has(Triangles) )
-			this.flags.set(Managed);
-		#end
 		if( !this.flags.has(NoAlloc) )
 			h3d.Engine.getCurrent().mem.allocBuffer(this, stride);
 	}
@@ -152,11 +146,6 @@ class Buffer {
 }
 
 class BufferOffset {
-	#if flash
-	static var UID = 0;
-	public var id : Int;
-	#end
-
 	public var buffer : Buffer;
 	public var offset : Int;
 
@@ -166,18 +155,12 @@ class BufferOffset {
 	public var next : BufferOffset;
 
 	public function new(buffer, offset) {
-		#if flash
-		this.id = UID++;
-		#end
 		this.buffer = buffer;
 		this.offset = offset;
 	}
 
 	public inline function clone() {
 		var b = new BufferOffset(buffer,offset);
-		#if flash
-		b.id = id;
-		#end
 		return b;
 	}
 

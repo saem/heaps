@@ -96,7 +96,7 @@ class RenderContext extends h3d.impl.RenderContext {
 		manager.globals.set("time", time);
 		manager.globals.set("global.time", time);
 		// todo : we might prefer to auto-detect this by running a test and capturing its output
-		baseShader.pixelAlign = #if flash true #else false #end;
+		baseShader.pixelAlign = false;
 		baseShader.halfPixelInverse.set(0.5 / engine.width, 0.5 / engine.height);
 		baseShader.viewport.set( -scene.width * 0.5 - scene.offsetX, -scene.height * 0.5 - scene.offsetY, 2 / scene.width * scene.ratioX, -2 * baseFlipY / scene.height * scene.ratioY);
 		baseShader.filterMatrixA.set(1, 0, 0);
@@ -341,10 +341,6 @@ class RenderContext extends h3d.impl.RenderContext {
 		if( blend != currentBlend ) {
 			currentBlend = blend;
 			pass.setBlendMode(blend);
-			#if flash
-			// flash does not allow blend separate operations
-			// this will get us good color but wrong alpha
-			#else
 			// accummulate correctly alpha values
 			if( blend == Alpha || blend == Add ) {
 				pass.blendAlphaSrc = One;
@@ -352,7 +348,6 @@ class RenderContext extends h3d.impl.RenderContext {
 				if( inFilterBlend != null )
 					pass.blendSrc = One;
 			}
-			#end
 		}
 		manager.fillParams(buffers, compiledShader, currentShaders);
 		engine.selectMaterial(pass);

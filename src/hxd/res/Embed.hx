@@ -1,5 +1,8 @@
 package hxd.res;
+#if macro
 import haxe.macro.Context;
+import haxe.macro.Expr.ExprDef;
+#end
 
 #if js @:keep #end
 class Embed {
@@ -17,32 +20,12 @@ class Embed {
 		}
 		return null;
 	}
-
 	public static function doEmbedFont( name : String, file : String, chars : String ) {
 
 		var m = Context.getLocalClass().get().module;
 		Context.registerModuleDependency(m, file);
 
-		if( Context.defined("flash") ) {
-			if( chars == null ) // convert char list to char range
-				chars = Charset.DEFAULT_CHARS.split("-").join("\\-");
-			var pos = Context.currentPos();
-			haxe.macro.Context.defineType({
-				pack : ["hxd","_res"],
-				name : name,
-				meta : [
-					{ name : ":native", pos : pos, params : [macro $v { "_"+name } ] },
-					{ name : ":font", pos : pos, params : [macro $v { file }, macro $v { chars } ] },
-					{ name : ":keep", pos : pos, params : [] }
-				],
-				kind : TDClass({ pack : ["flash","text"], name : "Font", params : [] }),
-				params : [],
-				pos : pos,
-				isExtern : false,
-				fields : [],
-			});
-			return macro new hxd._res.$name().fontName;
-		} else if( Context.defined("js") ) {
+		if( Context.defined("js") ) {
 			// TODO : we might want to extract the chars from the TTF font
 			var pos = Context.currentPos();
 			var content = haxe.crypto.Base64.encode(sys.io.File.getBytes(Context.resolvePath(file)));
