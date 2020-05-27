@@ -2,8 +2,8 @@ package h3d.impl;
 
 class MemoryManager {
 
-	static inline var MAX_MEMORY = #if flash 250 #else 4096 #end * (1024. * 1024.); // MB
-	static inline var MAX_BUFFERS = #if flash 4096 #else 1 << 16 #end;
+	static inline var MAX_MEMORY = 4096 * (1024. * 1024.); // MB
+	static inline var MAX_BUFFERS = 1 << 16;
 	static inline var SIZE = 65533;
 	static var ALL_FLAGS = Type.allEnums(Buffer.BufferFlag);
 

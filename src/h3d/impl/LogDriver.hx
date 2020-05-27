@@ -208,9 +208,6 @@ class LogDriver extends Driver {
 				var p = s.params;
 				while( p != null ) {
 					var pos = p.pos;
-					#if flash
-					pos += s.globalsSize * 4;
-					#end
 					log('\t@$pos ' + p.name + '=' + [for( i in 0...sizeOf(p.type) ) hxd.Math.fmt(buf.params #if hl .toData() #end[p.pos + i])]);
 					p = p.next;
 				}

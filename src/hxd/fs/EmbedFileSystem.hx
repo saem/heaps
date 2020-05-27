@@ -8,14 +8,9 @@ private class EmbedEntry extends FileEntry {
 
 	var fs : EmbedFileSystem;
 	var relPath : String;
-	#if flash
-	var data : Class<flash.utils.ByteArray>;
-	var bytes : flash.utils.ByteArray;
-	#else
 	var data : String;
 	var bytes : haxe.io.Bytes;
 	var readPos : Int;
-	#end
 
 	function new(fs, name, relPath, data) {
 		this.fs = fs;
@@ -25,104 +20,52 @@ private class EmbedEntry extends FileEntry {
 	}
 
 	override function getSign() : Int {
-		#if flash
-		var old = bytes == null ? 0 : bytes.position;
-		open();
-		bytes.endian = flash.utils.Endian.LITTLE_ENDIAN;
-		var v = bytes.readUnsignedInt();
-		bytes.position = old;
-		return v;
-		#else
 		var old = readPos;
 		open();
 		readPos = old;
 		return bytes.get(0) | (bytes.get(1) << 8) | (bytes.get(2) << 16) | (bytes.get(3) << 24);
-		#end
 	}
 
 	override function getBytes() : haxe.io.Bytes {
-		#if flash
-		if( data == null )
-			return null;
-		if( bytes == null )
-			open();
-		return haxe.io.Bytes.ofData(bytes);
-		#else
 		if( bytes == null )
 			open();
 		return bytes;
-		#end
 	}
 
 	override function open() {
-		#if flash
-		if( bytes == null )
-			bytes = Type.createInstance(data, []);
-		bytes.position = 0;
-		#else
 		if( bytes == null ) {
 			bytes = haxe.Resource.getBytes(data);
 			if( bytes == null ) throw "Missing resource " + data;
 		}
 		readPos = 0;
-		#end
 	}
 
 	override function skip( nbytes : Int ) {
-		#if flash
-		bytes.position += nbytes;
-		#else
 		readPos += nbytes;
-		#end
 	}
 
 	override function readByte() : Int {
-		#if flash
-		return bytes.readUnsignedByte();
-		#else
 		return bytes.get(readPos++);
-		#end
 	}
 
 	override function read( out : haxe.io.Bytes, pos : Int, size : Int ) : Void {
-		#if flash
-		bytes.readBytes(out.getData(), pos, size);
-		#else
 		out.blit(pos, bytes, readPos, size);
 		readPos += size;
-		#end
 	}
 
 	override function close() {
-		#if flash
-		bytes = null;
-		#else
 		bytes = null;
 		readPos = 0;
-		#end
 	}
 
 	override function load( ?onReady : Void -> Void ) : Void {
-		#if (flash || js)
+		#if js
 		if( onReady != null ) haxe.Timer.delay(onReady, 1);
 		#end
 	}
 
 	override function loadBitmap( onLoaded : LoadedBitmap -> Void ) : Void {
-		#if flash
-		var loader = new flash.display.Loader();
-		loader.contentLoaderInfo.addEventListener(flash.events.IOErrorEvent.IO_ERROR, function(e:flash.events.IOErrorEvent) {
-			throw Std.string(e) + " while loading " + relPath;
-		});
-		loader.contentLoaderInfo.addEventListener(flash.events.Event.COMPLETE, function(_) {
-			var content : flash.display.Bitmap = cast loader.content;
-			onLoaded(new LoadedBitmap(content.bitmapData));
-			loader.unload();
-		});
-		open();
-		loader.loadBytes(bytes);
-		close(); // flash will copy bytes content in loadBytes() !
-		#elseif js
+		#if js
 		// directly get the base64 encoded data from resources
 		var rawData = null;
 		for( res in @:privateAccess haxe.Resource.content )
@@ -162,13 +105,8 @@ private class EmbedEntry extends FileEntry {
 	}
 
 	override function get_size() {
-		#if flash
 		open();
 		return bytes.length;
-		#else
-		open();
-		return bytes.length;
-		#end
 	}
 
 	override function iterator() {
@@ -195,25 +133,8 @@ class EmbedFileSystem #if !macro implements FileSystem #end {
 
 	static var invalidChars = ~/[^A-Za-z0-9_]/g;
 	static function resolve( path : String ) {
-		#if flash
-		return "_R_" + invalidChars.replace(path, "_");
-		#else
 		return "R_" + invalidChars.replace(path, "_");
-		#end
 	}
-
-	#if flash
-	function open( path : String ) : Class<flash.utils.ByteArray> {
-		var name = resolve(path);
-		var cl = null;
-		try {
-			cl = flash.system.ApplicationDomain.currentDomain.getDefinition(name);
-		} catch( e : Dynamic ) {
-		}
-		return cl;
-	}
-
-	#end
 
 	function splitPath( path : String ) {
 		return path == "." ? [] : path.split("/");
@@ -238,23 +159,18 @@ class EmbedFileSystem #if !macro implements FileSystem #end {
 	}
 
 	public function exists( path : String ) {
-		#if flash
-		var f = open(path);
-		return f != null || isDirectory(path);
-		#else
 		var r = root;
 		for( p in splitPath(path) ) {
 			r = Reflect.field(r, p);
 			if( r == null ) return false;
 		}
 		return true;
-		#end
 	}
 
 	public function get( path : String ) {
 		if( !exists(path) )
 			throw new NotFound(path);
-		var id = #if flash open(path) #else resolve(path) #end;
+		var id = resolve(path);
 		return new EmbedEntry(this, path.split("/").pop(), path, id);
 	}
 

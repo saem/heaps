@@ -32,11 +32,6 @@ class Sound extends Resource {
 			return data;
 		var bytes = entry.getBytes();
 
-		#if flash
-		if( bytes.length == 0 )
-			return new hxd.snd.LoadingData(this);
-		#end
-
 		switch( bytes.get(0) ) {
 		case 'R'.code: // RIFF (wav)
 			data = new hxd.snd.WavData(bytes);

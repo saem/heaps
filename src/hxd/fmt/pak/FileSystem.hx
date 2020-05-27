@@ -1,8 +1,6 @@
 package hxd.fmt.pak;
 import hxd.fs.FileEntry;
-#if air3
-import hxd.impl.Air3File;
-#elseif (sys || nodejs)
+#if (sys || nodejs)
 import sys.io.File;
 import sys.io.FileInput;
 #else
@@ -148,30 +146,7 @@ private class PakEntry extends FileEntry {
 	}
 
 	override function loadBitmap( onLoaded ) {
-		#if flash
-		if( openedBytes != null ) throw "Must close() before loadBitmap";
-		open();
-		var old = openedBytes;
-		var loader = new flash.display.Loader();
-		loader.contentLoaderInfo.addEventListener(flash.events.IOErrorEvent.IO_ERROR, function(e:flash.events.IOErrorEvent) {
-			throw Std.string(e) + " while loading " + path;
-		});
-		loader.contentLoaderInfo.addEventListener(flash.events.Event.COMPLETE, function(_) {
-			if( openedBytes == null ) {
-				openedBytes = old;
-				close();
-			}
-			var content : flash.display.Bitmap = cast loader.content;
-			onLoaded(new hxd.fs.LoadedBitmap(content.bitmapData));
-			loader.unload();
-		});
-		var ctx = new flash.system.LoaderContext();
-		ctx.imageDecodingPolicy = ON_LOAD;
-		loader.loadBytes(openedBytes.getData(), ctx);
-		openedBytes = null;
-		#else
 		super.loadBitmap(onLoaded);
-		#end
 	}
 
 }
@@ -198,7 +173,7 @@ class FileSystem implements hxd.fs.FileSystem {
 	}
 
 	public function loadPak( file : String ) {
-		#if (air3 || sys || nodejs)
+		#if (sys || nodejs)
 		addPak(File.read(file));
 		#else
 		throw "TODO";

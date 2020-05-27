@@ -9,7 +9,7 @@ class PassObjects {
 	}
 }
 
-private typedef SMap<T> = #if flash haxe.ds.UnsafeStringMap<T> #else Map<String,T> #end;
+private typedef SMap<T> = Map<String,T>;
 
 enum RenderMode{
 	Default;
