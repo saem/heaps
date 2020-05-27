@@ -70,8 +70,6 @@ class Engine {
 		driver = new h3d.impl.NullDriver();
 		#elseif (js || hlsdl || usegl)
 		driver = new h3d.impl.GlDriver(antiAlias);
-		#elseif flash
-		driver = new h3d.impl.Stage3dDriver(antiAlias);
 		#elseif hldx
 		driver = new h3d.impl.DirectXDriver();
 		#elseif usesys

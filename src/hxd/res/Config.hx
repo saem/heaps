@@ -1,7 +1,6 @@
 package hxd.res;
 
 enum Platform {
-	Flash;
 	HL;
 	JS;
 	Unknown;
@@ -36,7 +35,6 @@ class Config {
 	public static var ignoredExtensions = [
 		"gal" => true, // graphics gale source
 		"lch" => true, // labchirp source
-		"fla" => true, // Adobe flash
 	];
 
 
@@ -74,7 +72,6 @@ class Config {
 
 	static function init() {
 		var pf =
-			if( defined("flash") ) Flash else
 			if( defined("js") ) JS else
 			if( defined("hl") ) HL else
 			Unknown;

@@ -300,14 +300,6 @@ class BigTexture {
 		}
 		loadRec(space);
 		if( loadCount > 0 ) {
-			#if flash
-			// flash seems to sometime fail to load texture
-			if( waitTimer == null ) {
-				lastEvent = haxe.Timer.stamp();
-				waitTimer = new haxe.Timer(1000);
-				waitTimer.run = retry.bind(allPixels);
-			}
-			#end
 			return;
 		}
 		flush();

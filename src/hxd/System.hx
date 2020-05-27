@@ -6,7 +6,6 @@ enum Platform {
 	WebGL;
 	PC;
 	Console;
-	FlashPlayer;
 }
 
 enum SystemValue {

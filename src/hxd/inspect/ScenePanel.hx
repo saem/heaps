@@ -355,7 +355,7 @@ class ScenePanel extends Panel {
 		if( lastPickEvent != null && lastPickEvent < frame - 1 ) {
 			var window = hxd.Window.getInstance();
 			var e = new hxd.Event(EMove, window.mouseX, window.mouseY);
-			haxe.Timer.delay(function() { if( lastPickEvent == null ) return; onPickEvent(e); }, 0); // flash don't like to capture while rendering
+			if( lastPickEvent == null ) return; onPickEvent(e);
 		}
 	}
 
