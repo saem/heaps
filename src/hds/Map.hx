@@ -76,7 +76,7 @@ class HaxeIterator<T> {
     }
 }
 
-typedef KeyValue<K,V> = js.lib.Map.MapEntry<K,V>;
+typedef KeyValue<K,V> = js.lib.KeyValue<K,V>;
 
 #else
 

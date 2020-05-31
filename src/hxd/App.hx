@@ -35,7 +35,17 @@ class App implements h3d.IDrawable {
 
 	var isDisposed : Bool;
 
-	public function new() {
+	var started : Bool = false;
+
+	public function new(delayedStart: Bool = false) {
+		if(delayedStart) { return; }
+		start();
+	}
+
+	public function start() {
+		if(this.started) { return; }
+
+		this.started = true;
 		var engine = h3d.Engine.getCurrent();
 		if( engine != null ) {
 			this.engine = engine;

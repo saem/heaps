@@ -1,5 +1,9 @@
 package hxd;
 
+#if (hot_reload && nodejs)
+import js.node.Fs;
+#end
+
 enum Platform {
 	IOS;
 	Android;
@@ -44,6 +48,14 @@ class System {
 			browserLoop();
 		}
 		loopFunc = f;
+		
+		#if (hot_reload && nodejs)
+		Fs.watch(js.Node.__dirname + "/", function(changeType, path) {
+			switch changeType {
+				case c if (StringTools.endsWith(path,"app.js")): trace('frame: ${hxd.Timer.frameCount}, change: ${c}, filename: ${path}');
+			}
+		});
+		#end
 	}
 
 	static function browserLoop() {
@@ -53,6 +65,13 @@ class System {
 			window.mozRequestAnimationFrame;
 		rqf(browserLoop);
 		if( loopFunc != null ) loopFunc();
+
+		// watch the filesystem
+		// load file
+		// eval it
+		
+		// start looping
+		// check for reload
 	}
 
 	public static function start( callb : Void -> Void ) : Void {

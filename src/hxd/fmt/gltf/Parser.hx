@@ -219,7 +219,14 @@ class Parser {
 				var dataStart = buf.uri.indexOf(";base64,") + 8;
 				buffBytes = Base64.decode(buf.uri.substr(dataStart));
 			} else {
-				#if sys buffBytes = sys.io.File.getBytes(localDir + buf.uri); #end
+				buffBytes = #if (sys || nodejs)
+					sys.io.File.getBytes(localDir + buf.uri);
+				#elseif js
+					// assume it's embedded
+					haxe.Resource.getBytes(buf.uri);
+				#else
+					null;
+				#end
 			}
 			// TODO: better URI handling
 			if (buffBytes.length < buf.byteLength) {

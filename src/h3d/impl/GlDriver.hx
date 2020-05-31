@@ -186,14 +186,14 @@ class GlDriver extends Driver {
 			gl = cast canvas.getContextWebGL(options);
 		if( gl == null ) throw "Could not acquire GL context";
 		// debug if webgl_debug.js is included
-		untyped if( __js__('typeof')(WebGLDebugUtils) != "undefined" ) {
+		untyped if( js.Syntax.code('typeof')(WebGLDebugUtils) != "undefined" ) {
 			gl = untyped WebGLDebugUtils.makeDebugContext(gl);
 			glDebug = true;
 		}
 		#if multidriver
 		canvas.setAttribute("class", canvas.getAttribute("class") + " _id_" + (UID++));
-		#end
-		#end
+		#end // multidriver
+		#end // js
 		commonFB = gl.createFramebuffer();
 		programs = new Map();
 		defStencil = new Stencil();
@@ -1605,8 +1605,7 @@ class GlDriver extends Driver {
 		}
 		restoreBind();
 	}
-
-	#end
+	#end //js
 
 	override function captureRenderBuffer( pixels : hxd.Pixels ) {
 		captureSubRenderBuffer(pixels, 0, 0);
@@ -1636,7 +1635,6 @@ class GlDriver extends Driver {
 	}
 
 	#if hl
-
 	override function allocQuery(kind:QueryKind) {
 		return { q : GL.createQuery(), kind : kind };
 	}
@@ -1671,8 +1669,7 @@ class GlDriver extends Driver {
 	override function queryResult(q:Query) {
 		return GL.queryResult(q.q);
 	}
-
-	#end
+	#end // hl
 
 	static var TFILTERS = [
 		[[GL.NEAREST,GL.NEAREST],[GL.LINEAR,GL.LINEAR]],
