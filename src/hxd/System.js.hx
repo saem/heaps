@@ -42,6 +42,11 @@ class System {
 		return loopFunc;
 	}
 
+	#if (hot_reload && nodejs)
+	// Used to debounce -- -1.0 indicates
+	public static var requiresHotReload = false;
+	public static var fileEventDebounceTimer(default,null) = 0.;
+	#end
 	public static function setLoop( f : Void -> Void ) : Void {
 		if( !loopInit ) {
 			loopInit = true;
@@ -50,9 +55,14 @@ class System {
 		loopFunc = f;
 		
 		#if (hot_reload && nodejs)
+		// watch the filesystem
 		Fs.watch(js.Node.__dirname + "/", function(changeType, path) {
 			switch changeType {
-				case c if (StringTools.endsWith(path,"app.js")): trace('frame: ${hxd.Timer.frameCount}, change: ${c}, filename: ${path}');
+				case Change if (StringTools.endsWith(path,"app.js")):
+					requiresHotReload = true; // we've seen at least one change event
+					fileEventDebounceTimer = 0.1; // wait at least a 100ms before trying
+					trace('$path was $changeType at ${haxe.Timer.stamp()}');
+				default: null;
 			}
 		});
 		#end
@@ -66,12 +76,35 @@ class System {
 		rqf(browserLoop);
 		if( loopFunc != null ) loopFunc();
 
-		// watch the filesystem
+		#if (hot_reload && nodejs)
+		checkHotReload();
+		#end
+
+		
 		// load file
 		// eval it
 		
 		// start looping
 		// check for reload
+	}
+
+	static function checkHotReload() {
+		if(!requiresHotReload) return;
+
+		if(fileEventDebounceTimer < 0.) {
+			trace('Hot Reload after ${0.1 - fileEventDebounceTimer} at ${haxe.Timer.stamp()}');
+			
+			// check again in case the trace call might cause an event to process
+			// might not be necessary
+			if(fileEventDebounceTimer < 0.) {
+				requiresHotReload = false;
+				fileEventDebounceTimer = 0.;
+			}
+		} else {
+			// Count it down, once below zero then trigger a reload
+			fileEventDebounceTimer -= hxd.Timer.dt;
+			trace('Debounce timer: $fileEventDebounceTimer');
+		}
 	}
 
 	public static function start( callb : Void -> Void ) : Void {
