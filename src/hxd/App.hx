@@ -37,9 +37,11 @@ class App implements h3d.IDrawable {
 
 	var started : Bool = false;
 
-	public function new(delayedStart: Bool = false) {
-		if(delayedStart) { return; }
-		start();
+	public function new(startType: StartType = Immediate) {
+		switch startType {
+			case Immediate: start();
+			case ManualStartCall: null;
+		}
 	}
 
 	public function start() {
@@ -216,4 +218,9 @@ class App implements h3d.IDrawable {
 
 	static function staticHandler() {}
 
+}
+
+enum abstract StartType(Int) {
+	var Immediate;
+	var ManualStartCall;
 }
