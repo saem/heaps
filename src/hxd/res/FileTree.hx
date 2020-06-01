@@ -1,8 +1,8 @@
 package hxd.res;
+#if macro
 import haxe.macro.Context;
 import haxe.macro.Expr;
 
-#if macro
 private typedef FileEntry = { e : Expr, t : ComplexType };
 
 typedef FileTreeData = {
