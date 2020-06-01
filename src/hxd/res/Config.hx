@@ -20,6 +20,7 @@ class Config {
 		"fbx,hmd,obj,gltf,glb" => "hxd.res.Model",
 		"ttf" => "hxd.res.Font",
 		"fnt" => "hxd.res.BitmapFont",
+		"bdf" => "hxd.res.BDFFont",
 		"wav,mp3,ogg" => "hxd.res.Sound",
 		"tmx" => "hxd.res.TiledMap",
 		"atlas" => "hxd.res.Atlas",
