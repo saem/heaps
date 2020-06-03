@@ -44,6 +44,7 @@ class System {
 
 	#if (hot_reload && nodejs)
 	// Used to debounce -- -1.0 indicates
+	public static var pathToReload = js.Node.__dirname + "/app.js";
 	public static var requiresHotReload = false;
 	public static var fileEventDebounceTimer(default,null) = 0.;
 	#end
@@ -93,7 +94,14 @@ class System {
 
 		if(fileEventDebounceTimer < 0.) {
 			trace('Hot Reload after ${0.1 - fileEventDebounceTimer} at ${haxe.Timer.stamp()}');
-			
+
+			trace('File to reload: $pathToReload');
+			final contents = Fs.readFileSync(pathToReload);
+			trace('Eval contents:\n$contents');
+			final output = js.Lib.eval(contents.toString());
+			trace('Eval output: $output');
+			trace('test');
+
 			// check again in case the trace call might cause an event to process
 			// might not be necessary
 			if(fileEventDebounceTimer < 0.) {
