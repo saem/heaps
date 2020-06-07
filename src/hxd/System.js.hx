@@ -42,31 +42,12 @@ class System {
 		return loopFunc;
 	}
 
-	#if (hot_reload && nodejs)
-	// Used to debounce -- -1.0 indicates
-	public static var pathToReload = js.Node.__dirname + "/app.js";
-	public static var requiresHotReload = false;
-	public static var fileEventDebounceTimer(default,null) = 0.;
-	#end
 	public static function setLoop( f : Void -> Void ) : Void {
 		if( !loopInit ) {
 			loopInit = true;
 			browserLoop();
 		}
 		loopFunc = f;
-		
-		#if (hot_reload && nodejs)
-		// watch the filesystem
-		Fs.watch(js.Node.__dirname + "/", function(changeType, path) {
-			switch changeType {
-				case Change if (StringTools.endsWith(path,"app.js")):
-					requiresHotReload = true; // we've seen at least one change event
-					fileEventDebounceTimer = 0.1; // wait at least a 100ms before trying
-					trace('$path was $changeType at ${haxe.Timer.stamp()}');
-				default: null;
-			}
-		});
-		#end
 	}
 
 	static function browserLoop() {
@@ -81,7 +62,6 @@ class System {
 		checkHotReload();
 		#end
 
-		
 		// load file
 		// eval it
 		
@@ -89,18 +69,39 @@ class System {
 		// check for reload
 	}
 
-	static function checkHotReload() {
-		if(!requiresHotReload) return;
+	#if (hot_reload && nodejs)
+	public static var checkHotReload: () -> Bool = null;
+
+	// Used to debounce -- -1.0 indicates
+	public static var pathToReload = js.Node.__dirname + "/app.js";
+	public static var requiresHotReload = false;
+	public static var fileEventDebounceTimer(default,null) = 0.;
+
+	/**
+		Set this up in the hot reload shim before hxd.App::start is called
+	**/
+	public static function setHotReloadWatch() : Void {
+		// watch the filesystem
+		Fs.watch(js.Node.__dirname + "/", function(changeType, path) {
+			switch changeType {
+				case Change if (StringTools.endsWith(path,"app.js")):
+					requiresHotReload = true; // we've seen at least one change event
+					fileEventDebounceTimer = 0.1; // wait at least a 100ms before trying
+					trace('$path was $changeType at ${haxe.Timer.stamp()}');
+				default: null;
+			}
+		});
+	}
+
+	public static function doHotReloadCheck():Bool {
+		if(!requiresHotReload) return false;
 
 		if(fileEventDebounceTimer < 0.) {
 			trace('Hot Reload after ${0.1 - fileEventDebounceTimer} at ${haxe.Timer.stamp()}');
 
 			trace('File to reload: $pathToReload');
-			final contents = Fs.readFileSync(pathToReload);
-			trace('Eval contents:\n$contents');
-			final output = js.Lib.eval(contents.toString());
-			trace('Eval output: $output');
-			trace('test');
+			js.Lib.eval(Fs.readFileSync(pathToReload).toString());
+			// trace('test');
 
 			// check again in case the trace call might cause an event to process
 			// might not be necessary
@@ -108,12 +109,15 @@ class System {
 				requiresHotReload = false;
 				fileEventDebounceTimer = 0.;
 			}
+			return true;
 		} else {
 			// Count it down, once below zero then trigger a reload
 			fileEventDebounceTimer -= hxd.Timer.dt;
 			trace('Debounce timer: $fileEventDebounceTimer');
+			return false;
 		}
 	}
+	#end
 
 	public static function start( callb : Void -> Void ) : Void {
 		callb();
