@@ -51,16 +51,19 @@ class System {
 	}
 
 	static function browserLoop() {
+		#if (hot_reload)
+		if(checkHotReload()) {
+			trace("browserLoop: do hot reload");
+			// return; // TODO - stop this loop and resume with newer code
+		}
+		#end
+
 		var window : Dynamic = js.Browser.window;
 		var rqf : Dynamic = window.requestAnimationFrame ||
 			window.webkitRequestAnimationFrame ||
 			window.mozRequestAnimationFrame;
 		rqf(browserLoop);
 		if( loopFunc != null ) loopFunc();
-
-		#if (hot_reload && nodejs)
-		checkHotReload();
-		#end
 
 		// load file
 		// eval it
@@ -69,9 +72,11 @@ class System {
 		// check for reload
 	}
 
-	#if (hot_reload && nodejs)
+	#if hot_reload
 	public static var checkHotReload: () -> Bool = null;
+	#end
 
+	#if (hot_reload && nodejs)
 	// Used to debounce -- -1.0 indicates
 	public static var pathToReload = js.Node.__dirname + "/app.js";
 	public static var requiresHotReload = false;
