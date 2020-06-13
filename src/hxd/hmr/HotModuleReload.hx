@@ -37,10 +37,10 @@ class HotModuleReload {
 			trace(i);
 		}
 		js.Browser.console.groupEnd();
-		js.Browser.console.group('Enums');
-		for(i in js.lib.Object.getOwnPropertyNames(newModule.hxEnums)) {
-			trace(i);
-		}
-		js.Browser.console.groupEnd();
+		// js.Browser.console.group('Enums');
+		// for(i in js.lib.Object.getOwnPropertyNames(newModule.hxEnums)) {
+		// 	trace(i);
+		// }
+		// js.Browser.console.groupEnd();
 	}
 }
