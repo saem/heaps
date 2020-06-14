@@ -35,7 +35,19 @@ class App implements h3d.IDrawable {
 
 	var isDisposed : Bool;
 
-	public function new() {
+	var started : Bool = false;
+
+	public function new(startType: StartType = Immediate) {
+		switch startType {
+			case Immediate: start();
+			case ManualStartCall: null;
+		}
+	}
+
+	public function start() {
+		if(this.started) { return; }
+
+		this.started = true;
 		var engine = h3d.Engine.getCurrent();
 		if( engine != null ) {
 			this.engine = engine;
@@ -206,4 +218,9 @@ class App implements h3d.IDrawable {
 
 	static function staticHandler() {}
 
+}
+
+enum abstract StartType(Int) {
+	var Immediate;
+	var ManualStartCall;
 }
