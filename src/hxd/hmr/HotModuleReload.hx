@@ -33,8 +33,11 @@ class HotModuleReload {
 		// TODO - handle merge and handover
 
 		js.Browser.console.group('Classes');
-		for(i in js.lib.Object.getOwnPropertyNames(newModule.hxClasses)) {
-			trace(i);
+		for(name in js.lib.Object.getOwnPropertyNames(newModule.hxClasses)) {
+			final klass = Type.resolveClass(name);
+			for(field in Type.getClassFields(klass)) {
+				// TODO - Lookup and copy over data
+			}
 		}
 		js.Browser.console.groupEnd();
 		// js.Browser.console.group('Enums');
